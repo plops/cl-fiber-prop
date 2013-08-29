@@ -207,39 +207,8 @@ their Derivatives"
 
 
 
-
-(defun step-fiber-eigenvalues (v core-radius wavelength)
-  (let ((lmax (+ 1 (floor (* 2 V (/ pi)))))
-	(mmax (ceiling (- (/ V pi) 1/4))))
-    
-    (when (< v (aref (bess-zeros :d 1 :a lmax :n 1 :e 1d-6) 0))
-      (decf lmax))
-    (when (< v (aref (bess-zeros :d 1 :a lmax :n 1 :e 1d-6) 0))
-      (decf lmax))
-    (setf mmax 
-	  (count-if #'(lambda (x) (<= x v))
-		    (bess-zeros :d 1 :a 0 :n mmax :e 1d-6)))
-    (let ((zerb (make-array (list mmax (+ 1 lmax))
-			    :element-type 'double-float
-			    :initial-element 0d0)))
-      ;; find zeros of J_l to establish the intervals where to search
-      ;; for zeros of characteristic equation
-      (loop for l upto lmax do
-	   (let* ((zerny (bess-zeros :d 1 :a l :n mmax)))
-	     (loop for e across zerny and i from 0 while (<= e v)  do
-		  (setf (aref zerb i l) e))))
-      (let ((u (make-array (list mmax (+ 1 lmax))
-			   :element-type 'double-float))
-	    (delu 1d-4))
-	;; find mode-values U for every l as a solution of the
-	;; characteristic equation
-	))))
-
-#+nil
-(step-fiber-eigenvalues 5 .01 .0005)
-
-
 (defun zbrent (fun x1 x2 &optional (tol 1d-6) (itermax 100))
+  "Find zero of function fun between x1 and x2. Reference: Numerical Recipes in C"
   (declare (type (function (double-float) (values double-float &optional)) fun)
 	   (type double-float x1 x2 tol)
 	   (type (integer 0 100000) itermax)
@@ -281,3 +250,56 @@ their Derivatives"
 	   (incf b (if (< tol1 (abs d)) d   (* (abs tol1) (signum xm))))
 	   (setf fb (funcall fun b))))
     (error "maximum number of iterations exceeded")))
+
+#+nil
+(zbrent #'sin 1d0 4d0)
+
+(require :gsll)
+
+(defun char-step-index-fiber (u v l)
+  (declare (type (integer 0 1000000) l)
+	   (type (double-float 0d0) u v))
+  (let ((rad (- (* v v) (* u u))))
+    (when (and (<= 0 rad) (< 0 u))
+      (let ((posrad rad))
+	(declare (type (double-float 0d0) posrad))
+       (let ((w (sqrt posrad)))
+	 (declare (type (double-float 0d0) w))
+	 (return-from char-step-index-fiber 
+	   (- (/ (* u (jn (+ l 1) u))
+		 (jn l u))
+	      (/ (* w (gsll:cylindrical-bessel-k (+ l 1) w))
+		 (gsll:cylindrical-bessel-k l w)))))))))
+
+
+
+(defun step-fiber-eigenvalues (v core-radius wavelength)
+  (let ((lmax (+ 1 (floor (* 2 V (/ pi)))))
+	(mmax (ceiling (- (/ V pi) 1/4))))
+    
+    (when (< v (aref (bess-zeros :d 1 :a lmax :n 1 :e 1d-6) 0))
+      (decf lmax))
+    (when (< v (aref (bess-zeros :d 1 :a lmax :n 1 :e 1d-6) 0))
+      (decf lmax))
+    (setf mmax 
+	  (count-if #'(lambda (x) (<= x v))
+		    (bess-zeros :d 1 :a 0 :n mmax :e 1d-6)))
+    (let ((zerb (make-array (list mmax (+ 1 lmax))
+			    :element-type 'double-float
+			    :initial-element 0d0)))
+      ;; find zeros of J_l to establish the intervals where to search
+      ;; for zeros of characteristic equation
+      (loop for l upto lmax do
+	   (let* ((zerny (bess-zeros :d 1 :a l :n mmax)))
+	     (loop for e across zerny and i from 0 while (<= e v)  do
+		  (setf (aref zerb i l) e))))
+      (let ((u (make-array (list mmax (+ 1 lmax))
+			   :element-type 'double-float))
+	    (delu 1d-4))
+	;; find mode-values U for every l as a solution of the
+	;; characteristic equation
+	))))
+
+#+nil
+(step-fiber-eigenvalues 5 .01 .0005)
+
