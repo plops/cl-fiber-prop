@@ -1,46 +1,4 @@
-#+nil (defun besspqa (a x eps pa qa pa1 qa1)
-  (let* ((rev (< a -.5))
-	 na)
-    (when rev (setf a (+ (- a) -1)))
-    (let ((rec (<= .5 a)))
-      (if rec
-	  (setf na (floor (+ a .5))
-		a (- a na)))
-      (if (= a -.5)
-	  (setf pa 1
-		pa1 1
-		qa 0
-		qa1 0)
-	  (setf c (+ .25 (* -1 a a))
-		b (+ x x)
-		p pi
-		e (expt (* x (/ (cos (* a p))
-				(* p eps))) 2)
-		p 1
-		q (- x)
-		r (+ 1 (* x x))
-		s r)))))
-
 (declaim (optimize (debug 3) (speed 0) (safety 3)))
-
-#+nil
-(bessr () 
-	     (besspqa a x e pa qa pa1 qa1)
-	     (setf chi (- x psi))
-	     (let ((si (sin chi))
-		   (co (cos chi)))
-	       (ecase d
-		 (1 (/ (- (* pa co) (* qa si))
-		       (+ (* pa1 si) (* qa1 co))))
-		 (2 (/ (+ (* pa si) (* qa co))
-		       (- (* qa1 si) (* pa1 co))))
-		 (3 (- (/ a x)
-		       (/ (+ (* pa1 si) (* qa1 co))
-			  (- (* pa co) (* qa si)))))
-		 (4 (- (/ a x)
-		       (/ (- (* qa1 si) (* pa1 co))
-			  (+ (* pa si) (* qa co))))))))
-
 
 (require :cffi)
 (cffi:defcfun jn :double (n :int) (x :double))
@@ -48,13 +6,18 @@
 
 
 (defun bess-zeros (&key (a 0) (n 10) (d 1) (e 1d-6))
-  "Compute the first n zeros of a bessel function. d determines the type of the bessel function: 1.. J_a, 2.. Y_a, 3.. J_a', 4.. Y_a'; a is the order, e is the measure of relative accuracy."
+  "Compute the first n zeros of a bessel function. d determines the
+type of the bessel function: 1.. J_a, 2.. Y_a, 3.. J_a', 4.. Y_a'; a
+is the order, e is the measure of relative accuracy.
+Reference: 1979 Temme An Algorithm with ALGOL 60 Program for the
+Computation of the Zeros of Ordinary Bessel Functions and those of
+their Derivatives"
   (declare (type (integer 0 1000) a n)
 	   (type (integer 1 4) d)
 	   (type (double-float 0d0) e))
   (let* ((z (make-array n :element-type 'double-float))
-	 (chi 0d0) (psi 0d0) (p 0d0) (p0 0d0) (p1 0d0) (q1 0d0) (qq1 0d0) (pp1 0d0) (qa 0d0) (pa 0d0) (pa1 0d0) (qa1 0d0) (x 0d0))
-    (declare (type double-float chi psi p p0 p1 q1 qq1 pp1 qa pa pa1 qa1 x))
+	 (psi 0d0) (p 0d0) (p0 0d0) (p1 0d0) (q1 0d0) (qq1 0d0) (pp1 0d0) (x 0d0))
+    (declare (type double-float psi p p0 p1 q1 qq1 pp1 x))
     (flet ((fi (y)
 	     (when (= y 0) (return-from fi 0d0))
 	     (when (< 100000 y) (return-from fi 1.570796d0))
@@ -154,5 +117,64 @@
 		      (setf (aref z (- s 1)) x))))
 	   (return-from bess-zeros z)))))))
 
+
 #+nil
-(bess-zeros :a 1)
+(bess-zeros :d 2 :a 0)
+#+nil
+(loop for a below 4 collect
+     (list 
+   #+nil   (loop for x across (bess-zeros :d 1 :a a :n 10) collect
+	   (< (jn a x) 1d-6))
+      (loop for x across (bess-zeros :d 2 :a a :n 10) collect
+	   (< (yn a x) 1d-6))))
+
+(with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
+  (loop for x from 33 below 1000 do (format s "~a ~a~%" x (yn 3 (/ x 10d0)))))
+
+(bess-zeros :d 2 :a 3 :n 1)
+
+
+
+#+nil
+(let ((vold 0d0)) ;; some simple code to find zeros
+  (remove-if #'null
+	     (loop for x from 1 below 100d4 collect
+		  (let* ((arg (* x 1d-4))
+			 (v (yn 0 arg)))
+		    (prog1 
+			(when (< (* vold v) 0)
+			  (read-from-string (format nil "~2,3f" arg)))
+		      (setf vold v))))))
+
+
+;; J okay
+;; 1	2.4048	3.8317	5.1356	6.3802	7.5883	8.7715
+;; 2	5.5201	7.0156	8.4172	9.7610	11.0647	12.3386
+;; 3	8.6537	10.1735	11.6198	13.0152	14.3725	15.7002
+;; 4	11.7915	13.3237	14.7960	16.2235	17.6160	18.9801
+;; 5	14.9309	16.4706	17.9598	19.4094	20.8269	22.2178
+
+;; J3
+;; (6.38 9.761 13.015 16.224 19.41 22.583 25.748 28.908 32.065 35.219 38.37
+;;       41.521 44.67 47.818 50.965 54.112 57.258 60.403 63.549 66.693 69.838 72.982
+;;       76.126 79.27 82.414 85.557 88.701 91.844 94.987 98.13)
+
+
+(bess-zeros :d 2 :a 0 :n 3)
+;; Y0
+;; (0.894 3.958 7.086 10.222 13.361 16.501 19.641 22.782 25.923 29.064 32.205
+;;        35.346 38.488 41.629 44.771 47.912 51.053 54.195 57.336 60.478 63.619
+;;        66.761 69.902 73.044 76.185 79.327 82.468 85.61 88.752 91.893 95.035 98.176)
+
+
+;; Y3
+;; (4.527 8.098 11.397 14.623 17.819 20.997 24.166 27.329 30.487 33.642 36.795
+;;        39.946 43.095 46.244 49.392 52.538 55.685 58.831 61.976 65.121 68.266 71.41
+;;        74.554 77.698 80.842 83.986 87.129 90.272 93.416 96.559 99.702 )
+
+;; J' a=0 is okay, a=1 is wrong
+;; 1	3.8317	1.8412	3.0542	4.2012	5.3175	6.4156
+;; 2	7.0156	5.3314	6.7061	8.0152	9.2824	10.5199
+;; 3	10.1735	8.5363	9.9695	11.3459	12.6819	13.9872
+;; 4	13.3237	11.7060	13.1704	14.5858	15.9641	17.3128
+;; 5	16.4706	14.8636	16.3475	17.7887	19.1960	20.5755
