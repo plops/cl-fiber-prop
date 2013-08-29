@@ -206,7 +206,6 @@ their Derivatives"
 ;; 5	16.4706	14.8636	16.3475	17.7887	19.1960	20.5755
 
 
-
 (defun zbrent (fun x1 x2 &optional (tol 1d-6) (itermax 100))
   "Find zero of function fun between x1 and x2. Reference: Numerical Recipes in C"
   (declare (type (function (double-float) (values double-float &optional)) fun)
@@ -224,8 +223,8 @@ their Derivatives"
 		   (and (< fc 0) (< fb 0)))
 	   (setf c a  fc fa  e (- b a)  d e))
 	 (when (< (abs fc) (abs fb))
-	   (rotatef a b c)
-	   (rotatef fa fb fc))
+	   (setf a b b c c a)
+	   (setf fa fb fb fc fc fa))
 	 (let ((tol1 (+ (* .5 tol)
 			(* 2 double-float-epsilon (abs b))))
 	       (xm (* .5 (- c b))))      (declare (type double-float tol1 xm))
@@ -284,26 +283,31 @@ their Derivatives"
     (setf mmax 
 	  (count-if #'(lambda (x) (<= x v))
 		    (bess-zeros :d 1 :a 0 :n mmax :e 1d-6)))
-    (let ((zerb (make-array (list mmax (+ 1 lmax))
-			    :element-type 'double-float
-			    :initial-element 0d0)))
-      ;; find zeros of J_l to establish the intervals where to search
-      ;; for zeros of characteristic equation
-      (loop for l upto lmax do
-	   (let* ((zerny (bess-zeros :d 1 :a l :n mmax)))
-	     (loop for e across zerny and i from 0 while (<= e v)  do
-		  (setf (aref zerb i l) e))))
-      (let ((u (make-array (list mmax (+ 1 lmax))
-			   :element-type 'double-float))
-	    (delu 1d-4))
-	;; find mode-values U for every l as a solution of the
-	;; characteristic equation
-	zerb))))
-
-(with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-  (loop for x from .0001 upto 12d0 by 1d-3 do
-       (format s "~a ~a ~a~%" x (log (abs (/ (jn 2 x)))) (log (abs (char-step-index-fiber x 12d0 2))))))
+    (let ((poles 
+	   ;; there is one mode infront of each pole
+	   (loop for l upto lmax collect
+		(append '(0.0d0)
+			(loop for e across (bess-zeros :d 1 :a l :n mmax) 
+			   while (<= e v)  collect e)
+			(list v)))))
+      (loop for us in poles and l from 0 collect
+	   (loop for m from 1 below (length us) collect
+		(progn (format t "checking ~a~%" (list l (1- m) (elt us (1- m)) (elt us m)))
+		       (list l (1- m)
+			     (let ((du 1d-4))
+			       (zbrent #'(lambda (x) (char-step-index-fiber x v l))
+				      (+ (elt us (1- m)) du) (- (elt us m) du))))))))))
 
 #+nil
-(step-fiber-eigenvalues 5 .01 .0005)
+(zbrent #'(lambda (x) (char-step-index-fiber x 5d0 0))
+	0.0001d0 2.404 )
 
+
+
+#+nil
+(step-fiber-eigenvalues 5d0 .01 .0005)
+
+#+nil
+(with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
+  (loop for x from .0001 upto 5d0 by 1d-4 do
+       (format s "~a ~a ~a~%" x (/ (jn 0 x)) (char-step-index-fiber x 5d0 0))))
