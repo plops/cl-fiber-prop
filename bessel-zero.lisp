@@ -298,7 +298,11 @@ their Derivatives"
 	    (delu 1d-4))
 	;; find mode-values U for every l as a solution of the
 	;; characteristic equation
-	))))
+	zerb))))
+
+(with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
+  (loop for x from .0001 upto 12d0 by 1d-3 do
+       (format s "~a ~a ~a~%" x (log (abs (/ (jn 2 x)))) (log (abs (char-step-index-fiber x 12d0 2))))))
 
 #+nil
 (step-fiber-eigenvalues 5 .01 .0005)
