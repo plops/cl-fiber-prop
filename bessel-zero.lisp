@@ -259,6 +259,7 @@ their Derivatives"
 #+nil
 (char-step-index-fiber 1e-9 89.54 32)
 
+(defparameter *euler-m* 0.57721566490153286060651209008240243104215933593992d0)
 
 (defun char-step-index-fiber (u v l)
   (declare (type (integer 0 1000000) l)
@@ -272,9 +273,12 @@ their Derivatives"
 	 (return-from char-step-index-fiber 
 	   (- (/ (* u (jn (+ l 1) u))
 		 (jn l u))
-	      (/ (* w (gsll:cylindrical-bessel-k (+ l 1) w))
-		 (gsll:cylindrical-bessel-k l w)))))))))
-
+	      (if (< w (* .1 (sqrt (+ l 1)))) 
+		  (if (= l 0)
+		      (/ -1d0 (+ (log (* w .5)) *euler-m*))
+		      (* 2 l))
+		  (/ (* w (gsll:cylindrical-bessel-k-scaled (+ l 1) w))
+		     (gsll:cylindrical-bessel-k-scaled l w))))))))))
 
 
 (defun step-fiber-eigenvalues (v core-radius wavelength)
@@ -293,7 +297,7 @@ their Derivatives"
 	    (loop for l upto lmax collect
 		 (let ((poles (loop for e across (bess-zeros :d 1 :a l :n mmax) 
 				 while (<= e v)  collect e)))
-		   (when poles (append '(0.001d0) poles (list v))))))
+		   (when poles (append '(1d0) poles (list v))))))
 	   (modes (loop for us in poles and l from 0 collect
 		       (loop for m from 1 below (length us) collect
 			    (progn (format t "checking ~a~%" (list l (1- m) (elt us (1- m)) (elt us m)))
@@ -308,7 +312,7 @@ their Derivatives"
 
 #+nil
 (let ((count 0))
- (loop for e in (step-fiber-eigenvalues 94.2474d0 .01 .0005) do
+ (loop for e in (step-fiber-eigenvalues 245.04d0 .01 .0005) do
       (loop for f in e do (incf count)))
  count)
 
