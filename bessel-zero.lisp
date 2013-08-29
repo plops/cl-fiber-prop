@@ -16,20 +16,19 @@ their Derivatives"
 	   (type (integer 1 4) d)
 	   (type (double-float 0d0) e))
   (let* ((z (make-array n :element-type 'double-float))
-	 (psi 0d0) (p 0d0) (p0 0d0) (p1 0d0) (q1 0d0) (qq1 0d0) (pp1 0d0) (x 0d0))
-    (declare (type double-float psi p p0 p1 q1 qq1 pp1 x))
+	 (p 0d0) (p0 0d0) (p1 0d0) (q1 0d0) (qq1 0d0) (pp 0d0) (pp1 0d0) (x 0d0))
+    (declare (type double-float p p0 p1 q1 qq1 pp pp1 x))
     (flet ((fi (y)
-	     (when (= y 0) (return-from fi 0d0))
-	     (when (< 100000 y) (return-from fi 1.570796d0))
-	     (let ((p 0d0)
-		   (pp 0d0))
+	     (let ((c1 1.570796d0))
+	       (when (= y 0) (return-from fi 0d0))
+	       (when (< 100000 y) (return-from fi c1))
 	       (if (< y 1)
 		   (setf p (expt (* 3d0 y) 1/3)
 			 pp (* p p)
 			 p (* p (+ 1 (* 1/1575 pp (+ -210 (* pp (- 27 (* 2 pp))))))))
-		   (setf p (/ (+ y 1.570796d0))
+		   (setf p (/ (+ y c1))
 			 pp (* p p)
-			 p (- 1.570796d0 (* 1/3465 p (+ 1 (* pp (+ 2310 (* pp (+ 3003 (* pp (+ 4818 (* pp (+ 8591 (* pp 16328))))))))))))))
+			 p (- c1 (* 1/3465 p (+ 1 (* pp (+ 2310 (* pp (+ 3003 (* pp (+ 4818 (* pp (+ 8591 (* pp 16328))))))))))))))
 	       (setf pp (expt (+ y p) 2))
 	       (let ((r (/ (- p (atan (+ y p))) pp)))
 		 (- p (* (+ 1 pp) r (+ 1 (/ r (+ y p))))))))
@@ -38,7 +37,7 @@ their Derivatives"
 	       (1 (/ (jn a x) (jn (+ a 1) x)))
 	       (2 (/ (yn a x) (yn (+ a 1) x)))
 	       (3 (- (/ a x) (/ (jn (+ a 1) x) (jn a x))))
-	       (4 (- (/ a x) (/ (yn a x) (yn (+ a 1) x)))))))
+	       (4 (- (/ a x) (/ (yn (+ a 1) x) (yn a x)))))))
       (let* ((aa (* a a)) (mu (* 4d0 aa)) (mu2 (* mu mu)) (mu3 (* mu mu2)) (mu4 (* mu2 mu2)))
 	(if (< d 3)
 	   (setf p (- (* 7 mu) 31)
@@ -59,7 +58,7 @@ their Derivatives"
 	       (a1 (+ (* 3 a) -8))
 	       (y (* .375 pi))
 	       (xx 0d0) (j 0d0) (b 0d0)  (c 0d0) (u 0d0) (v 0d0) (w 0d0) (a2 0d0) (q 0d0) (ro 0d0) (x4 0d0))
-	   (setf psi (* pi (+ (* .5 a) .25)))
+	   
 	   (loop for s from 1 upto n do
 		(if (and (= a 0) (= s 1) (= d 3))
 		    (setf x 0d0 j 0d0)
@@ -68,7 +67,7 @@ their Derivatives"
 			  (setf b (* pi (+ s (* .5 a) (- vt)))
 				c (/ .015625d0 (* b b))
 				x (+ b (* -.125 (/ (- p0 (* p1 c))
-						   (* b (+ -1 (* q1 c)))))))
+						   (* b (- 1 (* q1 c)))))))
 			  (progn 
 			    (if (= s 1)
 				(setf x (ecase d 
@@ -123,9 +122,9 @@ their Derivatives"
 #+nil
 (loop for a below 4 collect
      (list 
-   #+nil   (loop for x across (bess-zeros :d 1 :a a :n 10) collect
+      (loop for x across (bess-zeros :d 1 :a a :n 10) collect
 	   (< (jn a x) 1d-6))
-      (loop for x across (bess-zeros :d 2 :a a :n 10) collect
+   #+nil   (loop for x across (bess-zeros :d 2 :a a :n 10) collect
 	   (< (yn a x) 1d-6))))
 
 (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
@@ -140,7 +139,7 @@ their Derivatives"
   (remove-if #'null
 	     (loop for x from 1 below 100d4 collect
 		  (let* ((arg (* x 1d-4))
-			 (v (yn 0 arg)))
+			 (v (yn 2 arg)))
 		    (prog1 
 			(when (< (* vold v) 0)
 			  (read-from-string (format nil "~2,3f" arg)))
@@ -160,13 +159,25 @@ their Derivatives"
 ;;       76.126 79.27 82.414 85.557 88.701 91.844 94.987 98.13)
 
 
-(bess-zeros :d 2 :a 0 :n 3)
+
 ;; Y0
 ;; (0.894 3.958 7.086 10.222 13.361 16.501 19.641 22.782 25.923 29.064 32.205
 ;;        35.346 38.488 41.629 44.771 47.912 51.053 54.195 57.336 60.478 63.619
 ;;        66.761 69.902 73.044 76.185 79.327 82.468 85.61 88.752 91.893 95.035 98.176)
 
 
+;; Y1
+;; (2.197 5.43 8.596 11.749 14.898 18.044 21.188 24.332 27.475 30.618 33.761
+;;     36.904 40.046 43.188 46.33 49.473 52.615 55.757 58.899 62.041 65.182 68.324
+;;     71.466 74.608 77.75 80.891 84.033 87.175 90.317 93.458 96.6 99.742)
+
+(bess-zeros :d 2 :a 2 :n 32 :e 1d-12)
+;; Y2
+;; (3.384 6.794 10.024 13.21 16.379 19.539 22.694 25.846 28.995 32.143 35.29
+;;     38.436 41.581 44.726 47.87 51.014 54.158 57.301 60.445 63.588 66.731 69.874
+;;     73.016 76.159 79.302 82.444 85.587 88.729 91.871 95.014 98.156)
+
+(bess-zeros :d 2 :a 3 :n 32 :e 1d-12)
 ;; Y3
 ;; (4.527 8.098 11.397 14.623 17.819 20.997 24.166 27.329 30.487 33.642 36.795
 ;;        39.946 43.095 46.244 49.392 52.538 55.685 58.831 61.976 65.121 68.266 71.41
