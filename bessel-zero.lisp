@@ -256,6 +256,10 @@ their Derivatives"
 
 (require :gsll)
 
+#+nil
+(char-step-index-fiber 1e-9 89.54 32)
+
+
 (defun char-step-index-fiber (u v l)
   (declare (type (integer 0 1000000) l)
 	   (type (double-float 0d0) u v))
@@ -289,11 +293,11 @@ their Derivatives"
 	    (loop for l upto lmax collect
 		 (let ((poles (loop for e across (bess-zeros :d 1 :a l :n mmax) 
 				 while (<= e v)  collect e)))
-		   (when poles (append '(0.0d0) poles (list v))))))
+		   (when poles (append '(0.001d0) poles (list v))))))
 	   (modes (loop for us in poles and l from 0 collect
 		       (loop for m from 1 below (length us) collect
 			    (progn (format t "checking ~a~%" (list l (1- m) (elt us (1- m)) (elt us m)))
-				   (let ((du 1d-4))
+				   (let ((du 1d-9))
 				     (handler-case 
 					 (zbrent #'(lambda (x) (char-step-index-fiber x v l))
 						 (+ (elt us (1- m)) du) (- (elt us m) du))
@@ -303,7 +307,11 @@ their Derivatives"
 	      modes))))
 
 #+nil
-(step-fiber-eigenvalues 89.2d0 .01 .0005)
+(let ((count 0))
+ (loop for e in (step-fiber-eigenvalues 94.2474d0 .01 .0005) do
+      (loop for f in e do (incf count)))
+ count)
+
 
 #+nil
 (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
