@@ -1,4 +1,4 @@
-(declaim (optimize (debug 3) (speed 3) (safety 3)))
+(declaim (optimize (debug 3) (speed 0) (safety 3)))
 
 (require :cffi)
 (declaim (ftype (function (fixnum double-float) (values double-float &optional)) jn yn))
@@ -205,6 +205,7 @@ their Derivatives"
 ;; 4	13.3237	11.7060	13.1704	14.5858	15.9641	17.3128
 ;; 5	16.4706	14.8636	16.3475	17.7887	19.1960	20.5755
 
+(define-condition root-not-bracketed () ())
 
 (defun zbrent (fun x1 x2 &optional (tol 1d-6) (itermax 100))
   "Find zero of function fun between x1 and x2. Reference: Numerical Recipes in C"
@@ -217,7 +218,7 @@ their Derivatives"
     (declare (type double-float a b c d e fa fb fc))
     (when (or (and (< 0 fa) (< 0 fb))
 	      (and (< fa 0) (< fb 0)))
-      (error "root must be bracketed"))
+      (error 'root-not-bracketed))
     (loop for iter below itermax do
 	 (when (or (and (< 0 fc) (< 0 fb))
 		   (and (< fc 0) (< fb 0)))
@@ -283,31 +284,29 @@ their Derivatives"
     (setf mmax 
 	  (count-if #'(lambda (x) (<= x v))
 		    (bess-zeros :d 1 :a 0 :n mmax :e 1d-6)))
-    (let ((poles 
-	   ;; there is one mode infront of each pole
-	   (loop for l upto lmax collect
-		(append '(0.0d0)
-			(loop for e across (bess-zeros :d 1 :a l :n mmax) 
-			   while (<= e v)  collect e)
-			(list v)))))
-      (loop for us in poles and l from 0 collect
-	   (loop for m from 1 below (length us) collect
-		(progn (format t "checking ~a~%" (list l (1- m) (elt us (1- m)) (elt us m)))
-		       (list l (1- m)
-			     (let ((du 1d-4))
-			       (zbrent #'(lambda (x) (char-step-index-fiber x v l))
-				      (+ (elt us (1- m)) du) (- (elt us m) du))))))))))
+    (let* ((poles 
+	    ;; there is one mode infront of each pole
+	    (loop for l upto lmax collect
+		 (let ((poles (loop for e across (bess-zeros :d 1 :a l :n mmax) 
+				 while (<= e v)  collect e)))
+		   (when poles (append '(0.0d0) poles (list v))))))
+	   (modes (loop for us in poles and l from 0 collect
+		       (loop for m from 1 below (length us) collect
+			    (progn (format t "checking ~a~%" (list l (1- m) (elt us (1- m)) (elt us m)))
+				   (let ((du 1d-4))
+				     (handler-case 
+					 (zbrent #'(lambda (x) (char-step-index-fiber x v l))
+						 (+ (elt us (1- m)) du) (- (elt us m) du))
+				       (root-not-bracketed ()))))))))
+      ;; occasionally there is no mode in the gap between the last pole and v
+      (mapcar #'(lambda (y) (remove-if #'(lambda (x) (null x)) y))
+	      modes))))
 
 #+nil
-(zbrent #'(lambda (x) (char-step-index-fiber x 5d0 0))
-	0.0001d0 2.404 )
-
-
-
-#+nil
-(step-fiber-eigenvalues 5d0 .01 .0005)
+(step-fiber-eigenvalues 89.2d0 .01 .0005)
 
 #+nil
 (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-  (loop for x from .0001 upto 5d0 by 1d-4 do
-       (format s "~a ~a ~a~%" x (/ (jn 0 x)) (char-step-index-fiber x 5d0 0))))
+  (let ((l 1))
+   (loop for x from .0001 upto 5d0 by 1d-4 do
+	(format s "~a ~a ~a~%" x (/ (jn l x)) (char-step-index-fiber x 5d0 l)))))
