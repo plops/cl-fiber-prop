@@ -14,7 +14,7 @@ is the order, e is the measure of relative accuracy.
 Reference: 1979 Temme An Algorithm with ALGOL 60 Program for the
 Computation of the Zeros of Ordinary Bessel Functions and those of
 their Derivatives"
-  (declare (type (integer 0 1000) a n)
+  (declare (type (integer 0 100000) a n)
 	   (type (integer 1 4) d)
 	   (type (double-float 0d0) e))
   (let* ((z (make-array n :element-type 'double-float))
@@ -140,7 +140,10 @@ their Derivatives"
 	   (< (yn a x) 1d-6))))
 
 #+nil
-(bess-zeros :d 2 :a 3 :n 1)
+(time
+ (progn (dotimes (i 10)
+	  (bess-zeros :d 2 :a i :n 10000))
+	nil))
 
 
 
@@ -236,3 +239,45 @@ their Derivatives"
 (step-fiber-eigenvalues 5 .01 .0005)
 
 
+(defun zbrent (fun x1 x2 &optional (tol 1d-6) (itermax 100))
+  (declare (type (function (double-float) (values double-float &optional)) fun)
+	   (type double-float x1 x2 tol)
+	   (type (integer 0 100000) itermax)
+	   (values double-float &optional))
+  (let* ((a x1) (b x2) (c x2) (d 0d0) (e 0d0)
+	 (fa (funcall fun a)) (fb (funcall fun b)) (fc fb))
+    (declare (type double-float a b c d e fa fb fc))
+    (when (or (and (< 0 fa) (< 0 fb))
+	      (and (< fa 0) (< fb 0)))
+      (error "root must be bracketed"))
+    (loop for iter below itermax do
+	 (when (or (and (< 0 fc) (< 0 fb))
+		   (and (< fc 0) (< fb 0)))
+	   (setf c a  fc fa  e (- b a)  d e))
+	 (when (< (abs fc) (abs fb))
+	   (rotatef a b c)
+	   (rotatef fa fb fc))
+	 (let ((tol1 (+ (* .5 tol)
+			(* 2 double-float-epsilon (abs b))))
+	       (xm (* .5 (- c b))))      (declare (type double-float tol1 xm))
+	   (when (or (<= (abs xm) tol1)
+		     (= fb 0))
+	     (return-from zbrent b))
+	   (if (and (<= tol1 (abs e))
+		    (< (abs fb) (abs fa)))
+	       (let ((p 0d0) (q 0d0) (r 0d0) (s (/ fb fa))) (declare (type double-float p q r s))
+		 (if (= a c)
+		     (setf p (* 2 xm s)  q (- 1 s))
+		     (setf q (/ fa fc)  r (/ fb fc)  p (* s (- (* 2 xm q (- q r))
+							       (* (- b a) (- r 1))))
+			   q (* (- q 1) (- r 1) (- s 1))))
+		 (when (< 0 p) (setf q (- q)))
+		 (setf p (abs p))
+		 (if (< (* 2 p) (min (- (* 3 xm q) (abs (* tol1 q))) (abs (* e q))))
+		     (setf e d  d (/ p q))
+		     (setf d xm  e d)))
+	       (setf d xm  e d))
+	   (setf a b  fa fb)
+	   (incf b (if (< tol1 (abs d)) d   (* (abs tol1) (signum xm))))
+	   (setf fb (funcall fun b))))
+    (error "maximum number of iterations exceeded")))
