@@ -1,7 +1,9 @@
-(declaim (optimize (debug 3) (speed 0) (safety 3)))
+(declaim (optimize (debug 3) (speed 3) (safety 3)))
 
 (require :cffi)
+(declaim (ftype (function (fixnum double-float) (values double-float &optional)) jn yn))
 (cffi:defcfun jn :double (n :int) (x :double))
+
 (cffi:defcfun yn :double (n :int) (x :double))
 
 
@@ -19,11 +21,12 @@ their Derivatives"
 	 (p 0d0) (p0 0d0) (p1 0d0) (q1 0d0) (qq1 0d0) (pp 0d0) (pp1 0d0) (x 0d0))
     (declare (type double-float p p0 p1 q1 qq1 pp pp1 x))
     (flet ((fi (y)
+	     (declare (type (double-float 0d0) y))
 	     (let ((c1 1.570796d0))
 	       (when (= y 0) (return-from fi 0d0))
 	       (when (< 100000 y) (return-from fi c1))
 	       (if (< y 1)
-		   (setf p (expt (* 3d0 y) 1/3)
+		   (setf p (expt (* 3d0 y) (/ 3d0))
 			 pp (* p p)
 			 p (* p (+ 1 (* 1/1575 pp (+ -210 (* pp (- 27 (* 2 pp))))))))
 		   (setf p (/ (+ y c1))
@@ -33,6 +36,9 @@ their Derivatives"
 	       (let ((r (/ (- p (atan (+ y p))) pp)))
 		 (- p (* (+ 1 pp) r (+ 1 (/ r (+ y p))))))))
 	   (bessr (d a x)
+	     (declare (type (integer 1 4) d)
+		      (type fixnum a)
+		      (type double-float x))
 	     (ecase d
 	       (1 (/ (jn a x) (jn (+ a 1) x)))
 	       (2 (/ (yn a x) (yn (+ a 1) x)))
@@ -54,14 +60,16 @@ their Derivatives"
 	     (setf pp1 (coerce 5/48 'double-float)   qq1 (coerce -5/36 'double-float))
 	     (setf pp1 (coerce -7/48 'double-float)  qq1 (coerce 35/288 'double-float)))
 	 
-	 (let ((bb (if (<= 3 a) (expt a -2/3) 1d0))
+	 (let ((bb (if (<= 3 a) (expt (* 1d0 a) (/ -2d0 3)) 1d0))
 	       (a1 (+ (* 3 a) -8))
 	       (y (* .375 pi))
-	       (xx 0d0) (j 0d0) (b 0d0)  (c 0d0) (u 0d0) (v 0d0) (w 0d0) (a2 0d0) (q 0d0) (ro 0d0) (x4 0d0))
+	       (xx 0d0) (j 0) (b 0d0)  (c 0d0) (u 0d0) (v 0d0) (w 0d0) (a2 0d0) (q 0d0) (ro 0d0) (x4 0d0))
+	   (declare (type double-float bb b c q ro)
+		    (type fixnum j))
 	   
 	   (loop for s from 1 upto n do
 		(if (and (= a 0) (= s 1) (= d 3))
-		    (setf x 0d0 j 0d0)
+		    (setf x 0d0 j 0)
 		    (progn
 		      (if (<= a1 s)
 			  (setf b (* pi (+ s (* .5 a) (- vt)))
@@ -77,12 +85,16 @@ their Derivatives"
 					  (4 -2.29444d0)))
 				(setf x (* y (+ (* 4 s) (- tt)))
 				      v (/ (* x x))
-				      x (* (- (expt x 2/3)) (+ 1 (* v (+ pp1 (* qq1 v)))))))
+				      x (* (- (expt x (/ 2d0 3))) (+ 1 (* v (+ pp1 (* qq1 v)))))))
 			    (setf u (* x bb)
-				  v (fi (* 2/3 (expt (- u) 1.5)))
+				  v (let ((minu (- u)))
+				      (declare (type (double-float 0d0) minu))
+				      (fi (* 2/3 (expt minu 1.5d0))))
 				  w (/ (cos v))
 				  xx (+ 1 (- (* w w)))
-				  c (sqrt (/ u xx))
+				  c (let ((ux (/ u xx)))
+				      (declare (type (double-float 0d0) ux))
+				      (sqrt ux))
 				  x (* w (+ a (* (/ c (* 48 a u))
 						 (if (< d 3)
 						     (+ (/ -5 u) (- (* c (+ (/ -10 xx) 6))))
@@ -120,16 +132,14 @@ their Derivatives"
 #+nil
 (bess-zeros :d 2 :a 0)
 #+nil
-(loop for a below 4 collect
+(loop for a below 12 collect
      (list 
       (loop for x across (bess-zeros :d 1 :a a :n 10) collect
 	   (< (jn a x) 1d-6))
-   #+nil   (loop for x across (bess-zeros :d 2 :a a :n 10) collect
+      (loop for x across (bess-zeros :d 2 :a a :n 10) collect
 	   (< (yn a x) 1d-6))))
 
-(with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-  (loop for x from 33 below 1000 do (format s "~a ~a~%" x (yn 3 (/ x 10d0)))))
-
+#+nil
 (bess-zeros :d 2 :a 3 :n 1)
 
 
@@ -171,12 +181,14 @@ their Derivatives"
 ;;     36.904 40.046 43.188 46.33 49.473 52.615 55.757 58.899 62.041 65.182 68.324
 ;;     71.466 74.608 77.75 80.891 84.033 87.175 90.317 93.458 96.6 99.742)
 
+#+nil
 (bess-zeros :d 2 :a 2 :n 32 :e 1d-12)
 ;; Y2
 ;; (3.384 6.794 10.024 13.21 16.379 19.539 22.694 25.846 28.995 32.143 35.29
 ;;     38.436 41.581 44.726 47.87 51.014 54.158 57.301 60.445 63.588 66.731 69.874
 ;;     73.016 76.159 79.302 82.444 85.587 88.729 91.871 95.014 98.156)
 
+#+nil
 (bess-zeros :d 2 :a 3 :n 32 :e 1d-12)
 ;; Y3
 ;; (4.527 8.098 11.397 14.623 17.819 20.997 24.166 27.329 30.487 33.642 36.795
@@ -189,3 +201,38 @@ their Derivatives"
 ;; 3	10.1735	8.5363	9.9695	11.3459	12.6819	13.9872
 ;; 4	13.3237	11.7060	13.1704	14.5858	15.9641	17.3128
 ;; 5	16.4706	14.8636	16.3475	17.7887	19.1960	20.5755
+
+
+
+
+(defun step-fiber-eigenvalues (v core-radius wavelength)
+  (let ((lmax (+ 1 (floor (* 2 V (/ pi)))))
+	(mmax (ceiling (- (/ V pi) 1/4))))
+    
+    (when (< v (aref (bess-zeros :d 1 :a lmax :n 1 :e 1d-6) 0))
+      (decf lmax))
+    (when (< v (aref (bess-zeros :d 1 :a lmax :n 1 :e 1d-6) 0))
+      (decf lmax))
+    (setf mmax 
+	  (count-if #'(lambda (x) (<= x v))
+		    (bess-zeros :d 1 :a 0 :n mmax :e 1d-6)))
+    (let ((zerb (make-array (list mmax (+ 1 lmax))
+			    :element-type 'double-float
+			    :initial-element 0d0)))
+      ;; find zeros of J_l to establish the intervals where to search
+      ;; for zeros of characteristic equation
+      (loop for l upto lmax do
+	   (let* ((zerny (bess-zeros :d 1 :a l :n mmax)))
+	     (loop for e across zerny and i from 0 while (<= e v)  do
+		  (setf (aref zerb i l) e))))
+      (let ((u (make-array (list mmax (+ 1 lmax))
+			   :element-type 'double-float))
+	    (delu 1d-4))
+	;; find mode-values U for every l as a solution of the
+	;; characteristic equation
+	))))
+
+#+nil
+(step-fiber-eigenvalues 5 .01 .0005)
+
+
