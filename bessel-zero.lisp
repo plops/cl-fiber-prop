@@ -467,7 +467,7 @@ mm."
 
 (time 
  (defparameter *bla*
-   (let ((v 12d0))
+   (let ((v 6d0))
      (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
      (step-fiber-fields *bla-ev* v))))
 
@@ -484,21 +484,25 @@ mm."
   (let* ((lmax (length u-modes))
 	 (mmax (length (first u-modes)))
 	 (n (array-dimension fields 2))
-	 (height (* (1+ (* 2 lmax)) n))
+	 (height (* 2 lmax n))
 	 (a (make-array (list height (* mmax n)) :element-type 'double-float)))
-    (loop for l from (1+ (- lmax)) below lmax do
+    (loop for l below lmax do
 	 (loop for m below mmax do
 	      (handler-case
 		  (dotimes (j n)
 		    (dotimes (i n)
-		      (setf (aref a (+ j (floor height 2) (* n l)) (+ i (* n m)))
-			    (aref fields (fiber-ml-to-linear-index m l u-modes) j i))
-		      ))
+		      (if (= l 0)
+			  (setf (aref a (+ j (floor height 2) (* n l)) (+ i (* n m)))
+				(aref fields (fiber-lm-to-linear-index l m u-modes) j i))
+			  (setf (aref a (+ j (floor height 2) (* n l)) (+ i (* n m)))
+				(aref fields (fiber-lm-to-linear-index l m u-modes) j i)
+				(aref a (+ j (floor height 2) (* n l)) (+ i (* n m)))
+				(aref fields (fiber-lm-to-linear-index (- l) m u-modes) j i)))))
 		(mode-index-out-of-range ()))
 	      ))
     a))
-
-(length *bla-ev*)
+(length (first *bla-ev*))
+(fiber-lm-to-linear-index -3 0 *bla-ev*)
 #+nil
 (time
  (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev*) :scale .9 :offset -.3d0)))
@@ -575,13 +579,18 @@ mm."
 ;; 1971 lether a generalized product rule for the unit cirlce
 ;; http://www.holoborodko.com/pavel/numerical-methods/numerical-integration/cubature-formulas-for-the-unit-disk/
 
+
 (define-condition mode-index-out-of-range () ())
-(defun fiber-ml-to-linear-index (m l u-modes)
+
+(defun fiber-lm-to-linear-index (l m u-modes)
+  (handler-case
+      (unless (elt (elt u-modes l) m)
+     (break "No mode with index l=~a m=~a." l m))
+    (sb-kernel:index-too-large-error ()
+      (break "No mode with index l=~a m=~a." l m)))
   (let* ((nmodl (mapcar #'length u-modes))
 	 (j (cond 
-	      ((= l 0) (if (< m (length nmodl))
-			   m
-			   (break "error m is too big")))
+	      ((= l 0) m)
 	      ((= l 1) (+ m (elt nmodl 0)))
 	      ((= l -1) (+ m (elt nmodl 0) (elt nmodl 1)))
 	      ((< 1 l) (+ m (elt nmodl 0)
@@ -594,25 +603,28 @@ mm."
     j))
 
 #+nil
-(fiber-ml-to-linear-index 0 -20 (step-fiber-eigenvalues 3d0))
+(fiber-lm-to-linear-index 0 5 (step-fiber-eigenvalues 12d0))
 
 
 (defun number-of-modes (u-modes)
   (+ (length (car u-modes)) 
      (* 2 (reduce #'+ (mapcar #'length (cdr u-modes))))))
 
-(defun fiber-linear-to-ml-index (j u-modes)
-  (let ((res (make-array (numer-of-modes u-modes))))
+(defun fiber-linear-to-lm-index (j u-modes)
+  (let ((res (make-array (number-of-modes u-modes))))
     (loop for ul in u-modes and l from 0 do
 	 (loop for um in ul and m from 0 do
-	      (setf (aref res (fiber-ml-to-linear-index m l u-modes))
-		    (list m l))
+	      (setf (aref res (fiber-lm-to-linear-index l m u-modes))
+		    (list l m))
 	      (unless (= l 0)
-		(setf (aref res (fiber-ml-to-linear-index m (- l) u-modes))
-		      (list m (- l))))))
-    (aref res j)))
+		(setf (aref res (fiber-lm-to-linear-index (- l) m u-modes))
+		      (list (- l) m)))))
+    (aref res j)
+    res))
 
-(fiber-linear-to-ml-index 3 (step-fiber-eigenvalues 30d0))
+#+nil
+(fiber-linear-to-lm-index 0 *bla-ev*)
 
+#+nil
 (defparameter *wup*
  (step-fiber-eigenvalues 30d0))
