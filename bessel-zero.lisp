@@ -308,8 +308,8 @@ their Derivatives"
 						 (+ (elt us (1- m)) du) (- (elt us m) du))
 				       (root-not-bracketed ()))))))))
       ;; occasionally there is no mode in the gap between the last pole and v
-      (mapcar #'(lambda (y) (remove-if #'(lambda (x) (null x)) y))
-	      modes))))
+      (remove-if #'null (mapcar #'(lambda (y) (remove-if #'(lambda (x) (null x)) y))
+				modes)))))
 
 #+nil
 (time 
@@ -438,8 +438,8 @@ mm."
 	 (sin-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float))
 	 (cos-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float)))
     (macrolet ((doplane ((j i) &body body) `(dotimes (,j n) (dotimes (,i n) ,@body))))
-      (doplane (j i) (let* ((x (* scale (- i (floor n 2)) (/ 1d0 n)))
-			    (y (* scale (- j (floor n 2)) (/ 1d0 n)))
+      (doplane (j i) (let* ((x (* 2 scale (- i (floor n 2)) (/ 1d0 n)))
+			    (y (* 2 scale (- j (floor n 2)) (/ 1d0 n)))
 			    (r (sqrt (+ (expt x 2) (expt y 2)))))
 		       (setf (aref r-a j i) r   (aref phi-a j i) (atan y x))))
       (loop for l from 1 below  azimuthal-mode-count do
@@ -456,7 +456,7 @@ mm."
 		       (norm (expt (* nphi nrad) -.5)))
 		  (dotimes (k (if (= l 0) 1 2))
 		    (doplane (j i)
-			     (setf (aref fl 0 m j i) (* norm (if (= l 0) 1d0 (ecase k 
+			     (setf (aref fl k m j i) (* norm (if (= l 0) 1d0 (ecase k 
 									       (0 (aref sin-a (- l 1) j i))
 									       (1 (aref cos-a (- l 1) j i))))
 							(let ((r (aref r-a j i)))
@@ -466,8 +466,26 @@ mm."
 								 (gsll:cylindrical-bessel-k-scaled l w))))))))))))
     fields))
 
-(let ((v 3d0))
- (step-fiber-fields (step-fiber-eigenvalues v) v))
+(time 
+ (defparameter *bla*
+   (let ((v 40d0))
+     (step-fiber-fields (step-fiber-eigenvalues v) v))))
+
+(loop for fields-l in *bla* and l from 0 do
+     (destructuring-bind (parity mmax h w) (array-dimensions fields-l)
+       (loop for p below parity do
+	    (loop for m below mmax do
+		 (write-pgm (format nil "/run/q/mode-~3,'0d-~3,'0d-~3,'0d.pgm" l m p)
+			    (convert-ub8 (array-cut-plane fields-l p m) :scale .2 :offset -2.0))))))
+
+(defun array-cut-plane (a4d parity m)
+  (destructuring-bind (par mmax h w) (array-dimensions a4d)
+    (let ((a2d (make-array (cddr (array-dimensions a4d))
+			   :element-type 'double-float)))
+      (dotimes (j h)
+	(dotimes (i w)
+	  (setf (aref a2d j i) (aref a4d parity m j i))))
+      a2d)))
 
 (defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0 offset-p) (debug nil))
   (declare (type (simple-array double-float 2) a)
