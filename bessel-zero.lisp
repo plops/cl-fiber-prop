@@ -387,7 +387,7 @@ mm."
 
 (jn 1 0d0)
 
-(defun step-fiber-field (u v l &key (n 100) (scale 1.3d0) (odd t))
+(defun step-fiber-field (u v l &key (n 100) (scale 1.3d0) (odd t) (debug nil))
   (declare (type double-float u v scale)
 	   (type (integer 0 1000000) l n)
 	   (values (simple-array double-float 2) &optional))
@@ -399,6 +399,7 @@ mm."
 		  (gsll:cylindrical-bessel-k-scaled (- l 1) w)
 		  (gsll:cylindrical-bessel-k-scaled (+ l 1) w)))
 	 (norm (expt (* nphi nrad) -.5)))
+    (when debug (break "~a" (list 'norm (/ norm) 'u u 'v v 'w w)))
     (dotimes (i n)
       (dotimes (j n)
 	(let* ((x (* scale (- i (floor n 2)) (/ 1d0 n)))
@@ -411,17 +412,16 @@ mm."
 		       (if odd
 			   (sin (* l (atan y x)))
 			   (cos (* l (atan y x)))))
-		   (cond 
-		      
-		     ((< 0 r 1d0)
-		      (/ (jn l (* u r))
-			 (jn l r)))
-		     ((<= 1d0 r) 
-		      (/ (gsll:cylindrical-bessel-k l (* w r))
-			 (gsll:cylindrical-bessel-k l r)))
-		     (t ;;limit(bessel_j(l,u*r)/bessel_j(l,r),r,0);
-		      1d0)))))))
+		   (if (<=  r 1d0)
+		       (/ (jn l (* u r))
+			  (jn l u))
+		       (/ (gsll:cylindrical-bessel-k-scaled l (* w r))
+			  (gsll:cylindrical-bessel-k-scaled l w))))))))
     a))
+
+
+#+nil
+(- (gsll:cylindrical-bessel-k 0 7d0) 4.247957418692318e-4)
 
 (defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0 offset-p) (debug nil))
   (declare (type (simple-array double-float 2) a)
@@ -472,9 +472,36 @@ mm."
 
 (write-pgm "/run/q/bla.pgm"
 	   (convert-ub8 
-	    (let ((v 10d0)
-		  (l 0)
-		  (m 2))
-	      (step-fiber-field (elt (elt (step-fiber-eigenvalues v) l) m) v l :scale 4d0 :n 512))
+	    (let ((v 80d0)
+		  (l 48)
+		  (m 4))
+	      (step-fiber-field (elt (elt (step-fiber-eigenvalues v) l) m) v l :scale 4d0 :n 256))
 	    :debug nil))
+
+(let ((q 
+       (let ((v 3d0)
+	     (l 0)
+	     (m 0))
+	 (step-fiber-field (elt (elt (step-fiber-eigenvalues v) l) m) v l :scale 4d0 :n 256 :debug t))))
+  (destructuring-bind (h w) (array-dimensions q)
+    (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
+      (loop for i below w do (format s "~a ~a~%" i (aref q (floor h 2) i)))))
+  )
+
+
+
+(let* ((v 3d0)
+       (r 1d0)
+       (u (first (first (step-fiber-eigenvalues v))))
+       (w (sqrt (- (expt v 2) (expt u 2)))))
+  (list 
+   (-
+    (* u (/ (jn 1 u)
+	    (jn 0 u)))
+    (* w (/ (gsl:cylindrical-bessel-k 1 w)
+	    (gsl:cylindrical-bessel-k 0 w))))
+   (/ (jn 0 (* r u))
+      (jn 0 u))
+   (/ (gsl:cylindrical-bessel-k-scaled 0 (* r w))
+      (gsl:cylindrical-bessel-k-scaled 0 w))))
 
