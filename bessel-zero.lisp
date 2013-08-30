@@ -468,7 +468,7 @@ mm."
 
 (time 
  (defparameter *bla*
-   (let ((v 80d0))
+   (let ((v 30d0))
      (step-fiber-fields (step-fiber-eigenvalues v) v))))
 
 (loop for fields-l in *bla* and l from 0 do
@@ -498,7 +498,7 @@ mm."
 
 #+nil
 (time
- (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla*))))
+ (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla*) :scale .9 :offset -.3d0)))
 
 (defun array-cut-plane (a4d parity m)
   (destructuring-bind (par mmax h w) (array-dimensions a4d)
@@ -564,3 +564,28 @@ mm."
 	      (step-fiber-field (elt (elt (step-fiber-eigenvalues v) l) m) v l :scale 4d0 :n 256))
 	    :debug nil))
 
+
+;; http://mathoverflow.net/questions/28669/numerical-integration-over-2d-disk
+;; Arthur Stroud, Approximate Calculation of Multiple Integrals.
+;; http://people.sc.fsu.edu/~jburkardt/f_src/stroud/stroud.html
+;; cubatur for the unit circle
+;; 1971 lether a generalized product rule for the unit cirlce
+;; http://www.holoborodko.com/pavel/numerical-methods/numerical-integration/cubature-formulas-for-the-unit-disk/
+
+(defun fiber-ml-to-linear-index (m l u-modes)
+  (let ((nmodl (mapcar #'(lambda (ls) (length ls)) 
+		  u-modes)))
+    (cond 
+      ((= l 0) (if (< m (length nmodl))
+		   m
+		   (break "error m is too big")))
+      ((= l 1) (+ m (elt nmodl 0)))
+      ((= l -1) (+ m (elt nmodl 0) (elt nmodl 1)))
+      ((< 1 l) (+ m (elt nmodl 0)
+		  (* 2 (reduce #'+ (subseq nmodl 1 l)))))
+      ((< l -1) (+ m (elt nmodl 0)
+		   (* 2 (reduce #'+ (subseq nmodl 1 (abs l))))
+		   (elt nmodl (1+ (abs l))))))))
+
+#+nil
+(fiber-ml-to-linear-index 4 3 (step-fiber-eigenvalues 30d0))
