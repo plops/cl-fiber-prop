@@ -573,8 +573,7 @@ mm."
 ;; http://www.holoborodko.com/pavel/numerical-methods/numerical-integration/cubature-formulas-for-the-unit-disk/
 
 (defun fiber-ml-to-linear-index (m l u-modes)
-  (let ((nmodl (mapcar #'(lambda (ls) (length ls)) 
-		  u-modes)))
+  (let ((nmodl (mapcar #'length u-modes)))
     (cond 
       ((= l 0) (if (< m (length nmodl))
 		   m
@@ -585,7 +584,27 @@ mm."
 		  (* 2 (reduce #'+ (subseq nmodl 1 l)))))
       ((< l -1) (+ m (elt nmodl 0)
 		   (* 2 (reduce #'+ (subseq nmodl 1 (abs l))))
-		   (elt nmodl (1+ (abs l))))))))
+		   (elt nmodl (abs l)))))))
 
 #+nil
-(fiber-ml-to-linear-index 4 3 (step-fiber-eigenvalues 30d0))
+(fiber-ml-to-linear-index 0 -20 (step-fiber-eigenvalues 3d0))
+
+
+
+(defun fiber-linear-to-ml-index (j u-modes)
+  (let* ((n (+ (length (car u-modes)) 
+	       (* 2 (reduce #'+ (mapcar #'length (cdr u-modes))))))
+	 (res (make-array n)))
+    (loop for ul in u-modes and l from 0 do
+	 (loop for um in ul and m from 0 do
+	      (setf (aref res (fiber-ml-to-linear-index m l u-modes))
+		    (list m l))
+	      (unless (= l 0)
+		(setf (aref res (fiber-ml-to-linear-index m (- l) u-modes))
+		      (list m (- l))))))
+    (aref res j)))
+
+(fiber-linear-to-ml-index 3 (step-fiber-eigenvalues 30d0))
+
+(defparameter *wup*
+ (step-fiber-eigenvalues 30d0))
