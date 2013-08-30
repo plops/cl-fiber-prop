@@ -426,13 +426,11 @@ mm."
 			  (gsll:cylindrical-bessel-k-scaled l w))))))))
     a))
 
-
-
 (defun step-fiber-fields (u-modes v &key (n 100) (scale 1.3d0))
-  (let* ((radial-mode-counts (mapcar #'(lambda (ls) (length ls)) u-modes))
+  (declare (values (simple-array double-float 3) &optional))
+  (let* ((radial-mode-counts (mapcar #'length u-modes))
 	 (azimuthal-mode-count (length radial-mode-counts))
-	 (fields (loop for m-count in radial-mode-counts and l from 0 collect
-		      (make-array (list (if (= l 0) 1 2) m-count n n) :element-type 'double-float)))
+	 (fields  (make-array (list (number-of-modes u-modes) n n) :element-type 'double-float))
 	 (r-a (make-array (list n n) :element-type 'double-float)) ;; some arrays that store reusable intermediate results
 	 (phi-a (make-array (list n n) :element-type 'double-float))
 	 (sin-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float))
@@ -445,7 +443,7 @@ mm."
       (loop for l from 1 below  azimuthal-mode-count do
 	   (doplane (j i) (setf (aref sin-a (1- l) j i) (sin (* l (aref phi-a j i)))))
 	   (doplane (j i) (setf (aref cos-a (1- l) j i) (cos (* l (aref phi-a j i))))))
-      (loop for fl in fields and l from 0 do
+      (loop for l below azimuthal-mode-count do
 	   (loop for u in (elt u-modes l) and m from 0 do
 		(let* ((w (sqrt (- (expt v 2) (expt u 2))))
 		       (nphi (* pi (if (= l 0) 2 1)))
@@ -456,20 +454,22 @@ mm."
 		       (norm (expt (* nphi nrad) -.5)))
 		  (dotimes (k (if (= l 0) 1 2))
 		    (doplane (j i)
-			     (setf (aref fl k m j i) (* norm (if (= l 0) 1d0 (ecase k 
-									       (0 (aref sin-a (- l 1) j i))
-									       (1 (aref cos-a (- l 1) j i))))
-							(let ((r (aref r-a j i)))
-							  (if (<= r 1d0)
-							      (/ (jn l (* u r)) (jn l u))
-							      (/ (gsll:cylindrical-bessel-k-scaled l (* w r))
-								 (gsll:cylindrical-bessel-k-scaled l w))))))))))))
+			     (setf (aref fields (fiber-ml-to-linear-index m l u-modes) j i)
+				   (* norm (if (= l 0) 1d0 (ecase k 
+							     (0 (aref sin-a (- l 1) j i))
+							     (1 (aref cos-a (- l 1) j i))))
+				      (let ((r (aref r-a j i)))
+					(if (<= r 1d0)
+					    (/ (jn l (* u r)) (jn l u))
+					    (/ (gsll:cylindrical-bessel-k-scaled l (* w r))
+					       (gsll:cylindrical-bessel-k-scaled l w))))))))))))
     fields))
 
 (time 
  (defparameter *bla*
-   (let ((v 30d0))
-     (step-fiber-fields (step-fiber-eigenvalues v) v))))
+   (let ((v 12d0))
+     (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
+     (step-fiber-fields *bla-ev* v))))
 
 (loop for fields-l in *bla* and l from 0 do
      (destructuring-bind (parity mmax h w) (array-dimensions fields-l)
@@ -478,27 +478,30 @@ mm."
 		 (write-pgm (format nil "/run/q/mode-~3,'0d-~3,'0d-~3,'0d.pgm" l m p)
 			    (convert-ub8 (array-cut-plane fields-l p m) :scale .2 :offset -2.0))))))
 
-(defun create-field-mosaic (fields)
-  (declare (values (simple-array double-float 2) &optional))
-  (let* ((lmax (length fields))
-	 (mmax (array-dimension (first fields) 1))
-	 (n (array-dimension (first fields) 2))
-	 (height (* 2 lmax n))
+(defun create-field-mosaic (fields u-modes)
+  (declare (type (simple-array double-float 3) fields)
+	   (values (simple-array double-float 2) &optional))
+  (let* ((lmax (length u-modes))
+	 (mmax (length (first u-modes)))
+	 (n (array-dimension fields 2))
+	 (height (* (1+ (* 2 lmax)) n))
 	 (a (make-array (list height (* mmax n)) :element-type 'double-float)))
-    (loop for fields-l in fields and l from 0 do
-	 (destructuring-bind (parity mmax h w) (array-dimensions fields-l)
-	   (declare (type (simple-array double-float 4) fields-l))
-	   (loop for p below parity do
-		(loop for m below mmax do
-		     (dotimes (j n)
-		       (dotimes (i n)
-			 (setf (aref a (+ j (floor height 2) (* n l (- (* 2 p) 1))) (+ i (* n m)))
-			       (aref fields-l p m j i))))))))
+    (loop for l from (1+ (- lmax)) below lmax do
+	 (loop for m below mmax do
+	      (handler-case
+		  (dotimes (j n)
+		    (dotimes (i n)
+		      (setf (aref a (+ j (floor height 2) (* n l)) (+ i (* n m)))
+			    (aref fields (fiber-ml-to-linear-index m l u-modes) j i))
+		      ))
+		(mode-index-out-of-range ()))
+	      ))
     a))
 
+(length *bla-ev*)
 #+nil
 (time
- (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla*) :scale .9 :offset -.3d0)))
+ (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev*) :scale .9 :offset -.3d0)))
 
 (defun array-cut-plane (a4d parity m)
   (destructuring-bind (par mmax h w) (array-dimensions a4d)
@@ -572,29 +575,34 @@ mm."
 ;; 1971 lether a generalized product rule for the unit cirlce
 ;; http://www.holoborodko.com/pavel/numerical-methods/numerical-integration/cubature-formulas-for-the-unit-disk/
 
+(define-condition mode-index-out-of-range () ())
 (defun fiber-ml-to-linear-index (m l u-modes)
-  (let ((nmodl (mapcar #'length u-modes)))
-    (cond 
-      ((= l 0) (if (< m (length nmodl))
-		   m
-		   (break "error m is too big")))
-      ((= l 1) (+ m (elt nmodl 0)))
-      ((= l -1) (+ m (elt nmodl 0) (elt nmodl 1)))
-      ((< 1 l) (+ m (elt nmodl 0)
-		  (* 2 (reduce #'+ (subseq nmodl 1 l)))))
-      ((< l -1) (+ m (elt nmodl 0)
-		   (* 2 (reduce #'+ (subseq nmodl 1 (abs l))))
-		   (elt nmodl (abs l)))))))
+  (let* ((nmodl (mapcar #'length u-modes))
+	 (j (cond 
+	      ((= l 0) (if (< m (length nmodl))
+			   m
+			   (break "error m is too big")))
+	      ((= l 1) (+ m (elt nmodl 0)))
+	      ((= l -1) (+ m (elt nmodl 0) (elt nmodl 1)))
+	      ((< 1 l) (+ m (elt nmodl 0)
+			  (* 2 (reduce #'+ (subseq nmodl 1 l)))))
+	      ((< l -1) (+ m (elt nmodl 0)
+			   (* 2 (reduce #'+ (subseq nmodl 1 (abs l))))
+			   (elt nmodl (abs l)))))))
+    (unless (<= 0 j (1- (number-of-modes u-modes)))
+      (error 'mode-index-out-of-range))
+    j))
 
 #+nil
 (fiber-ml-to-linear-index 0 -20 (step-fiber-eigenvalues 3d0))
 
 
+(defun number-of-modes (u-modes)
+  (+ (length (car u-modes)) 
+     (* 2 (reduce #'+ (mapcar #'length (cdr u-modes))))))
 
 (defun fiber-linear-to-ml-index (j u-modes)
-  (let* ((n (+ (length (car u-modes)) 
-	       (* 2 (reduce #'+ (mapcar #'length (cdr u-modes))))))
-	 (res (make-array n)))
+  (let ((res (make-array (numer-of-modes u-modes))))
     (loop for ul in u-modes and l from 0 do
 	 (loop for um in ul and m from 0 do
 	      (setf (aref res (fiber-ml-to-linear-index m l u-modes))
