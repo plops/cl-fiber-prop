@@ -468,7 +468,7 @@ mm."
 
 (time 
  (defparameter *bla*
-   (let ((v 40d0))
+   (let ((v 80d0))
      (step-fiber-fields (step-fiber-eigenvalues v) v))))
 
 (loop for fields-l in *bla* and l from 0 do
@@ -477,6 +477,28 @@ mm."
 	    (loop for m below mmax do
 		 (write-pgm (format nil "/run/q/mode-~3,'0d-~3,'0d-~3,'0d.pgm" l m p)
 			    (convert-ub8 (array-cut-plane fields-l p m) :scale .2 :offset -2.0))))))
+
+(defun create-field-mosaic (fields)
+  (declare (values (simple-array double-float 2) &optional))
+  (let* ((lmax (length fields))
+	 (mmax (array-dimension (first fields) 1))
+	 (n (array-dimension (first fields) 2))
+	 (height (* 2 lmax n))
+	 (a (make-array (list height (* mmax n)) :element-type 'double-float)))
+    (loop for fields-l in fields and l from 0 do
+	 (destructuring-bind (parity mmax h w) (array-dimensions fields-l)
+	   (declare (type (simple-array double-float 4) fields-l))
+	   (loop for p below parity do
+		(loop for m below mmax do
+		     (dotimes (j n)
+		       (dotimes (i n)
+			 (setf (aref a (+ j (floor height 2) (* n l (- (* 2 p) 1))) (+ i (* n m)))
+			       (aref fields-l p m j i))))))))
+    a))
+
+#+nil
+(time
+ (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla*))))
 
 (defun array-cut-plane (a4d parity m)
   (destructuring-bind (par mmax h w) (array-dimensions a4d)
