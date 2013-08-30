@@ -319,6 +319,14 @@ their Derivatives"
    count)) ;; finding 6995 modes takes .924 s
 
 
+#+nil
+(mapcar #'(lambda (ls) (length ls)) 
+	 (step-fiber-eigenvalues 20d0))
+#+nil
+(loop for v from 2d0 upto 40d0 by 4d0 collect
+     (mapcar #'(lambda (ls) (length ls)) 
+	     (step-fiber-eigenvalues v)))
+
 (defun bigdelta (ncore ncladding)
   "Normally this should be 0.01 .. 0.03 for multimode fibers and
 0.001..0.01 for singlemode fibers."
@@ -362,9 +370,9 @@ mm."
 		(* 2 bigdelta))
 	     (expt u 2)))))
 
-(defun step-fiber-betas* (&key (wavelength .0005d0) (ncore 1.5d0) (ncladding 1.46d0) (core-radius .05d0))
+(defun step-fiber-betas* (&key (wavelength .0005d0) (ncore 1.5d0) (ncladding 1.46d0) (core-radius .05d0) (debug nil))
   (let ((v (v wavelength ncore ncladding core-radius)))
-    (break "~{~a=~3,3f ~}" (list 'v v 'bigdelta (bigdelta ncore ncladding) 'na (numerical-aperture ncore ncladding)))
+    (if debug (break "~{~a=~3,3f ~}" (list 'v v 'bigdelta (bigdelta ncore ncladding) 'na (numerical-aperture ncore ncladding))))
     (step-fiber-betas v (bigdelta ncore ncladding) core-radius
 		      (step-fiber-eigenvalues v))))
 
@@ -385,7 +393,6 @@ mm."
    (loop for x from .0001 upto 5d0 by 1d-4 do
 	(format s "~a ~a ~a~%" x (/ (jn l x)) (char-step-index-fiber x 5d0 l)))))
 
-(jn 1 0d0)
 
 (defun step-fiber-field (u v l &key (n 100) (scale 1.3d0) (odd t) (debug nil))
   (declare (type double-float u v scale)
@@ -420,8 +427,47 @@ mm."
     a))
 
 
-#+nil
-(- (gsll:cylindrical-bessel-k 0 7d0) 4.247957418692318e-4)
+
+(defun step-fiber-fields (u-modes v &key (n 100) (scale 1.3d0))
+  (let* ((radial-mode-counts (mapcar #'(lambda (ls) (length ls)) u-modes))
+	 (azimuthal-mode-count (length radial-mode-counts))
+	 (fields (loop for m-count in radial-mode-counts and l from 0 collect
+		      (make-array (list (if (= l 0) 1 2) m-count n n) :element-type 'double-float)))
+	 (r-a (make-array (list n n) :element-type 'double-float)) ;; some arrays that store reusable intermediate results
+	 (phi-a (make-array (list n n) :element-type 'double-float))
+	 (sin-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float))
+	 (cos-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float)))
+    (macrolet ((doplane ((j i) &body body) `(dotimes (,j n) (dotimes (,i n) ,@body))))
+      (doplane (j i) (let* ((x (* scale (- i (floor n 2)) (/ 1d0 n)))
+			    (y (* scale (- j (floor n 2)) (/ 1d0 n)))
+			    (r (sqrt (+ (expt x 2) (expt y 2)))))
+		       (setf (aref r-a j i) r   (aref phi-a j i) (atan y x))))
+      (loop for l from 1 below  azimuthal-mode-count do
+	   (doplane (j i) (setf (aref sin-a (1- l) j i) (sin (* l (aref phi-a j i)))))
+	   (doplane (j i) (setf (aref cos-a (1- l) j i) (cos (* l (aref phi-a j i))))))
+      (loop for fl in fields and l from 0 do
+	   (loop for u in (elt u-modes l) and m from 0 do
+		(let* ((w (sqrt (- (expt v 2) (expt u 2))))
+		       (nphi (* pi (if (= l 0) 2 1)))
+		       (nrad (* (expt v 2) 
+				(/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))) 
+				(gsll:cylindrical-bessel-k-scaled (- l 1) w)
+				(gsll:cylindrical-bessel-k-scaled (+ l 1) w)))
+		       (norm (expt (* nphi nrad) -.5)))
+		  (dotimes (k (if (= l 0) 1 2))
+		    (doplane (j i)
+			     (setf (aref fl 0 m j i) (* norm (if (= l 0) 1d0 (ecase k 
+									       (0 (aref sin-a (- l 1) j i))
+									       (1 (aref cos-a (- l 1) j i))))
+							(let ((r (aref r-a j i)))
+							  (if (<= r 1d0)
+							      (/ (jn l (* u r)) (jn l u))
+							      (/ (gsll:cylindrical-bessel-k-scaled l (* w r))
+								 (gsll:cylindrical-bessel-k-scaled l w))))))))))))
+    fields))
+
+(let ((v 3d0))
+ (step-fiber-fields (step-fiber-eigenvalues v) v))
 
 (defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0 offset-p) (debug nil))
   (declare (type (simple-array double-float 2) a)
@@ -477,31 +523,4 @@ mm."
 		  (m 4))
 	      (step-fiber-field (elt (elt (step-fiber-eigenvalues v) l) m) v l :scale 4d0 :n 256))
 	    :debug nil))
-
-(let ((q 
-       (let ((v 3d0)
-	     (l 0)
-	     (m 0))
-	 (step-fiber-field (elt (elt (step-fiber-eigenvalues v) l) m) v l :scale 4d0 :n 256 :debug t))))
-  (destructuring-bind (h w) (array-dimensions q)
-    (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-      (loop for i below w do (format s "~a ~a~%" i (aref q (floor h 2) i)))))
-  )
-
-
-
-(let* ((v 3d0)
-       (r 1d0)
-       (u (first (first (step-fiber-eigenvalues v))))
-       (w (sqrt (- (expt v 2) (expt u 2)))))
-  (list 
-   (-
-    (* u (/ (jn 1 u)
-	    (jn 0 u)))
-    (* w (/ (gsl:cylindrical-bessel-k 1 w)
-	    (gsl:cylindrical-bessel-k 0 w))))
-   (/ (jn 0 (* r u))
-      (jn 0 u))
-   (/ (gsl:cylindrical-bessel-k-scaled 0 (* r w))
-      (gsl:cylindrical-bessel-k-scaled 0 w))))
 
