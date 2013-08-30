@@ -345,8 +345,39 @@ mm."
 (bigdelta 1.5d0 1.46d0)
 
 (defun step-fiber-betas (v bigdelta core-radius u-modes)
-  ())
+  (mapcar #'(lambda (m-list) (mapcar #'(lambda (u) (* (/ core-radius) 
+					    (sqrt (- (/ (expt v 2) 
+							(* 2 bigdelta))
+						     (expt u 2)))))
+				m-list))
+   u-modes))
 
+
+(let ((v 12.9)
+      (bigdelta .026)
+      (u 2.2)
+      (core-radius .05d0))
+ (* (/ core-radius) 
+    (sqrt (- (/ (expt v 2) 
+		(* 2 bigdelta))
+	     (expt u 2)))))
+
+(defun step-fiber-betas* (&key (wavelength .0005d0) (ncore 1.5d0) (ncladding 1.46d0) (core-radius .05d0))
+  (let ((v (v wavelength ncore ncladding core-radius)))
+    (break "~{~a=~3,3f ~}" (list 'v v 'bigdelta (bigdelta ncore ncladding) 'na (numerical-aperture ncore ncladding)))
+    (step-fiber-betas v (bigdelta ncore ncladding) core-radius
+		      (step-fiber-eigenvalues v))))
+
+#+nil
+(step-fiber-betas* :core-radius .003)
+
+(defun step-fiber-neff (&key (wavelength .0005d0) (ncore 1.5d0) (ncladding 1.46d0) (core-radius .05d0))
+  (let ((k0 (* 2 pi (/ wavelength))))
+    (mapcar #'(lambda (beta-list) (mapcar #'(lambda (beta) (/ beta k0)) beta-list))
+	   (step-fiber-betas* :wavelength wavelength :ncore ncore :ncladding ncladding :core-radius core-radius))))
+
+#+nil
+(step-fiber-neff :core-radius .003)
 
 #+nil
 (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
