@@ -1,6 +1,8 @@
 (declaim (optimize (debug 3) (speed 0) (safety 3)))
 
 (require :cffi)
+(require :gsll)
+
 (declaim (ftype (function (fixnum double-float) (values double-float &optional)) jn yn))
 (cffi:defcfun jn :double (n :int) (x :double))
 
@@ -254,7 +256,7 @@ their Derivatives"
 #+nil
 (zbrent #'sin 1d0 4d0)
 
-(require :gsll)
+
 
 #+nil
 (char-step-index-fiber 1e-9 89.54 32)
@@ -268,7 +270,7 @@ their Derivatives"
     (when (and (<= 0 rad) (< 0 u))
       (let ((posrad rad))
 	(declare (type (double-float 0d0) posrad))
-       (let ((w (sqrt posrad)))
+	(let ((w (sqrt posrad)))
 	 (declare (type (double-float 0d0) w))
 	 (return-from char-step-index-fiber 
 	   (- (/ (* u (jn (+ l 1) u))
@@ -280,8 +282,7 @@ their Derivatives"
 		  (/ (* w (gsll:cylindrical-bessel-k-scaled (+ l 1) w))
 		     (gsll:cylindrical-bessel-k-scaled l w))))))))))
 
-
-(defun step-fiber-eigenvalues (v core-radius wavelength)
+(defun step-fiber-eigenvalues (v)
   (let ((lmax (+ 1 (floor (* 2 V (/ pi)))))
 	(mmax (ceiling (- (/ V pi) 1/4))))
     
@@ -311,10 +312,40 @@ their Derivatives"
 	      modes))))
 
 #+nil
-(let ((count 0))
- (loop for e in (step-fiber-eigenvalues 245.04d0 .01 .0005) do
-      (loop for f in e do (incf count)))
- count)
+(time 
+ (let ((count 0))
+   (loop for e in (step-fiber-eigenvalues 245.14d0 .01 .0005) do
+	(loop for f in e do (incf count)))
+   count)) ;; finding 6995 modes takes .924 s
+
+
+(defun bigdelta (ncore ncladding)
+  "Normally this should be 0.01 .. 0.03 for multimode fibers and
+0.001..0.01 for singlemode fibers."
+  (declare (type double-float ncore ncladding))
+  (/ (- (expt ncore 2) (expt ncladding 2))
+     (* 2 (expt ncore 2))))
+
+(defun v (wavelength ncore ncladding core-radius)
+  "The core-radius should be 12.5um .. 100um for multimode fibers or
+2..5um for single mode fibers. Note that all dimensions are given in
+mm."
+  (declare (type (double-float 0d0) wavelength ncore ncladding core-radius))
+  (* 2 pi (/ wavelength) core-radius (sqrt (- (expt ncore 2) (expt ncladding 2)))))
+
+(defun numerical-aperture (ncore ncladding)
+  (declare (type (double-float 0d0) ncore ncladding))
+  (sqrt (- (expt ncore 2) (expt ncladding 2))))
+
+#+nil
+(numerical-aperture 1.5d0 1.46d0)
+#+nil
+(v .0005 1.5d0 .146d0 .005d0)
+#+nil
+(bigdelta 1.5d0 1.46d0)
+
+(defun step-fiber-betas (v bigdelta core-radius u-modes)
+  ())
 
 
 #+nil
