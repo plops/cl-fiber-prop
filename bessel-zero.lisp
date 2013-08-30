@@ -384,3 +384,97 @@ mm."
   (let ((l 1))
    (loop for x from .0001 upto 5d0 by 1d-4 do
 	(format s "~a ~a ~a~%" x (/ (jn l x)) (char-step-index-fiber x 5d0 l)))))
+
+(jn 1 0d0)
+
+(defun step-fiber-field (u v l &key (n 100) (scale 1.3d0) (odd t))
+  (declare (type double-float u v scale)
+	   (type (integer 0 1000000) l n)
+	   (values (simple-array double-float 2) &optional))
+  (let* ((a (make-array (list n n) :element-type 'double-float))
+	 (w (sqrt (- (expt v 2) (expt u 2))))
+	 (nphi (* pi (if (= l 0) 2 1)))
+	 (nrad (* (expt v 2) 
+		  (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))) 
+		  (gsll:cylindrical-bessel-k-scaled (- l 1) w)
+		  (gsll:cylindrical-bessel-k-scaled (+ l 1) w)))
+	 (norm (expt (* nphi nrad) -.5)))
+    (dotimes (i n)
+      (dotimes (j n)
+	(let* ((x (* scale (- i (floor n 2)) (/ 1d0 n)))
+	       (y (* scale (- j (floor n 2)) (/ 1d0 n)))
+	       (r (sqrt (+ (expt x 2) (expt y 2)))))
+	  (setf (aref a j i)
+		(* norm
+		   (if (= 0 l)
+		       1d0
+		       (if odd
+			   (sin (* l (atan y x)))
+			   (cos (* l (atan y x)))))
+		   (cond 
+		      
+		     ((< 0 r 1d0)
+		      (/ (jn l (* u r))
+			 (jn l r)))
+		     ((<= 1d0 r) 
+		      (/ (gsll:cylindrical-bessel-k l (* w r))
+			 (gsll:cylindrical-bessel-k l r)))
+		     (t ;;limit(bessel_j(l,u*r)/bessel_j(l,r),r,0);
+		      1d0)))))))
+    a))
+
+(defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0 offset-p) (debug nil))
+  (declare (type (simple-array double-float 2) a)
+	   (type double-float scale)
+	   (values (simple-array (unsigned-byte 8) 2) &optional))
+  (let ((b (make-array (array-dimensions a)
+		       :element-type '(unsigned-byte 8)))
+	(scale2 scale)
+	(offset2 offset))
+    (unless scale-p
+      (let ((ma (reduce #'max (sb-ext:array-storage-vector a)))
+	    (mi (reduce #'min (sb-ext:array-storage-vector a))))
+	(setf scale2 (if (= ma mi)
+			 1d0
+			 (/ (- ma mi)))
+	      offset2 mi)
+	(when debug
+	 (break "~a" (list 'scale scale2 'offset offset2 'max ma)))))
+    (destructuring-bind (h w) (array-dimensions a)
+      (dotimes (i w)
+	(dotimes (j h)
+	  (setf (aref b j i) (min 255 (max 0 (floor (* 255 scale2 (- (aref a j i) offset2)))))))))
+    b))
+
+(defun write-pgm (filename img)
+  (declare (simple-string filename)
+           ((array (unsigned-byte 8) 2) img)
+           (values null &optional))
+  (destructuring-bind (h w)
+      (array-dimensions img)
+    (declare ((integer 0 65535) w h))
+    (with-open-file (s filename
+                       :direction :output
+                       :if-exists :supersede
+                       :if-does-not-exist :create)
+      (declare (stream s))
+      (format s "P5~%~D ~D~%255~%" w h))
+    (with-open-file (s filename 
+                       :element-type '(unsigned-byte 8)
+                       :direction :output
+                       :if-exists :append)
+      (let ((data-1d (make-array 
+                      (* h w)
+                      :element-type '(unsigned-byte 8)
+                      :displaced-to img)))
+        (write-sequence data-1d s)))
+    nil))
+
+(write-pgm "/run/q/bla.pgm"
+	   (convert-ub8 
+	    (let ((v 10d0)
+		  (l 0)
+		  (m 2))
+	      (step-fiber-field (elt (elt (step-fiber-eigenvalues v) l) m) v l :scale 4d0 :n 512))
+	    :debug nil))
+
