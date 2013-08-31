@@ -515,6 +515,7 @@ mm."
 						(gsll:cylindrical-bessel-k-scaled l w)))))))))))
     fields))
 
+#+nil
 (time 
  (defparameter *bla*
    (let ((v 32d0))
