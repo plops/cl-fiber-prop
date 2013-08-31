@@ -445,6 +445,38 @@ mm."
 #+nil
 (fiber-linear-to-lm-index 0 *bla-ev*)
 
+(defun step-fiber-eigenvalues-linear (v-or-u-modes)
+  (let* ((u-modes (if (numberp v-or-u-modes)
+		      (step-fiber-eigenvalues v-or-u-modes) 
+		      v-or-u-modes))
+	 (nmodes (number-of-modes u-modes))
+	 (a (make-array nmodes :element-type 'double-float)))
+    (dotimes (i nmodes)
+      (destructuring-bind (l m) (fiber-linear-to-lm-index i u-modes)
+       (setf (aref a i) (elt (elt u-modes (abs l)) m))))
+    a))
+
+#+nil
+(step-fiber-eigenvalues-linear 32d0)
+
+(defun step-fiber-betas-linear (u-modes-lin v &key  (nco 1.5d0) (bigdelta (bigdelta nco 1.46)) (lambd .0005d0))
+  (declare (type double-float v nco bigdelta lambd)
+	   (type (simple-array double-float 1) u-modes-lin)
+	   (values (simple-array double-float 1) &optional))
+  (let* ((betas (make-array (length u-modes-lin) :element-type 'double-float))
+	(na2 (* 2 (expt nco 2) bigdelta))
+	(k (* 2 pi (/ lambd)))
+	(rho (* v (/ (* k (sqrt na2))))))
+    (dotimes (i (length betas))
+      (setf (aref betas i) (* (/ rho) (sqrt (- (/ (expt v 2) (* 2 bigdelta))
+					     (expt (aref u-modes-lin i) 2))))))
+    betas))
+#+nil
+(let ((v 32d0))
+  (sort
+   (step-fiber-betas-linear (step-fiber-eigenvalues-linear v) v :bigdelta (bigdelta 1.5 1.46))
+   #'<))
+
 (defun step-fiber-fields (u-modes v &key (n 100) (scale 1.3d0))
   (declare (values (simple-array double-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
@@ -504,6 +536,30 @@ mm."
 	   (dotimes (j n) (dotimes (i n)
 			    (setf (aref a (+ j (* n (+ (- lmax 1) l))) (+ i (* n m)))   (expt (aref fields k j i) 2))))))
     a))
+
+(defun find-fastest-mode (u-modes-lin)
+  (first (sort (map 'list #'(lambda (u i) (list u i)) u-modes-lin
+		    (loop for i below (length u-modes-lin) collect i)) #'> :key #'first)))
+
+#+nil
+(find-fastest-mode (step-fiber-eigenvalues-linear 12d0))
+
+
+(defun step-fiber-minimal-sampling (u-modes v)
+  ;; largest u will show most oscillations in the field
+;  (declare (values double-float &optional))
+  (destructuring-bind (u lin-index) (find-fastest-mode u-modes) 
+    (destructuring-bind (l m) (fiber-linear-to-lm-index lin-index u-modes)
+      (let* ((n 1024) ;; number of points between R=0 .. 1
+	    (field (make-array (list n) :element-type 'double-float)))
+	(dotimes (i n)
+	  (let ((r (* i (/ 1d0 n))))
+	    (setf (aref field i) (/ (jn l (* u r)) (jn l u)))))
+	(list l m field)))))
+
+#+nil
+(let ((v 12d0))
+ (step-fiber-minimal-sampling (step-fiber-eigenvalues-linear v) v))
 
 (defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0) (debug nil))
   (declare (type (simple-array double-float 2) a)
@@ -574,7 +630,7 @@ mm."
  (let* ((lambd .0005)
 	(nco 1.5)
 	(ncl 1.46)
-	(k (* 2 pi (* .5 (+ nco ncl)) (/ lambd))) ;; is this supposed to be free-space?
+	(k (* 2 pi (/ lambd))) 
 	;; diameter of the fiber:
 	(rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
 	;; resolution of the field in mm/px:
@@ -588,7 +644,7 @@ mm."
 	(wedge (make-array (list n n) :element-type '(complex double-float))))
    (dotimes (i n)
      (dotimes (j n)
-       (setf (aref wedge j i) (exp (complex 0d0 (* k phi i resol))))))
+       (setf (aref wedge j i) (exp (complex 0d0 (* nco k phi i resol)))))) ;; is this supposed to be free-space?
    (values wedge resol)))
 #+nil
 (calculate-bend-wedge)
@@ -629,3 +685,8 @@ mm."
 ;; page 432 mode launching, fields reflected from the end surface are
 ;; extermely complicated, but there is a simple approximation for
 ;; weakly guiding fibers
+;; incident beam is tilted towards fiber axis: ni (sin thetai) = nco (sin thetaz)
+;; fresnel reflection: Et(thetaz) = 2ni/(nco+ni) Ei(thetai)
+;; in the rest of the chapter they assume ni=nco (!)
+
+ 
