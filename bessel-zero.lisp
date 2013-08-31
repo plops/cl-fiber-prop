@@ -607,6 +607,29 @@ mm."
    (dotimes (i n)
      (dotimes (j n)
        (setf (aref wedge j i) (exp (complex 0d0 (* k phi i resol))))))
-   wedge))
+   (values wedge resol)))
 #+nil
 (calculate-bend-wedge)
+
+(defun calculate-couple-coeffs ()
+ (multiple-value-bind (wedge resol) (calculate-bend-wedge)
+   (let* ((u-modes *bla-ev*)
+	  (n 100)
+	  (nmodes (number-of-modes u-modes))
+	  (fields *bla*)
+	  (couple-coeffs (make-array (list nmodes nmodes)
+				     :element-type '(complex double-float))))
+     (declare (type (simple-array (complex double-float) 2) couple-coeffs))
+     (dotimes (a nmodes)
+       (dotimes (b nmodes)
+	 (format t "~a ~%" (list 'couple a b))
+	 (setf (aref couple-coeffs b a) 
+	       (* (expt resol 2)
+		  (loop for j below n sum
+		       (loop for i below n sum
+			    (* (aref fields a j i)
+			       (aref fields b j i)
+			       (aref wedge j i))))))))
+     couple-coeffs)))
+
+(time (defparameter *bla-coef* (calculate-couple-coeffs)))
