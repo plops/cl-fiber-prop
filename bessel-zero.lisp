@@ -443,33 +443,32 @@ mm."
       (loop for l from 1 below  azimuthal-mode-count do
 	   (doplane (j i) (setf (aref sin-a (1- l) j i) (sin (* l (aref phi-a j i)))))
 	   (doplane (j i) (setf (aref cos-a (1- l) j i) (cos (* l (aref phi-a j i))))))
-      (loop for l below azimuthal-mode-count do
-	   (loop for u in (elt u-modes l) and m from 0 do
-		(let* ((w (sqrt (- (expt v 2) (expt u 2))))
-		       (nphi (* pi (if (= l 0) 2 1)))
-		       (nrad (* (expt v 2) 
-				(/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))) 
-				(gsll:cylindrical-bessel-k-scaled (- l 1) w)
-				(gsll:cylindrical-bessel-k-scaled (+ l 1) w)))
-		       (norm (expt (* nphi nrad) -.5)))
-		  (dotimes (k (if (= l 0) 1 2))
-		    (doplane (j i)
-			     (setf (aref fields (fiber-ml-to-linear-index m l u-modes) j i)
-				   (* norm (if (= l 0) 1d0 (ecase k 
-							     (0 (aref sin-a (- l 1) j i))
-							     (1 (aref cos-a (- l 1) j i))))
-				      (let ((r (aref r-a j i)))
-					(if (<= r 1d0)
-					    (/ (jn l (* u r)) (jn l u))
-					    (/ (gsll:cylindrical-bessel-k-scaled l (* w r))
-					       (gsll:cylindrical-bessel-k-scaled l w))))))))))))
+      (loop for k below (number-of-modes u-modes) do
+	   (destructuring-bind (l m) (fiber-linear-to-lm-index k u-modes)
+	     (let* ((u (elt (elt u-modes (abs l)) m))
+		    (w (sqrt (- (expt v 2) (expt u 2))))
+		    (nphi (* pi (if (= l 0) 2 1)))
+		    (nrad (* (expt v 2) 
+			     (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))) 
+			     (gsll:cylindrical-bessel-k-scaled (- l 1) w)
+			     (gsll:cylindrical-bessel-k-scaled (+ l 1) w)))
+		    (norm (expt (* nphi nrad) -.5)))
+	       (doplane (j i) (setf (aref fields k j i)
+				    (* norm (cond ((= l 0) 1d0) 
+						  ((< l 0) (aref sin-a (- (abs l) 1) j i))
+						  (t (aref cos-a (- l 1) j i)))
+				       (let ((r (aref r-a j i)))
+					 (if (<= r 1d0)
+					     (/ (jn l (* u r)) (jn l u))
+					     (/ (gsll:cylindrical-bessel-k-scaled l (* w r))
+						(gsll:cylindrical-bessel-k-scaled l w)))))))))))
     fields))
 
 (time 
  (defparameter *bla*
-   (let ((v 6d0))
+   (let ((v 12d0))
      (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
-     (step-fiber-fields *bla-ev* v))))
+     (step-fiber-fields *bla-ev* v :scale 2d0))))
 
 (loop for fields-l in *bla* and l from 0 do
      (destructuring-bind (parity mmax h w) (array-dimensions fields-l)
@@ -478,34 +477,27 @@ mm."
 		 (write-pgm (format nil "/run/q/mode-~3,'0d-~3,'0d-~3,'0d.pgm" l m p)
 			    (convert-ub8 (array-cut-plane fields-l p m) :scale .2 :offset -2.0))))))
 
+
 (defun create-field-mosaic (fields u-modes)
   (declare (type (simple-array double-float 3) fields)
 	   (values (simple-array double-float 2) &optional))
   (let* ((lmax (length u-modes))
 	 (mmax (length (first u-modes)))
 	 (n (array-dimension fields 2))
-	 (height (* 2 lmax n))
-	 (a (make-array (list height (* mmax n)) :element-type 'double-float)))
-    (loop for l below lmax do
-	 (loop for m below mmax do
-	      (handler-case
-		  (dotimes (j n)
-		    (dotimes (i n)
-		      (if (= l 0)
-			  (setf (aref a (+ j (floor height 2) (* n l)) (+ i (* n m)))
-				(aref fields (fiber-lm-to-linear-index l m u-modes) j i))
-			  (setf (aref a (+ j (floor height 2) (* n l)) (+ i (* n m)))
-				(aref fields (fiber-lm-to-linear-index l m u-modes) j i)
-				(aref a (+ j (floor height 2) (* n l)) (+ i (* n m)))
-				(aref fields (fiber-lm-to-linear-index (- l) m u-modes) j i)))))
-		(mode-index-out-of-range ()))
-	      ))
+	 (a (make-array (list (* (+ lmax (1- lmax)) n)  (* mmax n)) :element-type 'double-float)))
+    (loop for k below (number-of-modes u-modes) do
+	 (destructuring-bind (l m) (fiber-linear-to-lm-index k u-modes)
+	   (dotimes (j n) (dotimes (i n)
+			    (setf (aref a (+ j (* n (+ (- lmax 1) l))) (+ i (* n m)))   (expt (aref fields k j i) 2))))))
     a))
 (length (first *bla-ev*))
 (fiber-lm-to-linear-index -3 0 *bla-ev*)
 #+nil
 (time
- (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev*) :scale .9 :offset -.3d0)))
+ (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev*) :scale .9 :offset 0d0
+					   )))
+
+(fiber-linear-to-lm-index 10 *bla-ev*)
 
 (defun array-cut-plane (a4d parity m)
   (destructuring-bind (par mmax h w) (array-dimensions a4d)
@@ -584,7 +576,7 @@ mm."
 
 (defun fiber-lm-to-linear-index (l m u-modes)
   (handler-case
-      (unless (elt (elt u-modes l) m)
+      (unless (elt (elt u-modes (abs l)) m)
      (break "No mode with index l=~a m=~a." l m))
     (sb-kernel:index-too-large-error ()
       (break "No mode with index l=~a m=~a." l m)))
@@ -619,8 +611,7 @@ mm."
 	      (unless (= l 0)
 		(setf (aref res (fiber-lm-to-linear-index (- l) m u-modes))
 		      (list (- l) m)))))
-    (aref res j)
-    res))
+    (aref res j)))
 
 #+nil
 (fiber-linear-to-lm-index 0 *bla-ev*)
