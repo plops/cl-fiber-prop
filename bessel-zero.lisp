@@ -545,21 +545,26 @@ mm."
 (find-fastest-mode (step-fiber-eigenvalues-linear 12d0))
 
 
-(defun step-fiber-minimal-sampling (u-modes v)
+(defun step-fiber-minimal-sampling (u-modes v &key (n 128))
   ;; largest u will show most oscillations in the field
-;  (declare (values double-float &optional))
-  (destructuring-bind (u lin-index) (find-fastest-mode u-modes) 
+  " n is number of points between R=0 .. 1"
+  (destructuring-bind (u lin-index) (find-fastest-mode (step-fiber-eigenvalues-linear u-modes)) 
     (destructuring-bind (l m) (fiber-linear-to-lm-index lin-index u-modes)
-      (let* ((n 1024) ;; number of points between R=0 .. 1
+      (let* (
 	    (field (make-array (list n) :element-type 'double-float)))
 	(dotimes (i n)
 	  (let ((r (* i (/ 1d0 n))))
 	    (setf (aref field i) (/ (jn l (* u r)) (jn l u)))))
-	(list l m field)))))
+	(let ((ma (loop for i from 1 below (1- n) ;; find local maxima
+		   when (and (< (aref field (+ i 1)) (aref field i))
+			     (< (aref field (- i 1)) (aref field i)))
+		     collect i)))
+	  (reduce #'min (loop for i below (1- (length ma)) collect (* (/ 1d0 n) (- (elt ma (+ 1 i)) (elt ma i))))))))))
 
 #+nil
-(let ((v 12d0))
- (step-fiber-minimal-sampling (step-fiber-eigenvalues-linear v) v))
+(let* ((v 42d0)
+       (us (step-fiber-eigenvalues v)))
+  (step-fiber-minimal-sampling us v :n 256))
 
 (defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0) (debug nil))
   (declare (type (simple-array double-float 2) a)
