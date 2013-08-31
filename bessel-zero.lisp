@@ -426,6 +426,54 @@ mm."
 			  (gsll:cylindrical-bessel-k-scaled l w))))))))
     a))
 
+(defun number-of-modes (u-modes)
+  (+ (length (car u-modes)) 
+     (* 2 (reduce #'+ (mapcar #'length (cdr u-modes))))))
+
+(define-condition mode-index-out-of-range () ())
+
+(defun fiber-lm-to-linear-index (l m u-modes)
+  (handler-case
+      (unless (elt (elt u-modes (abs l)) m)
+     (break "No mode with index l=~a m=~a." l m))
+    (sb-kernel:index-too-large-error ()
+      (break "No mode with index l=~a m=~a." l m)))
+  (let* ((nmodl (mapcar #'length u-modes))
+	 (j (cond 
+	      ((= l 0) m)
+	      ((= l 1) (+ m (elt nmodl 0)))
+	      ((= l -1) (+ m (elt nmodl 0) (elt nmodl 1)))
+	      ((< 1 l) (+ m (elt nmodl 0)
+			  (* 2 (reduce #'+ (subseq nmodl 1 l)))))
+	      ((< l -1) (+ m (elt nmodl 0)
+			   (* 2 (reduce #'+ (subseq nmodl 1 (abs l))))
+			   (elt nmodl (abs l)))))))
+    (unless (<= 0 j (1- (number-of-modes u-modes)))
+      (error 'mode-index-out-of-range))
+    j))
+
+#+nil
+(fiber-lm-to-linear-index 0 5 (step-fiber-eigenvalues 12d0))
+
+
+
+
+(defun fiber-linear-to-lm-index (j u-modes)
+  (let ((res (make-array (number-of-modes u-modes))))
+    (loop for ul in u-modes and l from 0 do
+	 (loop for um in ul and m from 0 do
+	      (setf (aref res (fiber-lm-to-linear-index l m u-modes))
+		    (list l m))
+	      (unless (= l 0)
+		(setf (aref res (fiber-lm-to-linear-index (- l) m u-modes))
+		      (list (- l) m)))))
+    (aref res j)))
+
+#+nil
+(fiber-linear-to-lm-index 0 *bla-ev*)
+
+
+
 (defun step-fiber-fields (u-modes v &key (n 100) (scale 1.3d0))
   (declare (values (simple-array double-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
@@ -486,7 +534,7 @@ mm."
 #+nil
 (time  (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev*) :scale .9 :offset 0d0)))
 
-(defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0 offset-p) (debug nil))
+(defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0) (debug nil))
   (declare (type (simple-array double-float 2) a)
 	   (type double-float scale)
 	   (values (simple-array (unsigned-byte 8) 2) &optional))
@@ -553,50 +601,6 @@ mm."
 ;; http://www.holoborodko.com/pavel/numerical-methods/numerical-integration/cubature-formulas-for-the-unit-disk/
 
 
-(define-condition mode-index-out-of-range () ())
-
-(defun fiber-lm-to-linear-index (l m u-modes)
-  (handler-case
-      (unless (elt (elt u-modes (abs l)) m)
-     (break "No mode with index l=~a m=~a." l m))
-    (sb-kernel:index-too-large-error ()
-      (break "No mode with index l=~a m=~a." l m)))
-  (let* ((nmodl (mapcar #'length u-modes))
-	 (j (cond 
-	      ((= l 0) m)
-	      ((= l 1) (+ m (elt nmodl 0)))
-	      ((= l -1) (+ m (elt nmodl 0) (elt nmodl 1)))
-	      ((< 1 l) (+ m (elt nmodl 0)
-			  (* 2 (reduce #'+ (subseq nmodl 1 l)))))
-	      ((< l -1) (+ m (elt nmodl 0)
-			   (* 2 (reduce #'+ (subseq nmodl 1 (abs l))))
-			   (elt nmodl (abs l)))))))
-    (unless (<= 0 j (1- (number-of-modes u-modes)))
-      (error 'mode-index-out-of-range))
-    j))
-
-#+nil
-(fiber-lm-to-linear-index 0 5 (step-fiber-eigenvalues 12d0))
-
-
-(defun number-of-modes (u-modes)
-  (+ (length (car u-modes)) 
-     (* 2 (reduce #'+ (mapcar #'length (cdr u-modes))))))
-
-(defun fiber-linear-to-lm-index (j u-modes)
-  (let ((res (make-array (number-of-modes u-modes))))
-    (loop for ul in u-modes and l from 0 do
-	 (loop for um in ul and m from 0 do
-	      (setf (aref res (fiber-lm-to-linear-index l m u-modes))
-		    (list l m))
-	      (unless (= l 0)
-		(setf (aref res (fiber-lm-to-linear-index (- l) m u-modes))
-		      (list (- l) m)))))
-    (aref res j)))
-
-#+nil
-(fiber-linear-to-lm-index 0 *bla-ev*)
-
 
 
 (defun calculate-bend-wedge (&key (v 32d0) (n 100) (scale 2d0))
@@ -622,26 +626,26 @@ mm."
 #+nil
 (calculate-bend-wedge)
 
-(defun calculate-couple-coeffs ()
- (multiple-value-bind (wedge resol) (calculate-bend-wedge)
-   (let* ((u-modes *bla-ev*)
-	  (n 100)
-	  (nmodes (number-of-modes u-modes))
-	  (fields *bla*)
-	  (couple-coeffs (make-array (list nmodes nmodes)
-				     :element-type '(complex double-float))))
-     (declare (type (simple-array (complex double-float) 2) couple-coeffs))
-     (dotimes (a nmodes)
-       (dotimes (b nmodes)
-	 (format t "~a ~%" (list 'couple a b))
-	 (setf (aref couple-coeffs b a) 
-	       (* (expt resol 2)
-		  (loop for j below n sum
-		       (loop for i below n sum
-			    (* (aref fields a j i)
-			       (aref fields b j i)
-			       (aref wedge j i))))))))
-     couple-coeffs)))
+(defun calculate-couple-coeffs (fields)
+  ;; i might have to figure out the proper sampling by calculating a
+  ;; high resolution cross section through the highest mode
+  (multiple-value-bind (wedge resol) (calculate-bend-wedge)
+    (destructuring-bind (nmodes n nx) (array-dimensions fields)
+      (declare (ignore nx))
+      (let* ((couple-coeffs (make-array (list nmodes nmodes)
+					:element-type '(complex double-float))))
+	(declare (type (simple-array (complex double-float) 2) couple-coeffs))
+	(dotimes (a nmodes)
+	 (dotimes (b nmodes)
+	   (format t "~a ~%" (list 'couple a b))
+	   (setf (aref couple-coeffs b a) 
+		 (* (expt resol 2)
+		    (loop for j below n sum
+			 (loop for i below n sum
+			      (* (aref fields a j i)
+				 (aref fields b j i)
+				 (aref wedge j i))))))))
+       couple-coeffs))))
 
 #+nil
 (time (defparameter *bla-coef* (calculate-couple-coeffs)))
@@ -649,4 +653,12 @@ mm."
 #+nil
 (time  (write-pgm "/run/q/bla-coef.pgm" (convert-ub8  (convert-df *bla-coef*))))
 #+nil
+(time  (write-pgm "/run/q/bla-coef2.pgm" (convert-ub8  (convert-df *bla-coef*) :scale 1e5)))
+#+nil
 (time  (write-pgm "/run/q/bla-coef-phase.pgm" (convert-ub8  (convert-df *bla-coef* :fun #'phase))))
+
+
+
+;; page 432 mode launching, fields reflected from the end surface are
+;; extermely complicated, but there is a simple approximation for
+;; weakly guiding fibers
