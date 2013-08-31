@@ -466,17 +466,9 @@ mm."
 
 (time 
  (defparameter *bla*
-   (let ((v 12d0))
+   (let ((v 32d0))
      (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
      (step-fiber-fields *bla-ev* v :scale 2d0))))
-
-(loop for fields-l in *bla* and l from 0 do
-     (destructuring-bind (parity mmax h w) (array-dimensions fields-l)
-       (loop for p below parity do
-	    (loop for m below mmax do
-		 (write-pgm (format nil "/run/q/mode-~3,'0d-~3,'0d-~3,'0d.pgm" l m p)
-			    (convert-ub8 (array-cut-plane fields-l p m) :scale .2 :offset -2.0))))))
-
 
 (defun create-field-mosaic (fields u-modes)
   (declare (type (simple-array double-float 3) fields)
@@ -490,23 +482,9 @@ mm."
 	   (dotimes (j n) (dotimes (i n)
 			    (setf (aref a (+ j (* n (+ (- lmax 1) l))) (+ i (* n m)))   (expt (aref fields k j i) 2))))))
     a))
-(length (first *bla-ev*))
-(fiber-lm-to-linear-index -3 0 *bla-ev*)
+
 #+nil
-(time
- (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev*) :scale .9 :offset 0d0
-					   )))
-
-(fiber-linear-to-lm-index 10 *bla-ev*)
-
-(defun array-cut-plane (a4d parity m)
-  (destructuring-bind (par mmax h w) (array-dimensions a4d)
-    (let ((a2d (make-array (cddr (array-dimensions a4d))
-			   :element-type 'double-float)))
-      (dotimes (j h)
-	(dotimes (i w)
-	  (setf (aref a2d j i) (aref a4d parity m j i))))
-      a2d)))
+(time  (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev*) :scale .9 :offset 0d0)))
 
 (defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0 offset-p) (debug nil))
   (declare (type (simple-array double-float 2) a)
@@ -554,14 +532,6 @@ mm."
                       :displaced-to img)))
         (write-sequence data-1d s)))
     nil))
-
-(write-pgm "/run/q/bla.pgm"
-	   (convert-ub8 
-	    (let ((v 80d0)
-		  (l 48)
-		  (m 4))
-	      (step-fiber-field (elt (elt (step-fiber-eigenvalues v) l) m) v l :scale 4d0 :n 256))
-	    :debug nil))
 
 
 ;; http://mathoverflow.net/questions/28669/numerical-integration-over-2d-disk
@@ -616,6 +586,27 @@ mm."
 #+nil
 (fiber-linear-to-lm-index 0 *bla-ev*)
 
+
+
+(defun calculate-bend-wedge (&key (v 32d0) (n 100) (scale 2d0))
+ (let* ((lambd .0005)
+	(k (* 2 pi (/ lambd))) ;; is this really supposed to be free-space?
+	(nco 1.5)
+	(ncl 1.46)
+	;; diameter of the fiber:
+	(rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
+	;; resolution of the field in mm/px:
+	(resol (/ (* 2 scale rho) n))
+	(l2 40d0)
+	(delx 4)
+	(bend-radius (* .5 (+ delx (/ (expt l2 2) delx))))
+	(num-elems 100)
+	(del-l (/ l2 num-elems))
+	(phi (asin (/ del-l bend-radius)))
+	(wedge (make-array (list n n) :element-type '(complex double-float))))
+   (dotimes (i n)
+     (dotimes (j n)
+       (setf (aref wedge j i) (exp (complex 0d0 (* k phi i resol))))))
+   wedge))
 #+nil
-(defparameter *wup*
- (step-fiber-eigenvalues 30d0))
+(calculate-bend-wedge)
