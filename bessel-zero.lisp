@@ -509,6 +509,17 @@ mm."
 	  (setf (aref b j i) (min 255 (max 0 (floor (* 255 scale2 (- (aref a j i) offset2)))))))))
     b))
 
+(defun convert-df (a &key (fun #'abs))
+  (declare (type (simple-array (complex double-float) 2) a)
+	   (values (simple-array double-float 2) &optional))
+  (let ((b (make-array (array-dimensions a)
+		       :element-type 'double-float)))
+    (destructuring-bind (h w) (array-dimensions a)
+      (dotimes (i w)
+	(dotimes (j h)
+	  (setf (aref b j i) (funcall fun (aref a j i))))))
+    b))
+
 (defun write-pgm (filename img)
   (declare (simple-string filename)
            ((array (unsigned-byte 8) 2) img)
@@ -632,4 +643,10 @@ mm."
 			       (aref wedge j i))))))))
      couple-coeffs)))
 
+#+nil
 (time (defparameter *bla-coef* (calculate-couple-coeffs)))
+
+#+nil
+(time  (write-pgm "/run/q/bla-coef.pgm" (convert-ub8  (convert-df *bla-coef*))))
+#+nil
+(time  (write-pgm "/run/q/bla-coef-phase.pgm" (convert-ub8  (convert-df *bla-coef* :fun #'phase))))
