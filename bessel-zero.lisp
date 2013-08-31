@@ -173,28 +173,23 @@ their Derivatives"
 ;;       41.521 44.67 47.818 50.965 54.112 57.258 60.403 63.549 66.693 69.838 72.982
 ;;       76.126 79.27 82.414 85.557 88.701 91.844 94.987 98.13)
 
-
-
 ;; Y0
 ;; (0.894 3.958 7.086 10.222 13.361 16.501 19.641 22.782 25.923 29.064 32.205
 ;;        35.346 38.488 41.629 44.771 47.912 51.053 54.195 57.336 60.478 63.619
 ;;        66.761 69.902 73.044 76.185 79.327 82.468 85.61 88.752 91.893 95.035 98.176)
-
 
 ;; Y1
 ;; (2.197 5.43 8.596 11.749 14.898 18.044 21.188 24.332 27.475 30.618 33.761
 ;;     36.904 40.046 43.188 46.33 49.473 52.615 55.757 58.899 62.041 65.182 68.324
 ;;     71.466 74.608 77.75 80.891 84.033 87.175 90.317 93.458 96.6 99.742)
 
-#+nil
-(bess-zeros :d 2 :a 2 :n 32 :e 1d-12)
+#+nil (bess-zeros :d 2 :a 2 :n 32 :e 1d-12)
 ;; Y2
 ;; (3.384 6.794 10.024 13.21 16.379 19.539 22.694 25.846 28.995 32.143 35.29
 ;;     38.436 41.581 44.726 47.87 51.014 54.158 57.301 60.445 63.588 66.731 69.874
 ;;     73.016 76.159 79.302 82.444 85.587 88.729 91.871 95.014 98.156)
 
-#+nil
-(bess-zeros :d 2 :a 3 :n 32 :e 1d-12)
+#+nil (bess-zeros :d 2 :a 3 :n 32 :e 1d-12)
 ;; Y3
 ;; (4.527 8.098 11.397 14.623 17.819 20.997 24.166 27.329 30.487 33.642 36.795
 ;;        39.946 43.095 46.244 49.392 52.538 55.685 58.831 61.976 65.121 68.266 71.41
@@ -255,8 +250,6 @@ their Derivatives"
 
 #+nil
 (zbrent #'sin 1d0 4d0)
-
-
 
 #+nil
 (char-step-index-fiber 1e-9 89.54 32)
@@ -360,16 +353,6 @@ mm."
 				m-list))
    u-modes))
 
-
-(let ((v 12.9)
-      (bigdelta .026)
-      (u 2.2)
-      (core-radius .05d0))
- (* (/ core-radius) 
-    (sqrt (- (/ (expt v 2) 
-		(* 2 bigdelta))
-	     (expt u 2)))))
-
 (defun step-fiber-betas* (&key (wavelength .0005d0) (ncore 1.5d0) (ncladding 1.46d0) (core-radius .05d0) (debug nil))
   (let ((v (v wavelength ncore ncladding core-radius)))
     (if debug (break "~{~a=~3,3f ~}" (list 'v v 'bigdelta (bigdelta ncore ncladding) 'na (numerical-aperture ncore ncladding))))
@@ -386,13 +369,6 @@ mm."
 
 #+nil
 (step-fiber-neff :core-radius .003)
-
-#+nil
-(with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-  (let ((l 1))
-   (loop for x from .0001 upto 5d0 by 1d-4 do
-	(format s "~a ~a ~a~%" x (/ (jn l x)) (char-step-index-fiber x 5d0 l)))))
-
 
 (defun step-fiber-field (u v l &key (n 100) (scale 1.3d0) (odd t) (debug nil))
   (declare (type double-float u v scale)
@@ -455,9 +431,6 @@ mm."
 #+nil
 (fiber-lm-to-linear-index 0 5 (step-fiber-eigenvalues 12d0))
 
-
-
-
 (defun fiber-linear-to-lm-index (j u-modes)
   (let ((res (make-array (number-of-modes u-modes))))
     (loop for ul in u-modes and l from 0 do
@@ -471,8 +444,6 @@ mm."
 
 #+nil
 (fiber-linear-to-lm-index 0 *bla-ev*)
-
-
 
 (defun step-fiber-fields (u-modes v &key (n 100) (scale 1.3d0))
   (declare (values (simple-array double-float 3) &optional))
@@ -518,6 +489,9 @@ mm."
      (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
      (step-fiber-fields *bla-ev* v :scale 2d0))))
 
+#+nil
+(time  (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev*) :scale .9 :offset 0d0)))
+
 (defun create-field-mosaic (fields u-modes)
   (declare (type (simple-array double-float 3) fields)
 	   (values (simple-array double-float 2) &optional))
@@ -530,9 +504,6 @@ mm."
 	   (dotimes (j n) (dotimes (i n)
 			    (setf (aref a (+ j (* n (+ (- lmax 1) l))) (+ i (* n m)))   (expt (aref fields k j i) 2))))))
     a))
-
-#+nil
-(time  (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev*) :scale .9 :offset 0d0)))
 
 (defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0) (debug nil))
   (declare (type (simple-array double-float 2) a)
@@ -592,7 +563,6 @@ mm."
         (write-sequence data-1d s)))
     nil))
 
-
 ;; http://mathoverflow.net/questions/28669/numerical-integration-over-2d-disk
 ;; Arthur Stroud, Approximate Calculation of Multiple Integrals.
 ;; http://people.sc.fsu.edu/~jburkardt/f_src/stroud/stroud.html
@@ -600,14 +570,11 @@ mm."
 ;; 1971 lether a generalized product rule for the unit cirlce
 ;; http://www.holoborodko.com/pavel/numerical-methods/numerical-integration/cubature-formulas-for-the-unit-disk/
 
-
-
-
 (defun calculate-bend-wedge (&key (v 32d0) (n 100) (scale 2d0))
  (let* ((lambd .0005)
-	(k (* 2 pi (/ lambd))) ;; is this really supposed to be free-space?
 	(nco 1.5)
 	(ncl 1.46)
+	(k (* 2 pi (* .5 (+ nco ncl)) (/ lambd))) ;; is this supposed to be free-space?
 	;; diameter of the fiber:
 	(rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
 	;; resolution of the field in mm/px:
