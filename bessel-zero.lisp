@@ -3,6 +3,7 @@
 (require :cffi)
 (require :gsll)
 
+
 (declaim (ftype (function (fixnum double-float) (values double-float &optional)) jn yn))
 (cffi:defcfun jn :double (n :int) (x :double))
 
@@ -491,8 +492,7 @@ mm."
 covers -scale*R .. scale*R and still ensures sampling of the signal"
   (destructuring-bind (u lin-index) (find-fastest-mode (step-fiber-eigenvalues-linear u-modes)) 
     (destructuring-bind (l m) (fiber-linear-to-lm-index lin-index u-modes)
-      (let* (
-	    (field (make-array (list n) :element-type 'double-float)))
+      (let* ((field (make-array (list n) :element-type 'double-float)))
 	(dotimes (i n)
 	  (let ((r (* i (/ 1d0 n))))
 	    (setf (aref field i) (/ (jn l (* u r)) (jn l u)))))
@@ -500,18 +500,18 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		   when (and (< (aref field (+ i 1)) (aref field i))
 			     (< (aref field (- i 1)) (aref field i)))
 		     collect i))
-	      (mindist (reduce #'min (loop for i below (1- (length ma)) collect (* (/ 1d0 n) (- (elt ma (+ 1 i)) (elt ma i)))))))
-	  (ceiling (* 2 2 scale (/ (or mindist .2d0)))) ;; for the intensity to look nice, one would need a factor of 2 more points
+	       (dists (loop for i below (1- (length ma)) collect (* (/ 1d0 n) (- (elt ma (+ 1 i)) (elt ma i))))))
+	  (ceiling (* 2 2 2 scale (/ (if dists (reduce #'min dists) .6d0)))) ;; note that you need more sampling for intensity
 	  )))))
 
 #+nil
-(loop for i from 30 upto 70 by 10 collect
- (let* ((v (* 1d0 i))
+(loop for v from 4d0 upto 40d0 by 5 collect
+ (let* (;(v 1d0)
 	(us (step-fiber-eigenvalues v)))
    (step-fiber-minimal-sampling us v :n 256 :scale 1.4)))
 
 
-(defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)))
+(defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   (declare (values (simple-array double-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
 	 (azimuthal-mode-count (length radial-mode-counts))
@@ -526,38 +526,53 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 			    (r (sqrt (+ (expt x 2) (expt y 2)))))
 		       (setf (aref r-a j i) r   (aref phi-a j i) (atan y x))))
       (loop for l from 1 below  azimuthal-mode-count do
+	   (if debug (format t "azimuthal ~d/~d~%" l azimuthal-mode-count))
 	   (doplane (j i) (setf (aref sin-a (1- l) j i) (sin (* l (aref phi-a j i)))))
 	   (doplane (j i) (setf (aref cos-a (1- l) j i) (cos (* l (aref phi-a j i))))))
-      (loop for k below (number-of-modes u-modes) do
-	   (destructuring-bind (l m) (fiber-linear-to-lm-index k u-modes)
-	     (let* ((u (elt (elt u-modes (abs l)) m))
-		    (w (sqrt (- (expt v 2) (expt u 2))))
-		    (nphi (* pi (if (= l 0) 2 1)))
-		    (nrad (* (expt v 2) 
-			     (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))) 
-			     (gsll:cylindrical-bessel-k-scaled (- l 1) w)
-			     (gsll:cylindrical-bessel-k-scaled (+ l 1) w)))
-		    (norm (expt (* nphi nrad) -.5)))
-	       (doplane (j i) (setf (aref fields k j i)
-				    (* norm (cond ((= l 0) 1d0) 
-						  ((< l 0) (aref sin-a (- (abs l) 1) j i))
-						  (t (aref cos-a (- l 1) j i)))
-				       (let ((r (aref r-a j i)))
-					 (if (<= r 1d0)
-					     (/ (jn l (* u r)) (jn l u))
-					     (/ (gsll:cylindrical-bessel-k-scaled l (* w r))
-						(gsll:cylindrical-bessel-k-scaled l w)))))))))))
+      (let ((start (get-universal-time)))
+       (loop for k below (number-of-modes u-modes) do
+	    (when (and debug (= 0 (mod k 10))) (let* ((current (- (get-universal-time) start))
+						      (perfield (* (/ 1d0 (if (= 0 k) 1d0 k)) current)))
+						 (format t "calculating mode ~d/~d avg-time=~3,3f s per field, finished in ~3,3f s full calculation time ~3,3f ~%" 						
+							 k (number-of-modes u-modes)
+							 perfield
+							 (* perfield (- (number-of-modes u-modes) k))
+							 (* perfield (number-of-modes u-modes)))))
+	    (destructuring-bind (l m) (fiber-linear-to-lm-index k u-modes)
+	      (let* ((u (elt (elt u-modes (abs l)) m))
+		     (w (sqrt (- (expt v 2) (expt u 2))))
+		     (nphi (* pi (if (= l 0) 2 1)))
+		     (nrad (* (expt v 2) 
+			      (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))) 
+			      (gsll:cylindrical-bessel-k-scaled (- l 1) w)
+			      (gsll:cylindrical-bessel-k-scaled (+ l 1) w)))
+		     (norm (expt (* nphi nrad) -.5)))
+		(doplane (j i) (setf (aref fields k j i)
+				     (* norm (cond ((= l 0) 1d0) 
+						   ((< l 0) (aref sin-a (- (abs l) 1) j i))
+						   (t (aref cos-a (- l 1) j i)))
+					(let ((r (aref r-a j i)))
+					  (if (<= r 1d0)
+					      (/ (jn l (* u r)) (jn l u))
+					      (/ (gsll:cylindrical-bessel-k-scaled l (* w r))
+						 (gsll:cylindrical-bessel-k-scaled l w))))))))))))
     fields))
+
 
 #+nil
 (time 
- (defparameter *bla*
-   (let ((v 32d0))
-     (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
-     (step-fiber-fields *bla-ev* v :scale 2d0))))
+ (progn
+   (defparameter *bla* nil)
+   (defparameter *bla*
+     (let ((v 94d0)
+	   (start (get-time-of-day)))
+       (format t "calculating eigenvalues~%")
+       (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
+       (format t "ev took ~3d s time~%" (- (get-time-of-day) start))
+       (step-fiber-fields *bla-ev* v :debug t)))
+   (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* :fun #'identity) :scale .9 :offset -.2d0))))
 
-#+nil
-(time  (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* :fun #'identity) :scale .9 :offset 0d0)))
+
 
 (defun create-field-mosaic (fields u-modes &key (fun #'(lambda (x) (expt x 2))))
   (declare (type (simple-array double-float 3) fields)
@@ -702,3 +717,5 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 ;; in the rest of the chapter they assume ni=nco (!)
 
  
+;; levin transform, oscillatory integral 5.3.24
+;; 13.9
