@@ -11,9 +11,9 @@
 \pdfminorversion=5
 % 9 is best zlib compression i use 0 while writing in the hope that
 % git can track changes more easily, set 0 0
-\pdfcompresslevel=9
+\pdfcompresslevel=0
 % 3 is maximum for now
-\pdfobjcompresslevel=3
+\pdfobjcompresslevel=0
 
 
 \usepackage[utf8]{inputenc}
@@ -32,11 +32,11 @@
 %\usepackage{pdfcomment}  % breaks hyperref metadata
 
 % choose font here: http://www.tug.dk/FontCatalogue/mathfonts.html
-\usepackage[T1]{fontenc}
+%\usepackage[T1]{fontenc}
 %\usepackage[math]{iwona}
-\usepackage[math]{kurier}
+%\usepackage[math]{kurier}
 %\usepackage{cmbright}
-\usepackage[scaled]{beramono}
+%\usepackage[scaled]{beramono}
 
 \usepackage{footnote}
 
@@ -279,8 +279,14 @@ Besselfunktion k\"onnen leicht mit einer Funktion aus einer
 numerischen Bibliothek [Temme1979] bestimmt werden und die Eigenwerte
 $u$ k\"onnen in den damit ermittelten Intervallen mit einer
 Nullstellensuche, z.B. Brents Methode [Press2007], berechnet werden.
+Bei der aktuellen Implementierung funktioniert diese Modensuche bis
+ungef\"ahr 7000 Moden. Bei gr\"osseren $v$-Parametern kommt es zu
+floating point overflows (diese Fehler koennen vermutlich behoben
+werden, wenn das unbedingt erforderlich ist).
 
-Bei gegebenen Modenparameter $u$ kann die Ausbreitungskonstante $\beta$ errechnet werden
+
+Bei gegebenen Modenparameter $u$ kann die Ausbreitungskonstante
+$\beta$ errechnet werden
 \begin{align}
 \beta = \frac{1}{\rco} \sqrt{\frac{v^2}{2\Delta} - u^2}
 \end{align}
@@ -362,9 +368,9 @@ durch
   \centering
   \includegraphics[width=.7\columnwidth]{bla-coef}
   \includegraphics[width=.7\columnwidth]{bla-coef-phase}
-  \caption{Kopplungskonstanten zwischen Moden f\"ur $v=32$ oben
-    Absolutbetrag, unten Phase. $\lambda=\unit[500]{nm}$, wedge angle
-    $\alpha=\unit[2]{mrad}$.}
+  \caption{Kopplungskonstanten zwischen den 246 Moden f\"ur $v=32$
+    oben Absolutbetrag, unten Phase. $\lambda=\unit[500]{nm}$, wedge
+    angle $\alpha=\unit[2]{mrad}$.}
   \label{fig:coef}
 \end{figure}
 

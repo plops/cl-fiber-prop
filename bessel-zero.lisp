@@ -9,8 +9,25 @@
 
 (cffi:defcfun yn :double (n :int) (x :double))
 
+(defun bess-zeros (&key (a 1) (n 10) (d 1) (e 1e-5))
+  (let ((res (make-array n :element-type 'double-float)))
+    (loop for i from 1 upto n collect
+	(setf (aref res (- i 1)) (gsll:bessel-zero-jnu (* 1d0 a) i)))
+   res))
 
-(defun bess-zeros (&key (a 0) (n 10) (d 1) (e 1d-6))
+#+nil
+(time
+ 
+ (bess-zeros :a 0 :n 10)
+ )
+#+nil
+(time
+ (progn
+  (bess-zeros2 :a 0 :n 10)
+  ))
+
+
+(defun bess-zeros2 (&key (a 0) (n 10) (d 1) (e 1d-6))
   "Compute the first n zeros of a bessel function. d determines the
 type of the bessel function: 1.. J_a, 2.. Y_a, 3.. J_a', 4.. Y_a'; a
 is the order, e is the measure of relative accuracy.
@@ -129,7 +146,7 @@ their Derivatives"
 			 (when (and (< e (abs (/ w x)) ) (< j 5))
 			   (go l1)))
 		      (setf (aref z (- s 1)) x))))
-	   (return-from bess-zeros z)))))))
+	   (return-from bess-zeros2 z)))))))
 
 
 #+nil
@@ -308,7 +325,7 @@ their Derivatives"
 #+nil
 (time 
  (let ((count 0))
-   (loop for e in (step-fiber-eigenvalues 245.14d0 .01 .0005) do
+   (loop for e in (step-fiber-eigenvalues 243d0) do
 	(loop for f in e do (incf count)))
    count)) ;; finding 6995 modes takes .924 s
 
