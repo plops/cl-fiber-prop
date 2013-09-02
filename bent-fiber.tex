@@ -11,9 +11,9 @@
 \pdfminorversion=5
 % 9 is best zlib compression i use 0 while writing in the hope that
 % git can track changes more easily, set 0 0
-\pdfcompresslevel=0
+\pdfcompresslevel=9
 % 3 is maximum for now
-\pdfobjcompresslevel=0
+\pdfobjcompresslevel=3
 
 
 \usepackage[utf8]{inputenc}
@@ -350,12 +350,13 @@ durch
 \section{Kopplung zweier gerader Faserstuecken}
 [1989Hill]
 \begin{align}
-  F_j(x,y) = F^{(lm)}(x,y) & = \psi(\sqrt{x^2+y^2}) 
+  F_{j(l,m)}(r,\phi) &= \psi(r) 
   \begin{cases}
-    \cos(l \atan(y/x)) & l>0\\  
-    \sin(l \atan(y/x)) & l<0
+    \cos(l \phi) & l>0\\  
+    \sin(l \phi) & l<0
   \end{cases} \\
-  c_{nm}=\int_\Ainfty F_n(x,y)F_m(x,y) e^{ik_0\phi x} \textrm{d}A
+  \delta L &= R_b \sin\alpha\\
+  c_{nm}&=\int\!\!\!\int\! F_n(x,y)F_m(x,y) e^{ik_0\alpha x} \textrm{d}x \textrm{d}y
 \end{align}
 \begin{figure}[hbtp]
   \centering
@@ -367,6 +368,19 @@ durch
   \label{fig:coef}
 \end{figure}
 
+\section{Propagation entlang der Faser}
+\begin{align}
+E_{j(l,m)}(r,\phi,z) = \psi_m(r)e^{-\beta_j z+ l\phi}
+\end{align}
+
+\section{Einkopplung in die Faser}
+incident beam is tilted towards fiber axis
+and fresnel reflection 
+[snyder]
+\begin{align}
+n_i \sin(\theta_i) &= \nco \sin(\theta_z)\\
+\E_t(\theta_z) &= \frac{2 n_i}{\nco+n_i} \E_i(\theta_i)
+\end{align}
 
 \end{document}
 %%% Local Variables: 
