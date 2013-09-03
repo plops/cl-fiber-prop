@@ -463,6 +463,48 @@ oder
   \vbeta &= A^T b\\
   (A^T A) \a &= A^T b
 \end{align}
+Dieses System sollte mit SVD gel\"ost werden. Die Zerlegung einer Matrix $A$ ist 
+\begin{align}
+  \begin{pmatrix}
+  &&&&\\
+  &&&&\\ 
+  &&A&&\\
+  &&&&\\
+  &&&&\\ 
+  \end{pmatrix}
+  =
+  \begin{pmatrix}
+  &&&&\\
+  &&&&\\ 
+  &&U&&\\
+  &&&&\\
+  &&&&\\
+  \end{pmatrix}
+  \begin{pmatrix}
+  w_0 \\
+  {} & w_1 \\
+  {} & {} & \ddots \\
+  {} & {} & {} & w_{N-1}
+  \end{pmatrix}
+  \begin{pmatrix}
+  &&\\ 
+  & V^T &\\
+  &&\\
+  \end{pmatrix}
+\end{align}
+Wir bezeichen mit $U_{(i)}$ die $M$ Spalten von $U$ (Vektoren der
+L\"ange $N$) und mit $V_{(i)}$ die $M$ Spalten von $V$ (Vektoren der
+L\"ange $M$). Damit ist die L\"osung des linearen
+Minimierungsproblems:
+\begin{align}
+  \a = \sum_{i=0}^{M-1} \(\frac{U_{(i)}\b}{w_i}\)  V_{(i)}
+\end{align}
+F\"ur kleine Werte von $w_i$ muss der entsprechende Summand Null
+gesetzt werden.  Der Fehler der abgesch\"atzten Parameter ergibt sich
+als
+\begin{align}
+  \sigma^2(a_j) = \sum_{i=0}^{M-1} \(V_{ji}/w_i\)^2
+\end{align}
 
 \end{document}
 
