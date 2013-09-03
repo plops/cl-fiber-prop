@@ -327,24 +327,28 @@ einige Zwischenergebnisse wiederverwenden.
 
 Folgende Funktionen und ihre Ableitungen kann man tabellieren und
 sp\"ater mit Spline-Interpolation auswerten um 2D Felder
-radialsymmetrisch zu f\"ullen: $\cos(l\phi)$ und $\sin(l\phi)$ mit
-$\phi\in[0,2\pi)$ und $l\in[0,\lmax]$. Die maximale Anzahl
-  Oszillationen auf dem Kernrand h\"angt von $\lmax$ ab. Dies
-  definiert eine Grenze f\"ur die Pixelgr\"osse des Feldes.
+radialsymmetrisch zu f\"ullen: $[\cos(l\phi),-l\sin(l\phi)]$ und
+$[\sin(l\phi),l\cos(l\phi)]$ mit $\phi\in[0,2\pi)$ und
+$l\in[0,\lmax]$. Die maximale Anzahl Oszillationen auf dem Kernrand
+h\"angt von $\lmax$ ab. Dies definiert eine Grenze f\"ur die
+Pixelgr\"osse des Feldes.
 
 Der maximale Wert f\"ur $u$ ist $v$, also reicht f\"ur die
-Feldberechnung im Kern $J_l(x)$ mit $x\in[0,v]$ und $l\in[0,\lmax]$.
-Die Anzahl der radialen Oszillationen ist maximal f\"ur $J_0(v)$. Dies
-liefert eine weitere Grenze f\"ur die Pixelgr\"osse des Feldes.
+Feldberechnung im Kern $[J_l(x),(J_{l-1}(x)-J_{l+1}(x))/2]$ mit
+$x\in[0,v]$ und $l\in[0,\lmax]$. Die Ableitung f\"ur $l=0$ ist
+$J_0(x)_{,x}= -J_1(x)$.  Die Anzahl der radialen Oszillationen ist
+maximal f\"ur $J_0(v)$. Dies liefert eine weitere Grenze f\"ur die
+Pixelgr\"osse des Feldes.
 
-Die Argumente f\"ur die Funktion $K_l$ erstrecken sich von $w$ nach
+Die Argumente f\"ur die Funktion $K_l(x)$ erstrecken sich von $w$ nach
 unendlich. Das kleinste $w$ ist $\sqrt{v^2-\umax^2}$. Dieser Wert kann
 meineserachtens null werden. Verglichen mit $J_l$ sieht $K_l$ sehr
 langweilig aus. M\"oglicherweise ist es hilfreich, $K_l(x)/exp(x)$ zu
 tabellieren aber die Feldstaerke gef\"uhrter Moden in von uns
 betrachteten Multi-mode Fasern faellt ausserhalb des Kernradius
 schnell ab und der Einfluss auf Kopplungskonstanten ist
-vernachlaessigbar.
+vernachlaessigbar. Die Ableitung ist
+$K_l(x)_{,x}=-(K_{l+1}(x)+K_{l-1}(x))/2$ bzw $K_0(x)_{,x}=-K_1(x)$.
 
 Um die Eigenwerte als lineare Sequenz aufzufassen benutzt H.~Gross das
 Indexschema, dass durch die roten Zahlen im Mosaik der Modenfelder
