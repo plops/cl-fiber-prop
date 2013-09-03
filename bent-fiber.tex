@@ -103,6 +103,8 @@ pdfsubject={Technical Report}]{hyperref}
 \renewcommand{\a}{\vect a}
 \newcommand{\s}{\vect s}
 \newcommand{\vnu}{\mbox{\boldmath{$\nu$}}}
+\newcommand{\valpha}{\mbox{\boldmath{$\alpha$}}}
+\newcommand{\vbeta}{\mbox{\boldmath{$\beta$}}}
 \newcommand{\vmu}{\mbox{\boldmath{$\mu$}}}
 \newcommand{\vtau}{\mbox{\boldmath{$\tau$}}}
 \newcommand{\vrho}{\mbox{\boldmath{$\rho$}}}
@@ -111,6 +113,8 @@ pdfsubject={Technical Report}]{hyperref}
 \newcommand{\pois}{\mathop{\mathrm{pois}}}
 \newcommand{\step}{\mathop{\mathrm{step}}}
 \newcommand{\diag}{\mathop{\mathrm{diag}}}
+\def\a{\vect a}
+\def\b{\vect b}
 \def\k{\vect k}
 \def\d{\vect d}
 \def\e{\vect e}
@@ -404,8 +408,64 @@ Die Normal equation des least square problems:
 (w^T Z) (Z^T Z)^{-1}
 \end{align}
 
-Das ist genauer in 15.4.2 numerical recipes 3rd ed beschrieben
+Das ist genauer in 15.4.2 numerical recipes 3rd ed beschrieben:
+Das lineare Modell sei
+\begin{align}
+  y(x) = \sum_{k=0}^{M-1} a_k X_k(x)
+\end{align}
+mit den Basisfunktionen $X_k$. Im Folgenden beschreibt $M$ die Anzahl
+der Moden und $N$ die Anzahl an Positionen, an denen eine elektrische
+Feldstaerke gemessen wurde. Die Merit Funktion ist
+\begin{align}
+  \chi^2 = \sum_{i=0}^{N-1}\frac{1}{\sigma_i^2}\(y_i- \sum_{k=0}^{M-1} a_k X_k(x_i\)^2
+\end{align}
+Die Design Matrix A sei eine Matrix mit $N\times M$ komponenten aus
+$M$ Basisfunktionen und $N$ Koordinatenpunkten $x_i$ mit $N$
+Messfehlern $\sigma_i$.
+\begin{align}
+  A_{ij} = X_j(x_i)/\sigma_i
+\end{align}
+Es sollte gelten $N\ge M$, wir fordern mehr Datenpunkte als
+Modelparameter. Weiterhin definieren wir den Datenvektor $\b$ der L\"ange N mit
+\begin{align}
+  b_i = y_i/\sigma_i
+\end{align}
+und den Parametervektor $\a$ mit $M$ Eintr\"agen.
+\begin{align}
+  \a = (a_0, a_1,\dots,a_{M-1})
+\end{align}
+Um die optimalen Parameter zu bestimmen fordern wir, dass die
+Ableitung $\chi^2_{,a_k}$ der Meritfunktion nach allen Parametern
+verschwindet. Damit ergeben sich $M$ Gleichungen:
+\begin{align}
+  0 = \sum_{i=0}^{N-1}\frac{1}{\sigma_i^2}\(y_i- \sum_{j=0}^{M-1} a_j X_j(x_i)\) X_k(x_i) 
+\end{align}
+mit $k=0,\ldots, M-1$.  Wir vertauschen die Summen um diesen
+Ausdruck in Matrixschreibweise bringen:
+\begin{align}
+  0 &= \sum_{i=0}^{N-1}\(\frac{y_iX_k(x_i)}{\sigma_i^2}- \sum_{j=0}^{M-1} \frac{a_j X_j(x_i)X_k(x_i)}{\sigma_i^2}\)   \\
+0 &=\sum_{i=0}^{N-1} \frac{y_iX_k(x_i)}{\sigma_i^2}- \sum_{j=0}^{M-1} \sum_{i=0}^{N-1} \frac{a_j X_j(x_i)X_k(x_i)}{\sigma_i^2}
+\end{align}
+\begin{align}
+\sum_{j=0}^{M-1} \underbrace{\sum_{i=0}^{N-1}  \frac{X_j(x_i)X_k(x_i)}{\sigma_i^2}}_{\alpha_{kj}} a_k =  \underbrace{\sum_{i=0}^{N-1}\frac{y_iX_k(x_i)}{\sigma_i^2}}_{\beta_k} 
+\end{align}
+\begin{align}
+  \sum_{j=0}^{M-1} \alpha_{kj} a_j = \beta_k
+\end{align}
+Dabei ist $\valpha$ eine $M\times M$ Matrix und $\vbeta$ ein Vektor
+der L\"ange $M$. Als Matrixgleichung geschrieben:
+\begin{align}
+  \valpha \a = \vbeta
+\end{align}
+oder
+\begin{align}
+  \valpha &= A^T A\\
+  \vbeta &= A^T b\\
+  (A^T A) \a &= A^T b
+\end{align}
+
 \end{document}
+
 %%% Local Variables: 
 %%% mode: latex
 %%% TeX-master: t
