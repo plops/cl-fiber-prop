@@ -297,7 +297,7 @@ $|a|^2$ wird
 \end{align}
 Da der Indexkontrast klein ist ($\Delta \ll 1$), k\"onnen longitudinale Feldkomponenten vernachl\"assigt werden und es gilt
 \begin{align}
-  \H(r,\phi,z,t) &= \frac{1}{\mu_0 \omega} \k \times \E, \quad\textrm{with}\ \k = \beta \e_z
+  \H(r,\phi,z,t) &= \frac{1}{\mu_0 \omega} \k \times \E, \quad\textrm{mit}\ \k = \beta \e_z
 \end{align}
 Damit ist die Normierungskonstante 
 \begin{align}
@@ -388,6 +388,23 @@ n_i \sin(\theta_i) &= \nco \sin(\theta_z)\\
 \E_t(\theta_z) &= \frac{2 n_i}{\nco+n_i} \E_i(\theta_i)
 \end{align}
 
+Schreibe alle Samplewerte des Eingangsfeldes mit minimalen
+Absolutbetrag
+\begin{align}
+  \Omega = \{(x,y)\in\Ainfty: |E_t(x,y)| > \kappa\}
+\end{align}
+in einen Vektor $w_i = E_t(\Omega_i)$. Konstruiere eine Matrix $Z$
+deren Zeilen den entsprechenden Wert der verschiedenen Moden mit
+linearem Index $j$ an den Punkten aus der Menge $\Omega$ <enthaelt:
+\begin{align}
+  Z_{ij} = u_j(\Omega_i) 
+\end{align}
+Die Normal equation des least square problems:
+\begin{align}
+(w^T Z) (Z^T Z)^{-1}
+\end{align}
+
+Das ist genauer in 15.4.2 numerical recipes 3rd ed beschrieben
 \end{document}
 %%% Local Variables: 
 %%% mode: latex
