@@ -464,8 +464,8 @@ der L\"ange $M$. Als Matrixgleichung geschrieben:
 oder
 \begin{align}
   \valpha &= A^T A\\
-  \vbeta &= A^T b\\
-  (A^T A) \a &= A^T b
+  \vbeta &= A^T \b\\
+  (A^T A) \a &= A^T \b
 \end{align}
 Dieses System sollte mit SVD gel\"ost werden. Die Zerlegung einer Matrix $A$ ist 
 \begin{align}
@@ -484,12 +484,13 @@ Dieses System sollte mit SVD gel\"ost werden. Die Zerlegung einer Matrix $A$ ist
   &&&&\\
   &&&&\\
   \end{pmatrix}
+  \underbrace{
   \begin{pmatrix}
   w_0 \\
   {} & w_1 \\
   {} & {} & \ddots \\
   {} & {} & {} & w_{N-1}
-  \end{pmatrix}
+  \end{pmatrix}}_S
   \begin{pmatrix}
   &&\\ 
   & V^T &\\
@@ -499,7 +500,7 @@ Dieses System sollte mit SVD gel\"ost werden. Die Zerlegung einer Matrix $A$ ist
 Wir bezeichen mit $U_{(i)}$ die $M$ Spalten von $U$ (Vektoren der
 L\"ange $N$) und mit $V_{(i)}$ die $M$ Spalten von $V$ (Vektoren der
 L\"ange $M$). Damit ist die L\"osung des linearen
-Minimierungsproblems:
+Minimierungsproblems $\min |A\a-\b|^2$ :
 \begin{align}
   \a = \sum_{i=0}^{M-1} \(\frac{U_{(i)}\b}{w_i}\)  V_{(i)}
 \end{align}
@@ -509,6 +510,7 @@ als
 \begin{align}
   \sigma^2(a_j) = \sum_{i=0}^{M-1} \(V_{ji}/w_i\)^2
 \end{align}
+Die GNU Scientific Library stellt f\"ur diese Aufgabe die Funktionen \verb!SV_decomp(A,V,S,vec work)! und  \verb!SV_solve(U,V,S,vec b,vec x)! bereit.
 
 \end{document}
 
