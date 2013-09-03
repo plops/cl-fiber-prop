@@ -285,8 +285,12 @@ $u$ k\"onnen in den damit ermittelten Intervallen mit einer
 Nullstellensuche, z.B. Brents Methode [Press2007], berechnet werden.
 Bei der aktuellen Implementierung funktioniert diese Modensuche bis
 ungef\"ahr 7000 Moden. Bei gr\"osseren $v$-Parametern kommt es zu
-floating point overflows (diese Fehler koennen vermutlich behoben
-werden, wenn das unbedingt erforderlich ist).
+floating point overflows bei der Brechnung von $K_{l+1}(w)$ f\"ur etwa
+$l>100$ und $w\approx 4$, das Problem liegt also bei zu gro\ss em
+$l$. Zur Zeit ist mir nicht klar, ob ein anderer Algorithmus zur
+Berechnung der charaketeristischen Funktion ausreicht oder ob zu einem
+anderen Datentyp (insbesondere 128-bit quadfloat) gewechselt werden
+muss.
 
 
 Bei gegebenen Modenparameter $u$ kann die Ausbreitungskonstante
