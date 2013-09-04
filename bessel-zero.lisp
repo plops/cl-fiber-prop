@@ -3,6 +3,8 @@
 (require :cffi)
 (require :gsll)
 
+(defpackage :g (:use :cl gsll))
+(in-package :g)
 
 (declaim (ftype (function (fixnum double-float) (values double-float &optional)) jn yn))
 (cffi:defcfun jn :double (n :int) (x :double))
@@ -293,6 +295,31 @@ their Derivatives"
 		  (/ (* w (gsll:cylindrical-bessel-k-scaled (+ l 1) w))
 		     (gsll:cylindrical-bessel-k-scaled l w))))))))))
 
+#+nil
+(CHAR-STEP-INDEX-FIBER 242.95446016556474 243.0 153)
+
+#+nil
+(let ((u 242.95446016556474) (v 243.0) (l 153))
+  (let ((rad (- (* v v) (* u u))))
+    (when (and (<= 0 rad) (< 0 u))
+      (let ((posrad rad))
+	(declare (type (double-float 0d0) posrad))
+	(let ((w (sqrt posrad)))
+	 (declare (type (double-float 0d0) w))
+	 (list u v w)
+	 (list  #+nil (/ (* u (jn (+ l 1) u))
+	       (jn l u))
+	    (if (< w (* .1 (sqrt (+ l 1)))) 
+		(if (= l 0)
+		    (/ -1d0 (+ (log (* w .5)) *euler-m*))
+		    (* 2 l))
+		(list w (* .1 (sqrt (+ l 1))) l
+		      #+nil (gsll:cylindrical-bessel-k-scaled (+ l 1) w))
+		#+nil (/ (* w (gsll:cylindrical-bessel-k-scaled (+ l 1) w))
+			 (gsll:cylindrical-bessel-k-scaled l w)))))))))
+
+(gsll:cylindrical-bessel-k-scaled 20 4.2)
+
 (defun step-fiber-eigenvalues (v)
   (let ((lmax (+ 1 (floor (* 2 V (/ pi)))))
 	(mmax (ceiling (- (/ V pi) 1/4))))
@@ -328,6 +355,7 @@ their Derivatives"
    (loop for e in (step-fiber-eigenvalues 243d0) do
 	(loop for f in e do (incf count)))
    count)) ;; finding 6995 modes takes .924 s
+
 
 
 #+nil
@@ -527,6 +555,21 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	(us (step-fiber-eigenvalues v)))
    (step-fiber-minimal-sampling us v :n 256 :scale 1.4)))
 
+
+(defun sin-fast (x)
+  (declare (type single-float x) (values single-float &optional))
+  (let ((c1 0.9999966) (c3 -0.16664815) (c5 0.008306204) (c7 -1.8360789e-4) (x2 (* x x)))
+    (+ (* x2 (+ c1 (* c3 x)))
+       (* x2 x2 x2 (+ c5 (* c7 x))))))
+
+#+nil
+(time 
+ (let* ((n 10000000)
+       (u (* .5 (coerce pi 'single-float)))
+       (du (/ 1f0 n)))
+   (loop for x from (- u) upto u by du do
+	(sin x))))
+;; .195 vs .054 at .1 for n=10000000
 
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   (declare (values (simple-array double-float 3) &optional))
@@ -736,3 +779,20 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
  
 ;; levin transform, oscillatory integral 5.3.24
 ;; 13.9
+
+
+;; shemirani 2009y
+;; Due to symmetries enforced by the bends in and directions, it is
+;; easiest to find the coupling coefficients in Carte- sian
+;; coordinates, using the eigenmodes of the ideal fiber, which are
+;; orthonormal Hermite–Gaussian function
+
+
+(defun solve-couple-into-lp-modes (matrix)
+  "Solve the linear equation using SVD with the supplied matrix and
+   a right-hand side vector which is the reciprocal of one more than
+   the index."
+  (let ((dim (dim0 matrix)))
+    (multiple-value-bind (u q d)
+        (SV-decomposition (copy matrix))
+      (SV-solve u q d (gsll::create-rhs-vector dim)))))

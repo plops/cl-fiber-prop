@@ -338,8 +338,21 @@ auf der linken Seite zu $y''_{j+1}$ auf der rechten Seite variiert.
   C &= (A^3-A)(x_{j+1}-x_j)^2/6 \\
   D &= (B^3-B)(x_{j+1}-x_j)^2/6 
 \end{align}
+\section{Approximation von sinf}
+Eine gut Approximation von f\"ur single float Sinus ist
+\begin{align}
+  \sin(x)&\approx 0.9999966 x -0.16664815 x^3 \nonumber\\
+  &+0.008306204 x^5 -1.8360789\cdot 10^{-4} x^7 
+\end{align}
+Im Bereich $[-\pi/2,\pi/2]$ ist der Fehler $7.1\cdot 10^{-7}$.
+F\"ur die Auswertung berechne ich:
+\begin{align}
+  \sin(x) \approx (c_1 + c_3 x) x^2 + ( (c_5 +c_7 x)x^2) x^4
+\end{align}
 
 
+%20 7 7.112727e-7 4 4 4 0 | 0.0 0.9999966 0.0 -0.16664815 0.0 0.008306204 0.0 -1.8360789e-4 | 0 16777159/16777216 0 -698973/4194304 0 8918719/1073741824 0 -6308719/34359738368 | sin-F4669396D2C9F733C95387153E86BA05
+% from https://github.com/pkhuong/polynomial-approximation-catalogue
 \section{Vorgehensweise zur Berechnung der Modenfelder}
 Um die Feldverteilung der einzelnen Moden auszurechnen, kann man
 einige Zwischenergebnisse wiederverwenden.
