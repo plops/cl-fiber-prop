@@ -555,21 +555,57 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	(us (step-fiber-eigenvalues v)))
    (step-fiber-minimal-sampling us v :n 256 :scale 1.4)))
 
-
+(declaim (inline sin-fast))
 (defun sin-fast (x)
   (declare (type single-float x) (values single-float &optional))
-  (let ((c1 0.9999966) (c3 -0.16664815) (c5 0.008306204) (c7 -1.8360789e-4) (x2 (* x x)))
-    (+ (* x2 (+ c1 (* c3 x)))
-       (* x2 x2 x2 (+ c5 (* c7 x))))))
+  (declare (optimize (debug 0) (speed 3) (safety 1)))
+  (let ((c1 0.9999966f0) (c3 -0.16664815f0) (c5 0.008306204f0) (c7 -1.8360789f-4) 
+	(x2 (* x x)))
+    #+nil (+ (* x c1)
+       (* (expt x 3) c3)
+       (* (expt x 5) c5)
+       (* (expt x 7) c7))
+    (* x (+ c1 (* c3 x2)
+	    (* x2 x2 (+ c5 (* c7 x2)))))))
+
+(let* ((n 10000000)
+       (u (* .5f0 (coerce pi 'single-float)))
+       (du (/ 1f0 n)))
+  (declare (type single-float u du))
+  (defun sin-test1 ()
+    (declare (optimize (debug 0) (speed 3) (safety 1)))
+    (loop for x from (- u) upto u by du do
+	 (sin x)))
+  (defun sin-test2 ()
+    (declare (optimize (debug 0) (speed 3) (safety 1)))
+    (loop for x from (- u) upto u by du do
+	 (sin-fast x)))
+  (defun sin-diff ()
+    (* (/ 1d0 n) (loop for x from (- u) upto u by du sum
+	  (- (sin-fast x) (sin x))))))
 
 #+nil
-(time 
- (let* ((n 10000000)
-       (u (* .5 (coerce pi 'single-float)))
+(let* ((n 10000)
+       (u (* .5f0  (coerce pi 'single-float)))
        (du (/ 1f0 n)))
+  (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
    (loop for x from (- u) upto u by du do
-	(sin x))))
+	(format s "~f ~f~%" x (- (sin x) (sin-fast x))))))
+#+nil
+(time 
+ (sin-test2))
 ;; .195 vs .054 at .1 for n=10000000
+
+#+nil
+(let* ((n 100)
+       (lmax 10)
+       (j (make-array (list lmax n) :element-type 'double-float))
+       (jpp (make-array (list lmax n) :element-type 'double-float)))
+  (defun bessel-j-fast-init ()
+    (dotimes (l lmax)
+     (dotimes (i n)
+       (setf (aref j l i) (jn )))))
+  (defun bessel-j-fast (x)))
 
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   (declare (values (simple-array double-float 3) &optional))
