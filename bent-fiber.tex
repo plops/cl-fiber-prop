@@ -301,7 +301,7 @@ $\beta$ errechnet werden
 Die Normierungskonstante $N$ wird so gew\"ahlt, dass die Intensit\"at
 $|a|^2$ wird
 \begin{align}
-  I &= \frac{1}{2}\left|\int_{A_\infty} \(\E\times\H^*\)_z  \textrm{d}A \right| = |a|^2
+  I &= \frac{1}{2}\left|\int_{A_\infty}\!\!\!\!\! \(\E\times\H^*\)_z  \textrm{d}A \right| = |a|^2
 \end{align}
 Da der Indexkontrast klein ist ($\Delta \ll 1$), k\"onnen longitudinale Feldkomponenten vernachl\"assigt werden und es gilt
 \begin{align}
@@ -383,8 +383,8 @@ vernachlaessigbar.
 % factor(diff(bessel_k(l,x),x,2));
 
 \begin{align}
-  J''_0(x) &= \frac{1}{2}\(K_2(x)+K_0(x)\)\\
-  J''_1(x) &= \frac{1}{4}\(K_3(x)+3K_1(x)\)\\
+  K''_0(x) &= \frac{1}{2}\(K_2(x)+K_0(x)\)\\
+  K''_1(x) &= \frac{1}{4}\(K_3(x)+3K_1(x)\)\\
   K''_l(x) &= \frac{1}{4}\(K_{l+2}(x)+2K_l(x)+K_{l-2}(x)\)
 \end{align}
 
@@ -415,6 +415,10 @@ durch
   \delta L &= R_b \sin\alpha\\
   c_{nm}&=\int\!\!\!\int\! F_n(x,y)F_m(x,y) e^{ik_0\alpha x} \textrm{d}x \textrm{d}y
 \end{align}
+
+Das Integral kann mit der Funktion
+\verb! integration_qng (F,A,B,EPSABS,EPSREL,*RESULT,*ABSERR)! ausgewertet werden.
+
 \begin{figure}[hbtp]
   \centering
   \includegraphics[width=.7\columnwidth]{bla-coef}
