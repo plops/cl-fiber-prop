@@ -644,16 +644,17 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 #+nil
 (progn
- (bessel-j-fast-init :start 0d0 :end 90d0 :n 100)
+ (bessel-j-fast-init :start 0d0 :end 100d0 :n 100)
  (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
    (loop for x from 0d0 upto 80d0 by .001 do
 	(format s "~f ~f~%" x (+ (* -1 (jn 4 x)) (* 1 (bessel-j-fast 4 x)))))))
 
 #+nil
-(time (loop for x from 0d0 upto 80d0 by 1e-5 do (bessel-j-fast 4 x)))
+(time (loop for x from 0d0 upto 99d0 by 1e-5 do (bessel-j-fast 4 x)))
+; (/ 1815165956 (* 99 1e5)) => 183 cycles per call
 #+nil
-(time (loop for x from 0d0 upto 80d0 by 1e-4 do (jn 4 x)))
-
+(time (loop for x from 0d0 upto 99d0 by 1e-4 do (jn 4 x)))
+; (/ 996556092 (* 99 1e4)) => 1006 cycles per call
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   (declare (values (simple-array double-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
