@@ -1,6 +1,6 @@
 (declaim (optimize (debug 3) (speed 0) (safety 3)))
 
-(require :cffi)
+;(require :cffi)
 (require :gsll)
 
 (defpackage :g (:use :cl gsll))
@@ -596,16 +596,63 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
  (sin-test2))
 ;; .195 vs .054 at .1 for n=10000000
 
-#+nil
-(let* ((n 100)
+
+(let* ((j-n 100)
        (lmax 10)
-       (j (make-array (list lmax n) :element-type 'double-float))
-       (jpp (make-array (list lmax n) :element-type 'double-float)))
-  (defun bessel-j-fast-init ()
+       (j-start 0d0)
+       (j-end 100d0)
+       (j (make-array (list lmax j-n 2) :element-type 'double-float)))
+  (declare (type double-float j-start j-end)
+	   (type (integer 0 100000) lmax)
+	   (type fixnum j-n)
+	   (type (simple-array double-float 3) j))
+  (defun bessel-j-fast-init (&key (start 0d0) (end 10d0) (n 100))
+    (declare (optimize (debug 0) (speed 3) (safety 1)))
+    (setf j-start start
+	  j-end end
+	  j-n n
+	  j (make-array (list lmax j-n 2) :element-type 'double-float))
     (dotimes (l lmax)
      (dotimes (i n)
-       (setf (aref j l i) (jn )))))
-  (defun bessel-j-fast (x)))
+       (let ((x (+ start (* (- end start) i (/ 1d0 n)))))
+	(setf (aref j l i 0) (jn l x)
+	      (aref j l i 1) (cond 
+			       ((= l 0) (* .5 (- (jn 2 x) (jn 0 x))))
+			       ((= l 1) (* .25 (- (jn 3 x) (* 3 (jn 1 x)))))
+			       (t (* .25 (+ (jn (+ l 2) x)
+					    (* -2 (jn l x))
+					    (jn (- l 2) x))))))))))
+  (defun bessel-j-fast (l x)
+    (declare (type (integer 0 10000) l)
+	     (type double-float x)
+	     (values double-float &optional))
+    (declare (optimize (debug 0) (speed 3) (safety 1)))
+    (multiple-value-bind (i xx) (floor (* j-n (/ (- x j-start)
+					       (- j-end j-start))))
+      (let* ((diff (* (- j-end j-start)
+		      (/ 1d0 j-n)))
+	     (a (- 1 xx))
+	     (b xx)
+	     (c (* 1/6 (- (* a a a) a) ))
+	     (d (* 1/6 (- (* b b b) b) )))
+	(+ (* a  (aref j l i 0))
+	   (* b (aref j l (+ i 1) 0))
+	   (* c (aref j l i 1) diff diff)
+	   (* d (aref j l (+ i 1) 1) diff diff)
+	   )))))
+
+
+#+nil
+(progn
+ (bessel-j-fast-init :start 0d0 :end 90d0 :n 100)
+ (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
+   (loop for x from 0d0 upto 80d0 by .001 do
+	(format s "~f ~f~%" x (+ (* -1 (jn 4 x)) (* 1 (bessel-j-fast 4 x)))))))
+
+#+nil
+(time (loop for x from 0d0 upto 80d0 by 1e-5 do (bessel-j-fast 4 x)))
+#+nil
+(time (loop for x from 0d0 upto 80d0 by 1e-4 do (jn 4 x)))
 
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   (declare (values (simple-array double-float 3) &optional))
