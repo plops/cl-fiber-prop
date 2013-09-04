@@ -321,34 +321,73 @@ Damit ist die Normierungskonstante
     linear indiziert.}
   \label{fig:fields}
 \end{figure}
+\section{Kubische Interpolation}
+Geben sei eine Tabelle von Funktionswerten $y_i(x_i)$
+$i=0,\ldots,N-1$. Die lineare Interpolation in einem Interval
+$[x_j,x_{j+1}]$ ist
+\begin{align}
+  y &= Ay_j + By_{j+1} \\
+  A &= \frac{x_{j+1}-x}{x_{j+1}-x_j}\quad B=1-A
+\end{align}
+Jetzt nehmen wir an, dass wir zus\"atzlich eine Tabelle der zweiten
+Ableitungen $y''_i$ haben. Dann k\"onnen wir ein kubische Polynom zu
+obigem Ausdruck addieren, dessen zweite Ableitung linear von $y''_j$
+auf der linken Seite zu $y''_{j+1}$ auf der rechten Seite variiert.
+\begin{align}
+  y &= Ay_j + By_{j+1} + Cy''_j + Dy''_{j+1} \\
+  C &= (A^3-A)(x_{j+1}-x_j)^2/6 \\
+  D &= (B^3-B)(x_{j+1}-x_j)^2/6 
+\end{align}
+
+
 \section{Vorgehensweise zur Berechnung der Modenfelder}
 Um die Feldverteilung der einzelnen Moden auszurechnen, kann man
 einige Zwischenergebnisse wiederverwenden.
 
 Folgende Funktionen und ihre Ableitungen kann man tabellieren und
 sp\"ater mit Spline-Interpolation auswerten um 2D Felder
-radialsymmetrisch zu f\"ullen: $[\cos(l\phi),-l\sin(l\phi)]$ und
-$[\sin(l\phi),l\cos(l\phi)]$ mit $\phi\in[0,2\pi)$ und
-$l\in[0,\lmax]$. Die maximale Anzahl Oszillationen auf dem Kernrand
-h\"angt von $\lmax$ ab. Dies definiert eine Grenze f\"ur die
-Pixelgr\"osse des Feldes.
+radialsymmetrisch zu f\"ullen: $\cos(l\phi)$ und $\sin(l\phi)$ mit
+$\phi\in[0,2\pi)$ und $l\in[0,\lmax]$. Die maximale Anzahl
+Oszillationen auf dem Kernrand h\"angt von $\lmax$ ab. Dies definiert
+eine Grenze f\"ur die Pixelgr\"osse des Feldes. Es reicht eine
+zyklische lookup Tabelle (oder Interpolation) f\"ur
+$[\sin(x),-\cos(x),\sin(x)]$ und $[\cos(x),\sin(x),-\cos(x)]$ f\"ur $l=1$.
+[Press2007, Function approximization Ch 5]
+
+% factor(diff(bessel_j(l,x),x,2));
+% diff(bessel_j(0,x),x,2);
+% factor(diff(bessel_j(1,x),x,2));
 
 Der maximale Wert f\"ur $u$ ist $v$, also reicht f\"ur die
-Feldberechnung im Kern $[J_l(x),(J_{l-1}(x)-J_{l+1}(x))/2]$ mit
-$x\in[0,v]$ und $l\in[0,\lmax]$. Die Ableitung f\"ur $l=0$ ist
-$J_0(x)_{,x}= -J_1(x)$.  Die Anzahl der radialen Oszillationen ist
-maximal f\"ur $J_0(v)$. Dies liefert eine weitere Grenze f\"ur die
-Pixelgr\"osse des Feldes.
+Feldberechnung im Kern $J_l(x)$ mit
+$x\in[0,v]$ und $l\in[0,\lmax]$. 
+\begin{align}
+  J''_0(x) &= \frac{1}{2}\(J_2(x)-J_0(x)\)\\
+  J''_1(x) &= \frac{1}{4}\(J_3(x)-3J_1(x)\)\\
+  J''_l(x) &= \frac{1}{4}\(J_{l+2}(x)-2J_l(x)+J_{l-2}(x)\)
+\end{align}
+Die Anzahl der radialen Oszillationen ist maximal f\"ur $J_0(v)$. Dies
+liefert eine weitere Grenze f\"ur die Pixelgr\"osse des Feldes.
 
 Die Argumente f\"ur die Funktion $K_l(x)$ erstrecken sich von $w$ nach
 unendlich. Das kleinste $w$ ist $\sqrt{v^2-\umax^2}$. Dieser Wert kann
 meineserachtens null werden. Verglichen mit $J_l$ sieht $K_l$ sehr
-langweilig aus. M\"oglicherweise ist es hilfreich, $K_l(x)/exp(x)$ zu
+langweilig aus. M\"oglicherweise ist es hilfreich, $K_l(x)/\exp(x)$ zu
 tabellieren aber die Feldstaerke gef\"uhrter Moden in von uns
 betrachteten Multi-mode Fasern faellt ausserhalb des Kernradius
 schnell ab und der Einfluss auf Kopplungskonstanten ist
-vernachlaessigbar. Die Ableitung ist
-$K_l(x)_{,x}=-(K_{l+1}(x)+K_{l-1}(x))/2$ bzw $K_0(x)_{,x}=-K_1(x)$.
+vernachlaessigbar.
+
+% factor(diff(bessel_k(0,x),x,2));
+% factor(diff(bessel_k(1,x),x,2));
+% factor(diff(bessel_k(l,x),x,2));
+
+\begin{align}
+  J''_0(x) &= \frac{1}{2}\(K_2(x)+K_0(x)\)\\
+  J''_1(x) &= \frac{1}{4}\(K_3(x)+3K_1(x)\)\\
+  K''_l(x) &= \frac{1}{4}\(K_{l+2}(x)+2K_l(x)+K_{l-2}(x)\)
+\end{align}
+
 
 Um die Eigenwerte als lineare Sequenz aufzufassen benutzt H.~Gross das
 Indexschema, dass durch die roten Zahlen im Mosaik der Modenfelder
