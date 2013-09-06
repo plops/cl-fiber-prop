@@ -8,8 +8,7 @@
 
 (declaim (ftype (function (fixnum double-float) (values double-float &optional)) jn yn))
 (cffi:defcfun jn :double (n :int) (x :double))
-
-(cffi:defcfun yn :double (n :int) (x :double))
+(cffi:defcfun jnf :float (n :int) (x :float))
 
 (defun bess-zeros (&key (a 1) (n 10) (d 1) (e 1e-5))
   (let ((res (make-array n :element-type 'double-float)))
@@ -401,7 +400,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 
 (defmethod interp ((lut cubic-interp) l x)
-    (declare (type (integer 0 10000) l)
+    (declare (type fixnum l)
 	     (type double-float x)
 	     (values double-float &optional))
     (declare (optimize (debug 0) (speed 3) (safety 1)))
@@ -413,7 +412,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		 (ignore two))
 	(multiple-value-bind (i xx) (floor (* n (/ (- x start)
 						   (- end start))))
-	  (declare (type double-float xx))
+	  (declare (type double-float xx)
+		   (type fixnum i))
 	  (let* ((diff (* (- end start) (/ 1d0 n)))
 		  (a (- 1 xx))
 		  (b xx)
@@ -431,38 +431,43 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 (let* ((j-n 100)
        (lmax 10)
-       (j-start 0d0)
-       (j-end 100d0)
-       (j (make-array (list lmax j-n 2) :element-type 'double-float)))
-  (declare (type double-float j-start j-end)
-	   (type (integer 0 100000) lmax)
-	   (type fixnum j-n)
-	   (type (simple-array double-float 3) j))
-  (defun bessel-j-fast-init (&key (start 0d0) (end 10d0) (n 100))
-    (declare (optimize (debug 0) (speed 3) (safety 1)))
+       (j-start 0s0)
+       (j-end 100s0)
+       (j (make-array (list lmax j-n 2) :element-type 'single-float
+		      :initial-element 0s0)))
+  (declare (type single-float j-start j-end)
+	   (type fixnum lmax j-n)
+	   (type (simple-array single-float 3) j))
+  (defun bessel-j-fast-init (&key (start 0s0) (end 10s0) (n 100))
+    (declare (optimize (debug 3) (speed 3) (safety 1)))
     (setf j-start start
 	  j-end end
 	  j-n n
-	  j (make-array (list lmax j-n 2) :element-type 'double-float))
+	  j (make-array (list lmax j-n 2) :element-type 'single-float
+			:initial-element 0s0))
     (dotimes (l lmax)
      (dotimes (i n)
-       (let ((x (+ start (* (- end start) i (/ 1d0 n)))))
-	(setf (aref j l i 0) (jn l x)
+       (let ((x (+ start (* (- end start) i (/ 1s0 n)))))
+	 (declare (type single-float x))
+	(setf (aref j l i 0) (jnf l x)
 	      (aref j l i 1) (cond 
-			       ((= l 0) (* .5 (- (jn 2 x) (jn 0 x))))
-			       ((= l 1) (* .25 (- (jn 3 x) (* 3 (jn 1 x)))))
-			       (t (* .25 (+ (jn (+ l 2) x)
-					    (* -2 (jn l x))
-					    (jn (- l 2) x))))))))))
+			       ((= l 0) (* .5s0 (- (jnf 2 x) (jnf 0 x))))
+			       ((= l 1) (* .25s0 (- (jnf 3 x) (* 3 (jnf 1 x)))))
+			       (t (* .25s0 (+ (jnf (+ l 2) x)
+					      (* -2 (jnf l x))
+					      (jnf (- l 2) x))))))))))
   (defun bessel-j-fast (l x)
     (declare (type (integer 0 10000) l)
-	     (type double-float x)
-	     (values double-float &optional))
+	     (type single-float x)
+	     (values single-float &optional))
     (declare (optimize (debug 0) (speed 3) (safety 1)))
     (multiple-value-bind (i xx) (floor (* j-n (/ (- x j-start)
-					       (- j-end j-start))))
+						 (- j-end j-start))))
+
+      (declare (type (signed-byte 64) i)
+	       (type single-float xx))
       (let* ((diff (* (- j-end j-start)
-		      (/ 1d0 j-n)))
+		      (/ 1s0 j-n)))
 	     (a (- 1 xx))
 	     (b xx)
 	     (c (* 1/6 (- (* a a a) a) ))
@@ -470,16 +475,15 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	(+ (* a  (aref j l i 0))
 	   (* b (aref j l (+ i 1) 0))
 	   (* c (aref j l i 1) diff diff)
-	   (* d (aref j l (+ i 1) 1) diff diff)
-	   )))))
+	   (* d (aref j l (+ i 1) 1) diff diff))))))
 
 
 #+nil
 (let ((j (make-instance 'cubic-interp)))
- (bessel-j-fast-init :start 0d0 :end 100d0 :n 100)
+ (bessel-j-fast-init :start 0s0 :end 100s0 :n 100)
  (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-   (loop for x from 0d0 upto 80d0 by .001 do
-	(format s "~f ~f~%" x (+ (* -1 (jn 4 x)) (interp j 4 x) (* 0 (bessel-j-fast 4 x)))))))
+   (loop for x from 0s0 upto 80s0 by .001s0 do
+	(format s "~f ~f~%" x (+ (* -1 (jnf 4 x)) #+nil (interp j 4 x) (* 0 (bessel-j-fast 4 x)))))))
 
 #+nil
 (let ((j (make-instance 'cubic-interp)))
@@ -488,8 +492,12 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 ; (/ 25558000456 (* 99 1e5)) => 2581 cycles per call
 ; (/ 12835490708 (* 99 1e5)) => 1296 cycles per call
 #+nil
-(time (loop for x from 0d0 upto 99d0 by 1e-5 do (bessel-j-fast 4 x)))
+(progn
+  (bessel-j-fast-init :start 0s0 :end 110s0 :n 100)
+  (time (loop for x from 0s0 upto 99s0 by 1s-5 do (bessel-j-fast 4 x))))
 ; (/ 1815165956 (* 99 1e5)) => 183 cycles per call
+; (/ 1386921624 (* 99 1e5)) => 140 cycles per call (single-float)
+
 #+nil
 (time (loop for x from 0d0 upto 99d0 by 1e-4 do (jn 4 x)))
 ; (/ 996556092 (* 99 1e4)) => 1006 cycles per call
