@@ -358,11 +358,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 			     (* 2 (knf l x))
 			     (knf (- l 2) x))))))))
 
-#+nil
-(bessel-k-and-deriv 4 .1s0)
-
-;; factor(diff(bessel_k(2,x)*exp(x),x,2));
 (defun bessel-k-scaled-and-deriv (l x)
+  ;; factor(diff(bessel_k(2,x)*exp(x),x,2));
   (declare (values single-float single-float &optional)
 	   (type fixnum l)
 	   (type single-float x))
@@ -432,37 +429,15 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 (def-interp bessel-k bessel-k-and-deriv)
 (def-interp bessel-k-scaled bessel-k-scaled-and-deriv)
 
-(defun dx2 (fun l x)
-  (let ((h 1e-5))
-    (* (/ (* h h)) (+ (funcall fun l (+ x h))
-		(* -2 (funcall fun l x))
-		(funcall fun l (- x h))))))
-
 #+nil
-(let ((start 1s0))
-  (bessel-j-interp-init :start start :end 100s0 :n 100) 
- (with-open-file (s "/run/q/bla2.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-   (loop for x from start upto 99s0 by .1s0 do
-	(format s "~f ~f~%" x
-		(-
-		 (second (multiple-value-list (bessel-k-scaled-and-deriv 4 x)))
-		 (dx2 #'gsl::cylindrical-bessel-k-scaled 4d0 (* 1d0 x)))))))
+(let ((start 10s0))
+  (bessel-k-scaled-interp-init :start start :end 100s0 :n 100) 
+ (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
+   (loop for x from start upto 99s0 by .01s0 do
+	(format s "~f ~f ~f~%" x
+		(bessel-k-scaled-interp 4 x)
+		(gsl::cylindrical-bessel-k-scaled 4d0 (* 1d0 x))))))
 
-#+nil
-(progn
-  (bessel-j-interp-init :start 0s0 :end 110s0 :n 100)
-  (time (loop for x from 0s0 upto 99s0 by 1s-5 do (bessel-j-interp 4 x))))
-; (/ 1815165956 (* 99 1e5)) => 183 cycles per call
-; (/ 1386921624 (* 99 1e5)) => 140 cycles per call (single-float)
-
-#+nil
-(progn
-  (bessel-k-interp-init :start .1s0 :end 79.2s0 :n 100) 
-  (time (loop for x from .1s0 upto 79.2s0 by 1s-5 do (bessel-k-interp 4 x))))
-
-#+nil
-(time (loop for x from 0d0 upto 99d0 by 1e-4 do (jn 4 x)))
-; (/ 996556092 (* 99 1e4)) => 1006 cycles per call
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   (declare (values (simple-array double-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
