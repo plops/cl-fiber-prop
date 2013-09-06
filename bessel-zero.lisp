@@ -406,6 +406,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	     (values double-float &optional))
     (declare (optimize (debug 0) (speed 3) (safety 1)))
     (with-slots (start end table) lut
+      (declare (type double-float start end)
+	       (type (simple-array double-float 3) table))
       (destructuring-bind (lmax n two) (array-dimensions table)
 	(declare (type fixnum lmax n)
 		 (ignore two))
@@ -417,6 +419,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		  (b xx)
 		  (c (* 1/6 (- (* a a a) a)))
 		  (d (* 1/6 (- (* b b b) b))))
+	    (declare (type double-float diff a b c d))
 	     (+ (* a (aref table l i 0))
 		(* b (aref table l (+ i 1) 0))
 		(* c (aref table l i 1) diff diff)
@@ -483,6 +486,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
   (time
    (loop for x from 0d0 upto 99d0 by 1e-5 do (interp j 4 .3))))
 ; (/ 25558000456 (* 99 1e5)) => 2581 cycles per call
+; (/ 12835490708 (* 99 1e5)) => 1296 cycles per call
 #+nil
 (time (loop for x from 0d0 upto 99d0 by 1e-5 do (bessel-j-fast 4 x)))
 ; (/ 1815165956 (* 99 1e5)) => 183 cycles per call
