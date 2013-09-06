@@ -389,15 +389,15 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	  (defparameter ,(s lmax) 100)
 	  (defparameter ,(s start) 0s0)
 	  (defparameter ,(s end) 100s0)
-	  (defparameter ,(s s) (/ j-n (- ,(s END) ,(s START))))
+	  (defparameter ,(s s) (/ ,(s n) (- ,(s END) ,(s START))))
 	  (defparameter ,(s diff2) (expt (/ ,(s s)) 2))
-	  (defparameter ,(s J)
+	  (defparameter ,(s table)
 	    (MAKE-ARRAY (LIST ,(s lmax) ,(s N) 2)
 			:ELEMENT-TYPE 'SINGLE-FLOAT))
 
 	  (proclaim '(type SINGLE-FLOAT ,(s START) ,(s end) ,(s s) ,(s diff2)))
 	  (proclaim '(TYPE FIXNUM ,(s lmax) ,(s n)))
-	  (proclaim '(TYPE (SIMPLE-ARRAY SINGLE-FLOAT 3) ,(s J)))
+	  (proclaim '(TYPE (SIMPLE-ARRAY SINGLE-FLOAT 3) ,(s table)))
 	  (DEFUN ,interp-init (&KEY (START 0.0f0) (END 10.0f0) (N 100) (lmax 100))
 	    (DECLARE (OPTIMIZE (DEBUG 3) (SPEED 3) (SAFETY 1)))
 	    (SETF ,(s START) START
@@ -406,15 +406,14 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		  ,(s N) N
 		  ,(s s) (/ n (- END START))
 		  ,(s diff2) (expt (/ ,(s s)) 2)
-		  ,(s j)
-		  (MAKE-ARRAY (LIST LMAX N 2) :ELEMENT-TYPE 'SINGLE-FLOAT))
+		  ,(s table) (MAKE-ARRAY (LIST LMAX N 2) :ELEMENT-TYPE 'SINGLE-FLOAT))
 	    (DOTIMES (L LMAX)
 	      (DOTIMES (I N)
 		(LET ((X (+ START (* (- END START) I (/ 1.0f0 N)))))
 		  (DECLARE (TYPE SINGLE-FLOAT X))
 		  (MULTIPLE-VALUE-BIND (Y YY) (,fun L X)
-		    (SETF (AREF ,(s j) L I 0) Y
-			  (AREF ,(s j) L I 1) YY))))))
+		    (SETF (AREF ,(s table) L I 0) Y
+			  (AREF ,(s table) L I 1) YY))))))
 
 	  (proclaim '(INLINE ,interp))
 
@@ -430,9 +429,10 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		     (B XX)
 		     (C (* 1/6 a (- (* A A) 1)))
 		     (D (* 1/6 b (- (* B B) 1))))
-		(+ (* A (AREF ,(s j) L I 0)) (* B (AREF J L (+ I 1) 0))
-		   (* C (AREF ,(s j) L I 1) ,(s diff2))
-		   (* D (AREF ,(s j) L (+ I 1) 1) ,(s diff2)))))))))))
+		(+ (* A (AREF ,(s table) L I 0))
+		   (* B (AREF ,(s table) L (+ I 1) 0))
+		   (* C (AREF ,(s table) L I 1) ,(s diff2))
+		   (* D (AREF ,(s table) L (+ I 1) 1) ,(s diff2)))))))))))
 
 (def-interp bessel-j bessel-j-and-deriv)
 (def-interp bessel-k bessel-k-and-deriv)
