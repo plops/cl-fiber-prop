@@ -1,6 +1,5 @@
 (declaim (optimize (debug 3) (speed 0) (safety 3)))
 
-;(require :cffi)
 (require :gsll)
 
 (defpackage :g (:use :cl gsll))
@@ -379,119 +378,82 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 			     (knf (- l 2) x))))))))
 
 (defmacro def-interp (name fun)
-  `(let* ((j-n 100)
-	  (lmax 10)
-	  (j-start 0s0)
-	  (j-end 100s0)
-	  (j (make-array (list lmax j-n 2) :element-type 'single-float
-			 :initial-element 0s0)))
-     (declare (type single-float j-start j-end)
-	      (type fixnum lmax j-n)
-	      (type (simple-array single-float 3) j))
-     (defun ,(intern (format nil "~a-INTERP-INIT" name))
-	 (&key (start 0s0) (end 10s0) (n 100))
-       (declare (optimize (debug 3) (speed 3) (safety 1)))
-       (setf j-start start
-	     j-end end
-	     j-n n
-	     j (make-array (list lmax j-n 2) :element-type 'single-float
-			   :initial-element 0s0))
-       (dotimes (l lmax)
-	 (dotimes (i n)
-	   (let ((x (+ start (* (- end start) i (/ 1s0 n)))))
-	     (declare (type single-float x))
-	     (multiple-value-bind (y yy) (,fun l x)
-	       (setf (aref j l i 0) y
-		     (aref j l i 1) yy))))))
-     (declaim (inline ,(intern (format nil "~a-INTERP" name))))
-     (defun ,(intern (format nil "~a-INTERP" name)) (l x)
-       (declare (type (integer 0 10000) l)
-		(type single-float x)
-		(values single-float &optional))
-       (declare (optimize (debug 0) (speed 3) (safety 1)))
-       (multiple-value-bind (i xx) (floor (* j-n (/ (- x j-start)
-						    (- j-end j-start))))
+  (flet ((combin (x)
+	   (format nil "~a-~a" name x)))
+   (macrolet ((s (x)
+		`(intern (format nil "*~a*" (combin ',x)))))
+     (let ((interp (intern (format nil "~a-INTERP" name)))
+	   (interp-init (intern (format nil "~a-INTERP-INIT" name))))
+       `(progn
+	  (defparameter ,(s n) 100)
+	  (defparameter ,(s lmax) 100)
+	  (defparameter ,(s start) 0s0)
+	  (defparameter ,(s end) 100s0)
+	  (defparameter ,(s s) (/ j-n (- ,(s END) ,(s START))))
+	  (defparameter ,(s diff2) (expt (/ ,(s s)) 2))
+	  (defparameter ,(s J)
+	    (MAKE-ARRAY (LIST ,(s lmax) ,(s N) 2)
+			:ELEMENT-TYPE 'SINGLE-FLOAT))
 
-	 (declare (type (signed-byte 64) i)
-		  (type single-float xx))
-	 (let* ((diff (* (- j-end j-start)
-			 (/ 1s0 j-n)))
-		(a (- 1 xx))
-		(b xx)
-		(c (* 1/6 (- (* a a a) a) ))
-		(d (* 1/6 (- (* b b b) b) )))
-	   (+ (* a  (aref j l i 0))
-	      (* b (aref j l (+ i 1) 0))
-	      (* c (aref j l i 1) diff diff)
-	      (* d (aref j l (+ i 1) 1) diff diff)
-	      ))))))
+	  (proclaim '(type SINGLE-FLOAT ,(s START) ,(s end) ,(s s) ,(s diff2)))
+	  (proclaim '(TYPE FIXNUM ,(s lmax) ,(s n)))
+	  (proclaim '(TYPE (SIMPLE-ARRAY SINGLE-FLOAT 3) ,(s J)))
+	  (DEFUN ,interp-init (&KEY (START 0.0f0) (END 10.0f0) (N 100) (lmax 100))
+	    (DECLARE (OPTIMIZE (DEBUG 3) (SPEED 3) (SAFETY 1)))
+	    (SETF ,(s START) START
+		  ,(s END) END
+		  ,(s lmax) lmax
+		  ,(s N) N
+		  ,(s s) (/ n (- END START))
+		  ,(s diff2) (expt (/ ,(s s)) 2)
+		  ,(s j)
+		  (MAKE-ARRAY (LIST LMAX N 2) :ELEMENT-TYPE 'SINGLE-FLOAT))
+	    (DOTIMES (L LMAX)
+	      (DOTIMES (I N)
+		(LET ((X (+ START (* (- END START) I (/ 1.0f0 N)))))
+		  (DECLARE (TYPE SINGLE-FLOAT X))
+		  (MULTIPLE-VALUE-BIND (Y YY) (,fun L X)
+		    (SETF (AREF ,(s j) L I 0) Y
+			  (AREF ,(s j) L I 1) YY))))))
+
+	  (proclaim '(INLINE ,interp))
+
+	  (DEFUN ,interp (L X)
+	    (DECLARE (TYPE (INTEGER 0 10000) L)
+		     (TYPE SINGLE-FLOAT X)
+		     (VALUES SINGLE-FLOAT &OPTIONAL))
+	    (DECLARE (OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 0)))
+	    (MULTIPLE-VALUE-BIND (I XX) (truncate (* ,(s s) (- x ,(s start))))
+	      (DECLARE (TYPE fixnum I)
+		       (TYPE SINGLE-FLOAT XX))
+	      (LET* ((A (- 1 XX))
+		     (B XX)
+		     (C (* 1/6 a (- (* A A) 1)))
+		     (D (* 1/6 b (- (* B B) 1))))
+		(+ (* A (AREF ,(s j) L I 0)) (* B (AREF J L (+ I 1) 0))
+		   (* C (AREF ,(s j) L I 1) ,(s diff2))
+		   (* D (AREF ,(s j) L (+ I 1) 1) ,(s diff2)))))))))))
 
 (def-interp bessel-j bessel-j-and-deriv)
 (def-interp bessel-k bessel-k-and-deriv)
 (def-interp bessel-k-scaled bessel-k-scaled-and-deriv)
 
-(defparameter j-n 100)
-(defparameter lmax 100)
-(defparameter j-start 100)
-(defparameter j-end 100)
-(defparameter J
-  (MAKE-ARRAY (LIST LMAX J-N 2) :ELEMENT-TYPE 'SINGLE-FLOAT
-	      :INITIAL-ELEMENT 0.0f0))
+#+nil
+(progn
+  (bessel-j-interp-init :start 0s0 :end 110s0 :n 100)
+  (time (loop for x from 0s0 upto 98s0 by 1s-5 do (bessel-j-interp 4 x))))
+#+nil
+(progn
+  (bessel-k-scaled-interp-init :start 10s0 :end 100s0 :n 100 :lmax 20)
+  (time (loop for x from 10s0 upto 99s0 by 1s-5 do (bessel-k-scaled-interp 4 x))))
 
-(DECLAIM (TYPE SINGLE-FLOAT J-START J-END)
-           (TYPE FIXNUM LMAX J-N)
-           (TYPE (SIMPLE-ARRAY SINGLE-FLOAT 3) J))
-
-(DEFUN BESSEL-J-INTERP-INIT (&KEY (START 0.0f0) (END 10.0f0) (N 100))
-    (DECLARE (OPTIMIZE (DEBUG 3) (SPEED 3) (SAFETY 1)))
-    (SETF J-START START
-          J-END END
-          J-N N
-          J
-            (MAKE-ARRAY (LIST LMAX J-N 2) :ELEMENT-TYPE 'SINGLE-FLOAT
-                        :INITIAL-ELEMENT 0.0f0))
-    (DOTIMES (L LMAX)
-      (DOTIMES (I N)
-        (LET ((X (+ START (* (- END START) I (/ 1.0f0 N)))))
-          (DECLARE (TYPE SINGLE-FLOAT X))
-          (MULTIPLE-VALUE-BIND (Y YY)
-              (BESSEL-J-AND-DERIV L X)
-            (SETF (AREF J L I 0) Y
-                  (AREF J L I 1) YY))))))
-
-(DECLAIM (INLINE BESSEL-J-INTERP))
-
-(DEFUN BESSEL-J-INTERP (L X)
-    (DECLARE (TYPE (INTEGER 0 10000) L)
-             (TYPE SINGLE-FLOAT X)
-             (VALUES SINGLE-FLOAT &OPTIONAL))
-    (DECLARE (OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 1)))
-    (MULTIPLE-VALUE-BIND (I XX)
-        (FLOOR X
-	 #+nil (* J-N (/ (- X J-START) (- J-END J-START))))
-      (DECLARE (TYPE (SIGNED-BYTE 64) I)
-               (TYPE SINGLE-FLOAT XX))
-      (LET* ((DIFF (* (- J-END J-START) (/ 1.0f0 J-N)))
-             (A (- 1 XX))
-             (B XX)
-             (C (* 1/6 (- (* A A A) A)))
-             (D (* 1/6 (- (* B B B) B))))
-        (+ (* A (AREF J L I 0)) (* B (AREF J L (+ I 1) 0))
-           (* C (AREF J L I 1) DIFF DIFF)
-           (* D (AREF J L (+ I 1) 1) DIFF DIFF)))))
-
-(progn #+nil((J-N 100)
-       (LMAX 10)
-       (J-START 0.0f0)
-       (J-END 100.0f0)
-       (J
-        (MAKE-ARRAY (LIST LMAX J-N 2) :ELEMENT-TYPE 'SINGLE-FLOAT
-                    :INITIAL-ELEMENT 0.0f0)))
-  
-       
-  
-  
-  )
+; (/ 1815165956 (* 99 1e5)) => 183 cycles per call
+; (/ 1386921624 (* 99 1e5)) => 140 cycles per call (single-float)
+;    896260860   => 92 cycles per call (global variables, no argument in floor)
+;    761730486   => 78 cycles per call (global variables, inline, division in floor)
+;    428000000   => 45 cycles (truncate instead of floor, simplified calculation)
+; (/ 172161426 (* 99 1e5)) => 17.4 cycles per call (global variables, no argument in floor, inline)
+;    145631000   => 15 cycles (truncate, no calc in argument)
 
 
 #+nil
@@ -503,13 +465,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		(bessel-k-scaled-interp 4 x)
 		(gsl::cylindrical-bessel-k-scaled 4d0 (* 1d0 x))))))
 
-#+nil
-(progn
-  (bessel-j-interp-init :start 0s0 :end 110s0 :n 100)
-  (time (loop for x from 0s0 upto 99s0 by 1s-5 do (bessel-j-interp 4 x))))
-; (/ 1815165956 (* 99 1e5)) => 183 cycles per call
-; (/ 1386921624 (* 99 1e5)) => 140 cycles per call (single-float)
-; (/ 172161426 (* 99 1e5)) => 17.4 cycles per call
+
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   (declare (values (simple-array double-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
