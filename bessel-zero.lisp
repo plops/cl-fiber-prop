@@ -392,12 +392,39 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
        (let ((x (+ start (* (- end start) i (/ 1d0 n)))))
 	 (multiple-value-bind (y yy) (funcall fun l x)
 	     (setf (aref table l i 0) y
-		   (aref table l i 1)  yy)))))))
+		   (aref table l i 1) yy)))))))
 #+nil
 (defparameter *bla* (make-instance 'cubic-interp))
 
 #+nil
 (array-dimensions (slot-value *bla* 'table))
+
+
+(defmethod interp ((lut cubic-interp) l x)
+    (declare (type (integer 0 10000) l)
+	     (type double-float x)
+	     (values double-float &optional))
+    (declare (optimize (debug 0) (speed 3) (safety 1)))
+    (with-slots (start end table) lut
+      (destructuring-bind (lmax n two) (array-dimensions table)
+	(declare (type fixnum lmax n)
+		 (ignore two))
+	(multiple-value-bind (i xx) (floor (* n (/ (- x start)
+						   (- end start))))
+	  (declare (type double-float xx))
+	  (let* ((diff (* (- end start) (/ 1d0 n)))
+		  (a (- 1 xx))
+		  (b xx)
+		  (c (* 1/6 (- (* a a a) a)))
+		  (d (* 1/6 (- (* b b b) b))))
+	     (+ (* a (aref table l i 0))
+		(* b (aref table l (+ i 1) 0))
+		(* c (aref table l i 1) diff diff)
+		(* d (aref table l (+ i 1) 1) diff diff)))))))
+
+#+nil
+(let ((j (make-instance 'cubic-interp)))
+  (interp j 3 .3))
 
 (let* ((j-n 100)
        (lmax 10)
@@ -445,12 +472,17 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 
 #+nil
-(progn
+(let ((j (make-instance 'cubic-interp)))
  (bessel-j-fast-init :start 0d0 :end 100d0 :n 100)
  (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
    (loop for x from 0d0 upto 80d0 by .001 do
-	(format s "~f ~f~%" x (+ (* -1 (jn 4 x)) (* 1 (bessel-j-fast 4 x)))))))
+	(format s "~f ~f~%" x (+ (* -1 (jn 4 x)) (interp j 4 x) (* 0 (bessel-j-fast 4 x)))))))
 
+#+nil
+(let ((j (make-instance 'cubic-interp)))
+  (time
+   (loop for x from 0d0 upto 99d0 by 1e-5 do (interp j 4 .3))))
+; (/ 25558000456 (* 99 1e5)) => 2581 cycles per call
 #+nil
 (time (loop for x from 0d0 upto 99d0 by 1e-5 do (bessel-j-fast 4 x)))
 ; (/ 1815165956 (* 99 1e5)) => 183 cycles per call
