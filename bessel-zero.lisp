@@ -327,47 +327,6 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	(us (step-fiber-eigenvalues v)))
    (step-fiber-minimal-sampling us v :n 256 :scale 1.4)))
 
-(declaim (inline sin-fast))
-(defun sin-fast (x)
-  (declare (type single-float x) (values single-float &optional))
-  (declare (optimize (debug 0) (speed 3) (safety 1)))
-  (let ((c1 0.9999966f0) (c3 -0.16664815f0) (c5 0.008306204f0) (c7 -1.8360789f-4) 
-	(x2 (* x x)))
-    #+nil (+ (* x c1)
-       (* (expt x 3) c3)
-       (* (expt x 5) c5)
-       (* (expt x 7) c7))
-    (* x (+ c1 (* c3 x2)
-	    (* x2 x2 (+ c5 (* c7 x2)))))))
-
-(let* ((n 10000000)
-       (u (* .5f0 (coerce pi 'single-float)))
-       (du (/ 1f0 n)))
-  (declare (type single-float u du))
-  (defun sin-test1 ()
-    (declare (optimize (debug 0) (speed 3) (safety 1)))
-    (loop for x from (- u) upto u by du do
-	 (sin x)))
-  (defun sin-test2 ()
-    (declare (optimize (debug 0) (speed 3) (safety 1)))
-    (loop for x from (- u) upto u by du do
-	 (sin-fast x)))
-  (defun sin-diff ()
-    (* (/ 1d0 n) (loop for x from (- u) upto u by du sum
-	  (- (sin-fast x) (sin x))))))
-
-#+nil
-(let* ((n 10000)
-       (u (* .5f0  (coerce pi 'single-float)))
-       (du (/ 1f0 n)))
-  (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-   (loop for x from (- u) upto u by du do
-	(format s "~f ~f~%" x (- (sin x) (sin-fast x))))))
-#+nil
-(time 
- (sin-test2))
-;; .195 vs .054 at .1 for n=10000000
-
 
 (defun bessel-j-and-deriv (l x)
   (declare (values single-float single-float &optional)
@@ -380,6 +339,47 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	    (t (* .25s0 (+ (jnf (+ l 2) x)
 			   (* -2 (jnf l x))
 			   (jnf (- l 2) x)))))))
+
+
+(defun bessel-k-and-deriv (l x)
+  (declare (values single-float single-float &optional)
+	   (type fixnum l)
+	   (type single-float x))
+  (flet ((knf (l x)
+	   (declare (type fixnum l)
+		    (type single-float x))
+	   (coerce (gsll:cylindrical-bessel-k (* 1d0 l) (* 1d0 x)) 'single-float)
+	   ))
+    (values (knf l x)
+	    (cond 
+	      ((= l 0) (* .5s0 (+ (knf 2 x) (knf 0 x))))
+	      ((= l 1) (* .25s0 (+ (knf 3 x) (* 3 (knf 1 x)))))
+	      (t (* .25s0 (+ (knf (+ l 2) x)
+			     (* 2 (knf l x))
+			     (knf (- l 2) x))))))))
+
+#+nil
+(bessel-k-and-deriv 4 .1s0)
+
+;; factor(diff(bessel_k(2,x)*exp(x),x,2));
+(defun bessel-k-scaled-and-deriv (l x)
+  (declare (values single-float single-float &optional)
+	   (type fixnum l)
+	   (type single-float x))
+  (flet ((knf (l x)
+	   (declare (type fixnum l)
+		    (type single-float x))
+	   (coerce (gsll:cylindrical-bessel-k-scaled (* 1d0 l) (* 1d0 x)) 'single-float)
+	   ))
+    (values (knf l x)
+	    (cond 
+	      ((= l 0) (* .5s0 (+ (knf 2 x) (* -4 (knf 1 x)) (* 3 (knf 0 x)))))
+	      ((= l 1) (* .25s0 (+ (knf 3 x) (* -4 (knf 2 x)) (* 7 (knf 1 x)) (* -4 (knf 0 x)))))
+	      (t (* .25s0 (+ (knf (+ l 2) x)
+			     (* -4 (knf (+ l 1) x))
+			     (* 6 (knf l x))
+			     (* -4 (knf (- l 1) x))
+			     (knf (- l 2) x))))))))
 
 (defmacro def-interp (name fun)
   `(let* ((j-n 100)
@@ -410,7 +410,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
        (declare (type (integer 0 10000) l)
 		(type single-float x)
 		(values single-float &optional))
-       (declare (optimize (debug 0) (speed 3) (safety 0)))
+       (declare (optimize (debug 0) (speed 3) (safety 1)))
        (multiple-value-bind (i xx) (floor (* j-n (/ (- x j-start)
 						    (- j-end j-start))))
 
@@ -425,16 +425,28 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	   (+ (* a  (aref j l i 0))
 	      (* b (aref j l (+ i 1) 0))
 	      (* c (aref j l i 1) diff diff)
-	      (* d (aref j l (+ i 1) 1) diff diff)))))))
+	      (* d (aref j l (+ i 1) 1) diff diff)
+	      ))))))
 
 (def-interp bessel-j bessel-j-and-deriv)
+(def-interp bessel-k bessel-k-and-deriv)
+(def-interp bessel-k-scaled bessel-k-scaled-and-deriv)
+
+(defun dx2 (fun l x)
+  (let ((h 1e-5))
+    (* (/ (* h h)) (+ (funcall fun l (+ x h))
+		(* -2 (funcall fun l x))
+		(funcall fun l (- x h))))))
 
 #+nil
-(let ((j (make-instance 'cubic-interp)))
- (bessel-j-fast-init :start 0s0 :end 100s0 :n 100)
- (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-   (loop for x from 0s0 upto 80s0 by .001s0 do
-	(format s "~f ~f~%" x (+ (* -1 (jnf 4 x)) #+nil (interp j 4 x) (* 0 (bessel-j-fast 4 x)))))))
+(let ((start 1s0))
+  (bessel-j-interp-init :start start :end 100s0 :n 100) 
+ (with-open-file (s "/run/q/bla2.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
+   (loop for x from start upto 99s0 by .1s0 do
+	(format s "~f ~f~%" x
+		(-
+		 (second (multiple-value-list (bessel-k-scaled-and-deriv 4 x)))
+		 (dx2 #'gsl::cylindrical-bessel-k-scaled 4d0 (* 1d0 x)))))))
 
 #+nil
 (progn
@@ -442,6 +454,11 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
   (time (loop for x from 0s0 upto 99s0 by 1s-5 do (bessel-j-interp 4 x))))
 ; (/ 1815165956 (* 99 1e5)) => 183 cycles per call
 ; (/ 1386921624 (* 99 1e5)) => 140 cycles per call (single-float)
+
+#+nil
+(progn
+  (bessel-k-interp-init :start .1s0 :end 79.2s0 :n 100) 
+  (time (loop for x from .1s0 upto 79.2s0 by 1s-5 do (bessel-k-interp 4 x))))
 
 #+nil
 (time (loop for x from 0d0 upto 99d0 by 1e-4 do (jn 4 x)))

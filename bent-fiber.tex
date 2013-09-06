@@ -394,11 +394,20 @@ vernachlaessigbar.
 % factor(diff(bessel_k(0,x),x,2));
 % factor(diff(bessel_k(1,x),x,2));
 % factor(diff(bessel_k(l,x),x,2));
+% factor(diff(bessel_k(l,x)*exp(x),x,2));
 
 \begin{align}
   K''_0(x) &= \frac{1}{2}\(K_2(x)+K_0(x)\)\\
   K''_1(x) &= \frac{1}{4}\(K_3(x)+3K_1(x)\)\\
   K''_l(x) &= \frac{1}{4}\(K_{l+2}(x)+2K_l(x)+K_{l-2}(x)\)
+\end{align}
+
+F\"ur die skalierte Besselfunktion $k_l(x)=K_l(x)e^x$ sind die zweiten Ableitungen
+\begin{align}
+  k''_0(x) &= \frac{1}{2}\(k_2(x)-4k_1(x)+3k_0(x)\)\\
+  k''_1(x) &= \frac{1}{4}\(k_3(x)-4k_2(x)+7k_1(x)-4k_0(x)\)\\
+  k''_l(x) &= \frac{1}{4}\big(k_{l+2}(x)-4k_{l+1}(x)+6k_l(x) \nonumber \\ 
+&  -4k_{l-1}(x)+k_{l-2}(x)\big)
 \end{align}
 
 
