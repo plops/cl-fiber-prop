@@ -1,13 +1,12 @@
-(declaim (optimize (debug 3) (speed 0) (safety 3)))
+#+nil
+(progn
+  (setf asdf:*central-registry*
+	'(*default-pathname-defaults*
+	  #P"/media/sda6/home/martin/quicklisp/quicklisp/"))
+  (require :cl-fiber-prop))
 
-(require :gsll)
 
-(defpackage :g (:use :cl gsll))
-(in-package :g)
-
-(declaim (ftype (function (fixnum double-float) (values double-float &optional)) jn yn))
-(cffi:defcfun jn :double (n :int) (x :double))
-(cffi:defcfun jnf :float (n :int) (x :float))
+(in-package :cl-fiber-prop)
 
 (defun bess-zeros (&key (a 1) (n 10) (d 1) (e 1e-5))
   (let ((res (make-array n :element-type 'double-float)))
@@ -17,55 +16,6 @@
 
 #+nil
 (time (bess-zeros :a 0 :n 10))
-
-(define-condition root-not-bracketed () ())
-
-(defun zbrent (fun x1 x2 &optional (tol 1d-6) (itermax 100))
-  "Find zero of function fun between x1 and x2. Reference: Numerical Recipes in C"
-  (declare (type (function (double-float) (values double-float &optional)) fun)
-	   (type double-float x1 x2 tol)
-	   (type (integer 0 100000) itermax)
-	   (values double-float &optional))
-  (let* ((a x1) (b x2) (c x2) (d 0d0) (e 0d0)
-	 (fa (funcall fun a)) (fb (funcall fun b)) (fc fb))
-    (declare (type double-float a b c d e fa fb fc))
-    (when (or (and (< 0 fa) (< 0 fb))
-	      (and (< fa 0) (< fb 0)))
-      (error 'root-not-bracketed))
-    (loop for iter below itermax do
-	 (when (or (and (< 0 fc) (< 0 fb))
-		   (and (< fc 0) (< fb 0)))
-	   (setf c a  fc fa  e (- b a)  d e))
-	 (when (< (abs fc) (abs fb))
-	   (setf a b b c c a)
-	   (setf fa fb fb fc fc fa))
-	 (let ((tol1 (+ (* .5 tol)
-			(* 2 double-float-epsilon (abs b))))
-	       (xm (* .5 (- c b))))      (declare (type double-float tol1 xm))
-	   (when (or (<= (abs xm) tol1)
-		     (= fb 0))
-	     (return-from zbrent b))
-	   (if (and (<= tol1 (abs e))
-		    (< (abs fb) (abs fa)))
-	       (let ((p 0d0) (q 0d0) (r 0d0) (s (/ fb fa))) (declare (type double-float p q r s))
-		 (if (= a c)
-		     (setf p (* 2 xm s)  q (- 1 s))
-		     (setf q (/ fa fc)  r (/ fb fc)  p (* s (- (* 2 xm q (- q r))
-							       (* (- b a) (- r 1))))
-			   q (* (- q 1) (- r 1) (- s 1))))
-		 (when (< 0 p) (setf q (- q)))
-		 (setf p (abs p))
-		 (if (< (* 2 p) (min (- (* 3 xm q) (abs (* tol1 q))) (abs (* e q))))
-		     (setf e d  d (/ p q))
-		     (setf d xm  e d)))
-	       (setf d xm  e d))
-	   (setf a b  fa fb)
-	   (incf b (if (< tol1 (abs d)) d   (* (abs tol1) (signum xm))))
-	   (setf fb (funcall fun b))))
-    (error "maximum number of iterations exceeded")))
-
-#+nil
-(zbrent #'sin 1d0 4d0)
 
 #+nil
 (char-step-index-fiber 1e-9 89.54 32)
@@ -302,6 +252,7 @@ mm."
 (find-fastest-mode (step-fiber-eigenvalues-linear 12d0))
 
 
+
 (defun step-fiber-minimal-sampling (u-modes v &key (n 128) (scale 1d0))
   ;; largest u will show most oscillations in the field
   " n is number of points between R=0 .. 1, returns the minimal n that
@@ -340,6 +291,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 			   (jnf (- l 2) x)))))))
 
 
+
 (defun bessel-k-and-deriv (l x)
   (declare (values single-float single-float &optional)
 	   (type fixnum l)
@@ -376,6 +328,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 			     (* 6 (knf l x))
 			     (* -4 (knf (- l 1) x))
 			     (knf (- l 2) x))))))))
+
+
 
 (defmacro def-interp (name fun)
   (flet ((combin (x)
@@ -442,6 +396,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 (progn
   (bessel-j-interp-init :start 0s0 :end 110s0 :n 100)
   (time (loop for x from 0s0 upto 98s0 by 1s-5 do (bessel-j-interp 4 x))))
+
 #+nil
 (progn
   (bessel-k-scaled-interp-init :start 10s0 :end 100s0 :n 100 :lmax 20)
@@ -654,7 +609,6 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 #+nil
 (time (defparameter *bla-coef* (calculate-couple-coeffs)))
-
 #+nil
 (time  (write-pgm "/run/q/bla-coef.pgm" (convert-ub8  (convert-df *bla-coef*))))
 #+nil
