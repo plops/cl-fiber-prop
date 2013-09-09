@@ -381,6 +381,9 @@ $x\in[0,v]$ und $l\in[0,\lmax]$.
   J''_1(x) &= \frac{1}{4}\(J_3(x)-3J_1(x)\)\\
   J''_l(x) &= \frac{1}{4}\(J_{l+2}(x)-2J_l(x)+J_{l-2}(x)\)
 \end{align}
+Hierbei wurde die Eigenschaft $J_{-n}(x) = (-1)^n J_n(x)$ von
+Besselfunktionen mit ganzzahliger Ordnung angewendet.
+
 Die Anzahl der radialen Oszillationen ist maximal f\"ur $J_0(v)$. Dies
 liefert eine weitere Grenze f\"ur die Pixelgr\"osse des Feldes.
 
@@ -459,10 +462,12 @@ $\cos(l\phi)\cos(m\phi)$ der zwei azimuthalen Feldfunktionen als Summe
 von Oszillationen mit der Differenz- und Summenfrequenzen schreiben:
 
 \begin{align}
-  I_\phi(r) = \int_0^{2\pi}\!\!\!\!\!\! \cos(l\phi)\cos(m\phi) e^{ik_0\alpha r\cos(\phi)} \textrm{d}\phi = \nonumber \\
-  \int_0^{2\pi}\!\!\!\!\!\! \cos\((l+m)\phi\) e^{ik_0\alpha r\cos(\phi)} \textrm{d}\phi  \nonumber \\
-  + \int_0^{2\pi}\!\!\!\!\!\! \cos\((l-m)\phi\) e^{i\underbrace{k_0\alpha r}_z\cos(\phi)} \textrm{d}\phi
+  I_\phi(r) = \int_0^{2\pi}\!\!\!\!\!\! \cos(l\phi)\cos(m\phi) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi = \nonumber \\
+  \int_0^{2\pi}\!\!\!\!\!\! \cos\((l+m)\phi\) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi  \nonumber \\
+  + \int_0^{2\pi}\!\!\!\!\!\! \cos\((l-m)\phi\) e^{i\underbrace{k_0\alpha\rho r}_z\cos(\phi)} \textrm{d}\phi
 \end{align}
+
+Hierbei ist $x=\rho r \cos(\phi)$.
 
 Beide Integrale entsprechen einer Besselfunktion gem\"ass der
 Gleichung:
@@ -471,7 +476,7 @@ Gleichung:
 \end{align}
 
 \begin{align}
-  I_\phi(r) = \frac{2 i^{-n}}{\pi} \(J_{l+m}(k_0\alpha r)+J_{l-m}(k_0\alpha r)\)
+  I_\phi(r) = \frac{2 }{\pi} \(i^{-(l+m)} J_{l+m}(k_0\alpha\rho r)+i^{m-l} J_{l-m}(k_0\alpha\rho r)\)
 \end{align}
 
 Bei der numerischen Auswertung des Azimuthalen Integrals sollte man
@@ -481,8 +486,8 @@ entsprechenden Chebyshev Momenten benutzt.
 
 Das Integral im Inneren des Kerns kann mit der Funktion
 \verb!integration_qag()! ausgewertet werden, die die Gauss-Kronrod
-Regeln mit 15 bis 61 Punkten implementiert.
-
+Regeln mit 15 bis 61 Punkten implementiert.  [2012Auluck] diskutiert die
+Eigenschaften und eine Approximation des dreifachen Bessel Integrals.
 \begin{align}
     c_{nm}^\textrm{in}&=\frac{N_n N_m}{J_n(u_n) J_m(u_m)}
     \int_0^1\!\!\!\! I_\phi(r) J_n(u_n r) J_m(u_m r) r\, \textrm{d}r 
@@ -490,7 +495,7 @@ Regeln mit 15 bis 61 Punkten implementiert.
 
 Das Integral ausserhalb des Kerns kann mit der Funktion
 \verb!integration_qagiu()! ausgewertet werden, die das Interval
-$(a,\infty)$ mit der Transformation $x=a+(1-t)/t$ auf $(0,1]$
+$(a,\infty)$ mit der Transformation $r=a+(1-t)/t$ auf $(0,1]$
 abbildet.
 
 \begin{align}

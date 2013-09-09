@@ -380,11 +380,11 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
    (destructuring-bind (l0 m0) (fiber-linear-to-lm-index j0 u-modes)
      (destructuring-bind (l1 m1) (fiber-linear-to-lm-index j1 u-modes)
       (let* ((lambd .0005)
-	     ;(nco 1.5)
-	     ;(ncl 1.46)
+	     (nco 1.5)
+	     (ncl 1.46)
 	     (k (* 2 pi (/ lambd))) 
 	     ;; diameter of the fiber:
-	     ;(rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
+	     (rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
 	     (l2 40d0)
 	     (delx 4)
 	     (bend-radius (* .5 (+ delx (/ (expt l2 2) delx))))
@@ -399,51 +399,37 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	     (scale-in (/ scale-norm (* (jn l0 u0) (jn l1 u1))))
 	     (scale-out (/ scale-norm (* (gsll:cylindrical-bessel-k l0 w0)
 					 (gsll:cylindrical-bessel-k l1 w1))))
-	     (n-qawo0 32)
-	     (n-qawo1 32)
-	     (qawo0 (gsll:make-qawo-table (* 1d0 (- l0 l1)) (* 2 pi) :cosine n-qawo0))
-	     (qawo1 (gsll:make-qawo-table (* 1d0 (+ l0 l1)) (* 2 pi) :cosine n-qawo1)))
-	(bessel-j-interp-init :end 100d0 :n 200 :lmax 32)
-	(bessel-k-scaled-interp-init :start (* .6 (min w0 w1)) :end (* 2.2 (max w0 w1))  :n 200 :lmax 32)
-	(format t "~a ~%" (list 'l0 (- l0 l1)  'l1 (+ l1 l0)))
-	(macrolet ((azi ()
-		     `(+  #+nil (gsl:integration-qawo #'(lambda (phi) 
-						   (cos (* k alpha (* r (cos phi)))))
-					       0d0 (* 1d0 (- l0 l1)) (* 2 pi) :cosine n-qawo0
-					       gsll::*default-absolute-error*
-					       gsll::*default-relative-error*
-					       qawo0
-					       )
-			    (gsl:integration-qawo #'(lambda (phi) 
-						   (cos (* k alpha (* r (cos phi)))))
-					       0d0 (* 1d0 (+ l0 l1)) (* 2 pi) :cosine n-qawo1
-					       gsll::*default-absolute-error*
-					       gsll::*default-relative-error*
-					       qawo1
-					       ))))
-	  (+ 
-	   
-	  #+nil (* scale-in
-	     (gsl:integration-qag #'(lambda (r) 
-				      (* (bessel-j-interp l0 (* u0 r))
-					 (bessel-j-interp l1 (* u1 r))
-					 r
-					 (azi)))
-				  0d0 1d0 6))
-	  
-	  
-	  #+nil (* scale-out
-	     (gsl:integration-qagiu #'(lambda (r) 
-				      (* (bessel-k-scaled-interp l0 (* w0 r))
-					 (bessel-k-scaled-interp l1 (* w1 r))
-					 (exp (* -1 w0 r))
-					 (exp (* -1 w1 r))
-					 r
-					 (azi)))
-				       1d0)))
-	  (loop for r below 2d0 by .01 collect
-	       (list r (azi)))))
+	     )
+	(bessel-j-interp-init :end 100d0 :n 200 :lmax (max (+ l0 l1) (abs (- l0 l1))))
+	(bessel-k-scaled-interp-init :start (* .6 (min w0 w1)) :end (* 2.2 (max w0 w1))
+				     :n 200 :lmax (max (+ l0 l1) (abs (- l0 l1))))
+	(+ 
+	 
+	 (* scale-in
+		  (gsl:integration-qag #'(lambda (r) 
+					   (* (bessel-j-interp l0 (* u0 r))
+					      (bessel-j-interp l1 (* u1 r))
+					      r
+					      (* 2 (/ pi)
+						 (let ((arg (* k0 alpha rho r)))
+						   (+ (bessel-j-interp (+ l0 l1) arg))))))
+				       0d0 1d0 6))
+	 
+	 
+	 #+nil (* scale-out
+		  (gsl:integration-qagiu #'(lambda (r) 
+					     (* (bessel-k-scaled-interp l0 (* w0 r))
+						(bessel-k-scaled-interp l1 (* w1 r))
+						(exp (* -1 w0 r))
+						(exp (* -1 w1 r))
+						r
+						(azi)))
+					 1d0)))
+	(loop for r below 2d0 by .01 collect
+	     (list r (azi))))
       ))))
+#+nil
+(loop for i below 4 collect (expt (complex 0 1) i))
 
 #+nil
 (let ((v 32d0))
