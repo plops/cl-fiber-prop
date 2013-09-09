@@ -396,35 +396,39 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	(bessel-j-interp-init :end 100d0 :n 2000 :lmax 100)
 	(bessel-k-interp-init :start (* .6 (min w0 w1)) :end (* 2.2 (max w0 w1))  :n 2000 :lmax 100)
 	(+ 
+	 
 	 (* scale-in
 	    (gsl:integration-qag #'(lambda (r) 
 				     (* (bessel-j-interp l0 (* u0 r))
 					(bessel-j-interp l1 (* u1 r))
+					r
 					(gsl:integration-qag #'(lambda (phi) 
 								 (* (cos (* l0 phi))
 								    (cos (* l1 phi))
 								    (cos (* k alpha (* r (cos phi))))))
 							     0d0 (* 2 pi) 6)))
 				 0d0 1d0 6))
-	 #+nil (* scale-out
+	 
+	 #+nil(* scale-out
 	    (gsl:integration-qag #'(lambda (r) 
 				     (* (bessel-k-interp l0 (* w0 r))
 					(bessel-k-interp l1 (* w1 r))
+					r
 					(gsl:integration-qag #'(lambda (phi) 
 								 (* (cos (* l0 phi))
 								    (cos (* l1 phi))
-								    (cos (* k phi (* r (cos phi))))))
-							     0d0 (* 2 pi) 3)))
-				 1d0 1.01d0 3))))))))
+								    (cos (* k alpha (* r (cos phi))))))
+							     0d0 (* 2 pi) 6)))
+				 1d0 2d0 6))))))))
 
 
 #+nil
 (let* ((v 32d0)
        (u-modes (step-fiber-eigenvalues v)))
-  (couple u-modes 
-	  (fiber-lm-to-linear-index 3 2 u-modes)
-	  (fiber-lm-to-linear-index 1 7 u-modes) 
-	  v))
+  (time (couple u-modes 
+	   (fiber-lm-to-linear-index 20 1 u-modes)
+	   (fiber-lm-to-linear-index 0 9 u-modes) 
+	   v)))
 
 (defun calculate-bend-wedge (&key (v 32d0) (n 100) (scale 2d0))
  (let* ((lambd .0005)

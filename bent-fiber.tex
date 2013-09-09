@@ -428,6 +428,9 @@ durch
 
 \section{Kopplung zweier gerader Faserst\"ucken}
 [1989Hill]
+Ausgehend von einer Modenverteilung in geraden Faserst\"ucken, kann
+die Kopplung durch einen Phasenkeil mit Winkel $\alpha$vermittelt
+werden:
 \begin{align}
   F_{j(l,m)}(r,\phi) &= \psi(r) 
   \begin{cases}
@@ -438,18 +441,51 @@ durch
   c_{nm}&=\int\!\!\!\int\! F_n(x,y)F_m(x,y) e^{ik_0\alpha x} \textrm{d}x \textrm{d}y
 \end{align}
 
-Das Integral kann mit der Funktion
-\verb! integration_qng (F,A,B,EPSABS,EPSREL,*RESULT,*ABSERR)! ausgewertet werden.
-
-Alternativ k\"onnte man auch bez\"uglich Zylinderkoordinaten
+Alternativ kann man auch bez\"uglich Zylinderkoordinaten
 integrieren. Damit l\"a\ss t sich besser feststellen ob ausreichend
 Rand mit einbezogen wurde.
 
 \begin{align}
-  c_{nm}&=\int_0^{R}\!\!\!\!\int_0^{2\pi}\!\!\!\!\!\! \cos(l\phi)\cos(l\phi) \cos(k_0\alpha x) \textrm{d}\phi\, \psi_n(r) \psi_m(r) r\, \textrm{d}r 
+  \Re\{c_{nm}\}&=\int_0^{\infty}\!\!\!\!\int_0^{2\pi}\!\!\!\!\!\! \cos(n\phi)\cos(m\phi) \cos(k_0\alpha x) \textrm{d}\phi\, \psi_n(r) \psi_m(r) r\, \textrm{d}r 
 \end{align}
 
-Hier bricht $x=r \cos(\phi)$ die Zylindersymmetrie.
+Hier bricht $x=r \cos(\phi)$ die Zylindersymmetrie, aber verglichen
+mit den oszillierenden Termen aus den Feldern ist die Funktion
+$\cos(k_0\alpha x)$ f\"ur kleine Tiltwinkel $\alpha$ langsam
+ver\"anderlich. Ausserdem kann man das Produkt
+$\cos(l\phi)\cos(m\phi)$ der zwei azimuthalen Feldfunktionen als Summe
+von Oszillationen mit der Differenz- und Summenfrequenzen schreiben:
+
+\begin{align}
+  I_\phi(r) = \int_0^{2\pi}\!\!\!\!\!\! \cos(l\phi)\cos(m\phi) \cos(k_0\alpha x) \textrm{d}\phi = \nonumber \\
+  \int_0^{2\pi}\!\!\!\!\!\! \cos\((l+m)\phi\) \cos(k_0\alpha x) \textrm{d}\phi  \nonumber \\
+  + \int_0^{2\pi}\!\!\!\!\!\! \cos\((l-m)\phi\) \cos(k_0\alpha x) \textrm{d}\phi
+\end{align}
+
+Bei der numerischen Auswertung des Azimuthalen Integrals sollte man
+die Funktion \verb!integration_qawo()! anwenden, die f\"ur
+oszillierende Integranden ausgelegt ist und eine Tabelle mit
+entsprechenden Chebyshev Momenten benutzt.
+
+Das Integral im Inneren des Kerns kann mit der Funktion
+\verb!integration_qag()! ausgewertet werden, die die Gauss-Kronrod
+Regeln mit 15 bis 61 Punkten implementiert.
+
+\begin{align}
+    c_{nm}^\textrm{in}&=\frac{N_n N_m}{J_n(u_n) J_m(u_m)}
+    \int_0^1\!\!\!\! I_\phi(r) J_n(u_n r) J_m(u_m r) r\, \textrm{d}r 
+\end{align}
+
+Das Integral ausserhalb des Kerns kann mit der Funktion
+\verb!integration_qagiu()! ausgewertet werden, die das Interval
+$(a,\infty)$ mit der Transformation $x=a+(1-t)/t$ auf $(0,1]$
+abbildet.
+
+\begin{align}
+    c_{nm}^\textrm{out}&=\frac{N_n N_m}{K_n(w_n) K_m(w_m)}
+    \int_1^\infty\!\!\!\! I_\phi(r) K_n(w_n r) K_m(w_m r) r\, \textrm{d}r 
+\end{align}
+
 
 
 \begin{figure}[hbtp]
