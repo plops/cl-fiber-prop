@@ -126,6 +126,12 @@
 (declaim (optimize (speed 3) (safety 1) (debug 0)))
 
 (def-interp bessel-j bessel-j-and-deriv)
+
+(defun bessel-j (l x)
+  (if (<= 0 l)
+      (bessel-j-interp l x)
+      (* (expt -1 l) (bessel-j-interp (abs l) x))))
+
 (def-interp bessel-k bessel-k-and-deriv)
 (def-interp bessel-k-scaled bessel-k-scaled-and-deriv)
 
