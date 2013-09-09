@@ -290,7 +290,9 @@ $l>100$ und $w\approx 4$, das Problem liegt also bei zu gro\ss em
 $l$. Zur Zeit ist mir nicht klar, ob ein anderer Algorithmus zur
 Berechnung der charaketeristischen Funktion ausreicht oder ob zu einem
 anderen Datentyp (insbesondere 128-bit quadfloat) gewechselt werden
-muss.
+muss. Das Verh\"altnis von Besselfunktionen kann man als continued
+fraction schreiben. Vielleicht wuerde dies auch helfen
+[mathworld.wolfram.com/BesselFunctionoftheFirstKind].
 
 
 Bei gegebenen Modenparameter $u$ kann die Ausbreitungskonstante
@@ -457,9 +459,19 @@ $\cos(l\phi)\cos(m\phi)$ der zwei azimuthalen Feldfunktionen als Summe
 von Oszillationen mit der Differenz- und Summenfrequenzen schreiben:
 
 \begin{align}
-  I_\phi(r) = \int_0^{2\pi}\!\!\!\!\!\! \cos(l\phi)\cos(m\phi) \cos(k_0\alpha x) \textrm{d}\phi = \nonumber \\
-  \int_0^{2\pi}\!\!\!\!\!\! \cos\((l+m)\phi\) \cos(k_0\alpha x) \textrm{d}\phi  \nonumber \\
-  + \int_0^{2\pi}\!\!\!\!\!\! \cos\((l-m)\phi\) \cos(k_0\alpha x) \textrm{d}\phi
+  I_\phi(r) = \int_0^{2\pi}\!\!\!\!\!\! \cos(l\phi)\cos(m\phi) e^{ik_0\alpha r\cos(\phi)} \textrm{d}\phi = \nonumber \\
+  \int_0^{2\pi}\!\!\!\!\!\! \cos\((l+m)\phi\) e^{ik_0\alpha r\cos(\phi)} \textrm{d}\phi  \nonumber \\
+  + \int_0^{2\pi}\!\!\!\!\!\! \cos\((l-m)\phi\) e^{i\underbrace{k_0\alpha r}_z\cos(\phi)} \textrm{d}\phi
+\end{align}
+
+Beide Integrale entsprechen einer Besselfunktion gem\"ass der
+Gleichung:
+\begin{align}
+  J_n(z) = \frac{i^{-n}}{\pi}\int_0^\pi e^{iz\cos\theta} \cos(n \theta) \textrm{d} \theta
+\end{align}
+
+\begin{align}
+  I_\phi(r) = \frac{2 i^{-n}}{\pi} \(J_{l+m}(k_0\alpha r)+J_{l-m}(k_0\alpha r)\)
 \end{align}
 
 Bei der numerischen Auswertung des Azimuthalen Integrals sollte man
