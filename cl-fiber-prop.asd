@@ -12,5 +12,6 @@
   :components ((:file "package")
 	       (:file "cubic-interpolation")
 	       (:file "zbrent")
+	       (:file "image")
 	       (:file "bessel-zero"))
   :description "light propagation through a multimode fiber")

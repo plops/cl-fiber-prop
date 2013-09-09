@@ -426,7 +426,7 @@ durch
 \end{cases}
 \end{align}
 
-\section{Kopplung zweier gerader Faserstuecken}
+\section{Kopplung zweier gerader Faserst\"ucken}
 [1989Hill]
 \begin{align}
   F_{j(l,m)}(r,\phi) &= \psi(r) 
@@ -440,6 +440,17 @@ durch
 
 Das Integral kann mit der Funktion
 \verb! integration_qng (F,A,B,EPSABS,EPSREL,*RESULT,*ABSERR)! ausgewertet werden.
+
+Alternativ k\"onnte man auch bez\"uglich Zylinderkoordinaten
+integrieren. Damit l\"a\ss t sich besser feststellen ob ausreichend
+Rand mit einbezogen wurde.
+
+\begin{align}
+  c_{nm}&=\int_0^{R}\!\!\!\!\int_0^{2\pi}\!\!\!\!\!\! \cos(l\phi)\cos(l\phi) \cos(k_0\alpha x) \textrm{d}\phi\, \psi_n(r) \psi_m(r) r\, \textrm{d}r 
+\end{align}
+
+Hier bricht $x=r \cos(\phi)$ die Zylindersymmetrie.
+
 
 \begin{figure}[hbtp]
   \centering

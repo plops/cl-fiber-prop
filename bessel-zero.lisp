@@ -277,150 +277,6 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	(us (step-fiber-eigenvalues v)))
    (step-fiber-minimal-sampling us v :n 256 :scale 1.4)))
 
-
-(defun bessel-j-and-deriv (l x)
-  (declare (values single-float single-float &optional)
-	   (type fixnum l)
-	   (type single-float x))
-  (values (jnf l x)
-	  (cond 
-	    ((= l 0) (* .5s0 (- (jnf 2 x) (jnf 0 x))))
-	    ((= l 1) (* .25s0 (- (jnf 3 x) (* 3 (jnf 1 x)))))
-	    (t (* .25s0 (+ (jnf (+ l 2) x)
-			   (* -2 (jnf l x))
-			   (jnf (- l 2) x)))))))
-
-
-
-(defun bessel-k-and-deriv (l x)
-  (declare (values single-float single-float &optional)
-	   (type fixnum l)
-	   (type single-float x))
-  (flet ((knf (l x)
-	   (declare (type fixnum l)
-		    (type single-float x))
-	   (coerce (gsll:cylindrical-bessel-k (* 1d0 l) (* 1d0 x)) 'single-float)
-	   ))
-    (values (knf l x)
-	    (cond 
-	      ((= l 0) (* .5s0 (+ (knf 2 x) (knf 0 x))))
-	      ((= l 1) (* .25s0 (+ (knf 3 x) (* 3 (knf 1 x)))))
-	      (t (* .25s0 (+ (knf (+ l 2) x)
-			     (* 2 (knf l x))
-			     (knf (- l 2) x))))))))
-
-(defun bessel-k-scaled-and-deriv (l x)
-  ;; factor(diff(bessel_k(2,x)*exp(x),x,2));
-  (declare (values single-float single-float &optional)
-	   (type fixnum l)
-	   (type single-float x))
-  (flet ((knf (l x)
-	   (declare (type fixnum l)
-		    (type single-float x))
-	   (coerce (gsll:cylindrical-bessel-k-scaled (* 1d0 l) (* 1d0 x)) 'single-float)
-	   ))
-    (values (knf l x)
-	    (cond 
-	      ((= l 0) (* .5s0 (+ (knf 2 x) (* -4 (knf 1 x)) (* 3 (knf 0 x)))))
-	      ((= l 1) (* .25s0 (+ (knf 3 x) (* -4 (knf 2 x)) (* 7 (knf 1 x)) (* -4 (knf 0 x)))))
-	      (t (* .25s0 (+ (knf (+ l 2) x)
-			     (* -4 (knf (+ l 1) x))
-			     (* 6 (knf l x))
-			     (* -4 (knf (- l 1) x))
-			     (knf (- l 2) x))))))))
-
-
-
-(defmacro def-interp (name fun)
-  (flet ((combin (x)
-	   (format nil "~a-~a" name x)))
-   (macrolet ((s (x)
-		`(intern (format nil "*~a*" (combin ',x)))))
-     (let ((interp (intern (format nil "~a-INTERP" name)))
-	   (interp-init (intern (format nil "~a-INTERP-INIT" name))))
-       `(progn
-	  (defparameter ,(s n) 100)
-	  (defparameter ,(s lmax) 100)
-	  (defparameter ,(s start) 0s0)
-	  (defparameter ,(s end) 100s0)
-	  (defparameter ,(s s) (/ ,(s n) (- ,(s END) ,(s START))))
-	  (defparameter ,(s diff2) (expt (/ ,(s s)) 2))
-	  (defparameter ,(s table)
-	    (MAKE-ARRAY (LIST ,(s lmax) ,(s N) 2)
-			:ELEMENT-TYPE 'SINGLE-FLOAT))
-
-	  (proclaim '(type SINGLE-FLOAT ,(s START) ,(s end) ,(s s) ,(s diff2)))
-	  (proclaim '(TYPE FIXNUM ,(s lmax) ,(s n)))
-	  (proclaim '(TYPE (SIMPLE-ARRAY SINGLE-FLOAT 3) ,(s table)))
-	  (DEFUN ,interp-init (&KEY (START 0.0f0) (END 10.0f0) (N 100) (lmax 100))
-	    (DECLARE (OPTIMIZE (DEBUG 3) (SPEED 3) (SAFETY 1)))
-	    (SETF ,(s START) START
-		  ,(s END) END
-		  ,(s lmax) lmax
-		  ,(s N) N
-		  ,(s s) (/ n (- END START))
-		  ,(s diff2) (expt (/ ,(s s)) 2)
-		  ,(s table) (MAKE-ARRAY (LIST LMAX N 2) :ELEMENT-TYPE 'SINGLE-FLOAT))
-	    (DOTIMES (L LMAX)
-	      (DOTIMES (I N)
-		(LET ((X (+ START (* (- END START) I (/ 1.0f0 N)))))
-		  (DECLARE (TYPE SINGLE-FLOAT X))
-		  (MULTIPLE-VALUE-BIND (Y YY) (,fun L X)
-		    (SETF (AREF ,(s table) L I 0) Y
-			  (AREF ,(s table) L I 1) YY))))))
-
-	  (proclaim '(INLINE ,interp))
-
-	  (DEFUN ,interp (L X)
-	    (DECLARE (TYPE (INTEGER 0 10000) L)
-		     (TYPE SINGLE-FLOAT X)
-		     (VALUES SINGLE-FLOAT &OPTIONAL))
-	    (DECLARE (OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 0)))
-	    (MULTIPLE-VALUE-BIND (I XX) (truncate (* ,(s s) (- x ,(s start))))
-	      (DECLARE (TYPE fixnum I)
-		       (TYPE SINGLE-FLOAT XX))
-	      (LET* ((A (- 1 XX))
-		     (B XX)
-		     (C (* 1/6 a (- (* A A) 1)))
-		     (D (* 1/6 b (- (* B B) 1))))
-		(+ (* A (AREF ,(s table) L I 0))
-		   (* B (AREF ,(s table) L (+ I 1) 0))
-		   (* C (AREF ,(s table) L I 1) ,(s diff2))
-		   (* D (AREF ,(s table) L (+ I 1) 1) ,(s diff2)))))))))))
-
-(def-interp bessel-j bessel-j-and-deriv)
-(def-interp bessel-k bessel-k-and-deriv)
-(def-interp bessel-k-scaled bessel-k-scaled-and-deriv)
-
-#+nil
-(progn
-  (bessel-j-interp-init :start 0s0 :end 110s0 :n 100)
-  (time (loop for x from 0s0 upto 98s0 by 1s-5 do (bessel-j-interp 4 x))))
-
-#+nil
-(progn
-  (bessel-k-scaled-interp-init :start 10s0 :end 100s0 :n 100 :lmax 20)
-  (time (loop for x from 10s0 upto 99s0 by 1s-5 do (bessel-k-scaled-interp 4 x))))
-
-; (/ 1815165956 (* 99 1e5)) => 183 cycles per call
-; (/ 1386921624 (* 99 1e5)) => 140 cycles per call (single-float)
-;    896260860   => 92 cycles per call (global variables, no argument in floor)
-;    761730486   => 78 cycles per call (global variables, inline, division in floor)
-;    428000000   => 45 cycles (truncate instead of floor, simplified calculation)
-; (/ 172161426 (* 99 1e5)) => 17.4 cycles per call (global variables, no argument in floor, inline)
-;    145631000   => 15 cycles (truncate, no calc in argument)
-
-
-#+nil
-(let ((start 10s0))
-  (bessel-j-interp-init :start start :end 100s0 :n 100) 
- (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-   (loop for x from start upto 99s0 by .01s0 do
-	(format s "~f ~f ~f~%" x
-		(bessel-k-scaled-interp 4 x)
-		(gsl::cylindrical-bessel-k-scaled 4d0 (* 1d0 x))))))
-
-
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   (declare (values (simple-array double-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
@@ -498,63 +354,6 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
     a))
 
 
-(defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0) (debug nil))
-  (declare (type (simple-array double-float 2) a)
-	   (type double-float scale)
-	   (values (simple-array (unsigned-byte 8) 2) &optional))
-  (let ((b (make-array (array-dimensions a)
-		       :element-type '(unsigned-byte 8)))
-	(scale2 scale)
-	(offset2 offset))
-    (unless scale-p
-      (let ((ma (reduce #'max (sb-ext:array-storage-vector a)))
-	    (mi (reduce #'min (sb-ext:array-storage-vector a))))
-	(setf scale2 (if (= ma mi)
-			 1d0
-			 (/ (- ma mi)))
-	      offset2 mi)
-	(when debug
-	 (break "~a" (list 'scale scale2 'offset offset2 'max ma)))))
-    (destructuring-bind (h w) (array-dimensions a)
-      (dotimes (i w)
-	(dotimes (j h)
-	  (setf (aref b j i) (min 255 (max 0 (floor (* 255 scale2 (- (aref a j i) offset2)))))))))
-    b))
-
-(defun convert-df (a &key (fun #'abs))
-  (declare (type (simple-array (complex double-float) 2) a)
-	   (values (simple-array double-float 2) &optional))
-  (let ((b (make-array (array-dimensions a)
-		       :element-type 'double-float)))
-    (destructuring-bind (h w) (array-dimensions a)
-      (dotimes (i w)
-	(dotimes (j h)
-	  (setf (aref b j i) (funcall fun (aref a j i))))))
-    b))
-
-(defun write-pgm (filename img)
-  (declare (simple-string filename)
-           ((array (unsigned-byte 8) 2) img)
-           (values null &optional))
-  (destructuring-bind (h w)
-      (array-dimensions img)
-    (declare ((integer 0 65535) w h))
-    (with-open-file (s filename
-                       :direction :output
-                       :if-exists :supersede
-                       :if-does-not-exist :create)
-      (declare (stream s))
-      (format s "P5~%~D ~D~%255~%" w h))
-    (with-open-file (s filename 
-                       :element-type '(unsigned-byte 8)
-                       :direction :output
-                       :if-exists :append)
-      (let ((data-1d (make-array 
-                      (* h w)
-                      :element-type '(unsigned-byte 8)
-                      :displaced-to img)))
-        (write-sequence data-1d s)))
-    nil))
 
 ;; http://mathoverflow.net/questions/28669/numerical-integration-over-2d-disk
 ;; Arthur Stroud, Approximate Calculation of Multiple Integrals.
@@ -562,6 +361,57 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 ;; cubatur for the unit circle
 ;; 1971 lether a generalized product rule for the unit cirlce
 ;; http://www.holoborodko.com/pavel/numerical-methods/numerical-integration/cubature-formulas-for-the-unit-disk/
+
+(flet ((mode-norm (l m)
+	 (nphi (* pi (if (= l 0) 2 1)))
+	 (nrad (* (expt v 2) 
+		  (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))) 
+		  (gsll:cylindrical-bessel-k-scaled (- l0 1) w)
+		  (gsll:cylindrical-bessel-k-scaled (+ l0 1) w)))
+	 (norm (expt (* nphi nrad) -.5))))
+ (let ((lambd .0005)
+       (nco 1.5)
+       (ncl 1.46)
+       (k (* 2 pi (/ lambd))) 
+       ;; diameter of the fiber:
+       (rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
+       ;; resolution of the field in mm/px:
+       (resol (/ (* 2 scale rho) n))
+       (l2 40d0)
+       (delx 4)
+       (bend-radius (* .5 (+ delx (/ (expt l2 2) delx))))
+       (num-elems 100)
+       (del-l (/ l2 num-elems))
+       (phi (asin (/ del-l bend-radius)))
+       (u (elt (elt u-modes (abs l)) m))
+       (w (sqrt (- (expt v 2) (expt u 2))))
+       (scale-norm (* (mode-norm l0 m0) (mode-norm l1 m1)))
+       (scale-in (/ scale-norm (* (jn l0 u0) (jn l1 u1))))
+       (scale-out (/ scale-norm (* (gsll:cylindrical-bessel-k l0 w0)
+				   (gsll:cylindrical-bessel-k l1 w1)))))
+   (bessel-j-interp-init :end 10s0 :n 200 :lmax 100)
+   (bessel-k-interp-init :start 1s0 :n 200 :lmax 100)
+   (+ 
+    (* scale-in
+       (gsl:integration-qng #'(lambda (r) 
+				(* (bessel-j-interp l0 (* u0 r))
+				   (bessel-j-interp l1 (* u1 r))
+				   (gsl:integration-qng #'(lambda (phi) 
+							    (* (cos (* l0 phi))
+							       (cos (* l1 phi))
+							       (cos (* nco k phi (* r (cos phi))))))
+							0 (* 2 pi))))
+			    0 1))
+    (* scale-out
+       (gsl:integration-qng #'(lambda (r) 
+				(* (bessel-k-interp l0 (* w0 r))
+				   (bessel-k-interp l1 (* w1 r))
+				   (gsl:integration-qng #'(lambda (phi) 
+							    (* (cos (* l0 phi))
+							       (cos (* l1 phi))
+							       (cos (* nco k phi (* r (cos phi))))))
+							0 (* 2 pi))))
+			    1 2)))))
 
 (defun calculate-bend-wedge (&key (v 32d0) (n 100) (scale 2d0))
  (let* ((lambd .0005)
