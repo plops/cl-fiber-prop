@@ -362,6 +362,12 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 ;; 1971 lether a generalized product rule for the unit cirlce
 ;; http://www.holoborodko.com/pavel/numerical-methods/numerical-integration/cubature-formulas-for-the-unit-disk/
 
+#+nil
+(gsll:make-qawo-table (* 1d0 (- l0 l1))
+		      (* 2 pi)
+		      :cosine
+		      32)
+
 (defun couple (u-modes j0 j1 v)
  (flet ((mode-norm (l u)
 	  (let* ((w (sqrt (- (expt v 2) (expt u 2))))
@@ -392,34 +398,44 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	     (scale-norm (* (mode-norm l0 u0) (mode-norm l1 u1)))
 	     (scale-in (/ scale-norm (* (jn l0 u0) (jn l1 u1))))
 	     (scale-out (/ scale-norm (* (gsll:cylindrical-bessel-k l0 w0)
-					 (gsll:cylindrical-bessel-k l1 w1)))))
+					 (gsll:cylindrical-bessel-k l1 w1))))
+	     (qawo0 (gsll:make-qawo-table (* 1d0 (- l0 l1)) (* 2 pi) :cosine 32))
+	     (qawo1 (gsll:make-qawo-table (* 1d0 (+ l0 l1)) (* 2 pi) :cosine 32)))
 	(bessel-j-interp-init :end 100d0 :n 2000 :lmax 100)
 	(bessel-k-interp-init :start (* .6 (min w0 w1)) :end (* 2.2 (max w0 w1))  :n 2000 :lmax 100)
-	(+ 
+	(macrolet ((azi ()
+		     `(+ (gsl:integration-qawo #'(lambda (phi) 
+						   (cos (* k alpha (* r (cos phi)))))
+					       0d0 (* 1d0 (- l0 l1)) (* 2 pi) :cosine 7
+					     ;  gsll::table qawo0
+					       )
+			 (gsl:integration-qawo #'(lambda (phi) 
+						   (cos (* k alpha (* r (cos phi)))))
+					       0d0 (* 1d0 (+ l0 l1)) (* 2 pi) :cosine 7
+					      ; gsll::table qawo1
+					       ))))
+	  (+ 
+	   
+	  (* scale-in
+	     (gsl:integration-qag #'(lambda (r) 
+				      (* (bessel-j-interp l0 (* u0 r))
+					 (bessel-j-interp l1 (* u1 r))
+					 r
+					 (azi)))
+				  0d0 1d0 6))
 	 
-	 (* scale-in
-	    (gsl:integration-qag #'(lambda (r) 
-				     (* (bessel-j-interp l0 (* u0 r))
-					(bessel-j-interp l1 (* u1 r))
-					r
-					(gsl:integration-qag #'(lambda (phi) 
-								 (* (cos (* l0 phi))
-								    (cos (* l1 phi))
-								    (cos (* k alpha (* r (cos phi))))))
-							     0d0 (* 2 pi) 6)))
-				 0d0 1d0 6))
-	 
-	 #+nil(* scale-out
-	    (gsl:integration-qag #'(lambda (r) 
-				     (* (bessel-k-interp l0 (* w0 r))
-					(bessel-k-interp l1 (* w1 r))
-					r
-					(gsl:integration-qag #'(lambda (phi) 
-								 (* (cos (* l0 phi))
-								    (cos (* l1 phi))
-								    (cos (* k alpha (* r (cos phi))))))
-							     0d0 (* 2 pi) 6)))
-				 1d0 2d0 6))))))))
+	  #+nil(* scale-out
+		  (gsl:integration-qag #'(lambda (r) 
+					   (* (bessel-k-interp l0 (* w0 r))
+					      (bessel-k-interp l1 (* w1 r))
+					      r
+					      (gsl:integration-qag #'(lambda (phi) 
+								       (* (cos (* l0 phi))
+									  (cos (* l1 phi))
+									  (cos (* k alpha (* r (cos phi))))))
+								   0d0 (* 2 pi) 6)))
+				       1d0 2d0 6)))))
+      ))))
 
 
 #+nil
