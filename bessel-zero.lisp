@@ -280,7 +280,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 			     (< (aref field (- i 1)) (aref field i)))
 		     collect i))
 	       (dists (loop for i below (1- (length ma)) collect (* (/ 1d0 n) (- (elt ma (+ 1 i)) (elt ma i))))))
-	  (ceiling (* 2 2 2 scale (/ (if dists (reduce #'min dists) .6d0)))) ;; note that you need more sampling for intensity
+	  (ceiling (* 2 2 2 2 scale (/ (if dists (reduce #'min dists) .6d0)))) ;; note that you need more sampling for intensity
 	  )))))
 
 #+nil
@@ -352,12 +352,9 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 						   (t (aref cos-a (- l 1) j i)))
 					(let ((r (aref r-a j i)))
 					  (if (<= r 1d0)
-					      (- (* scale-j (bessel-j l (* u r)))
-						 (/ (jn l (* u r))
-						    (jn l u)))
-					      (- (* scale-k (bessel-k-scaled-interp (abs l) (* w r)))
-						 (/ (gsll:cylindrical-bessel-k-scaled l (* w r))
-						    (gsll:cylindrical-bessel-k-scaled l w)))))))))))))
+					      (* scale-j (bessel-j l (* u r)))
+					      (* scale-k (bessel-k-scaled-interp (abs l) (* w r)))
+					      ))))))))))
     fields))
 #+nil
 (sb-ext:gc :full t)
@@ -373,10 +370,24 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
        (format t "calculating eigenvalues~%")
        (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
        (format t "ev took ~3d s time~%" (- (sb-unix::get-time-of-day) start))
-       (step-fiber-fields *bla-ev* v :scale 3d0 :debug t)))
+       (step-fiber-fields *bla-ev* v :scale 6d0 :debug t)))
    (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* :fun #'identity
-								  ) :scale 12.7 ;:offset -.2d0
+								  ) :scale .7 :offset -.2d0
 					     ))))
+
+#+nil
+(defparameter *intens*
+ (destructuring-bind (a b c) (array-dimensions *bla*)
+   (loop for k below a collect
+	(loop for j below b sum
+	     (loop for i below c sum
+		  (expt
+		   (aref *bla* k j i) 2))))))
+#+nil
+(defparameter *intens-sor* ;; intensity between 2847 and 174.9
+			   ;; (scale=10), with better sampling
+			   ;; 3030..642 (scale=3), 6604..642 (scale=6)
+ (sort *intens* #'<))
 
 #+nil
 (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* :fun #'identity
