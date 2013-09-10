@@ -488,12 +488,18 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	 (u-modes *bla-ev*)
 	 (lmax (+ 1 (* 2 (length (mapcar #'length u-modes))))))
     (bessel-j-interp-init :end (* 1.01 v) :n 2000 :lmax lmax)
-    (loop for n from 0 below  (number-of-modes u-modes) collect
-	 (loop for m from 0 below (number-of-modes u-modes) collect
+    (loop for n from 0 below 10 #+nil (number-of-modes u-modes) collect
+	 (loop for m from 0 below 10 #+nil (number-of-modes u-modes) collect
 	      (let ((x (couple u-modes n m v)))
-		(format t "~a~%" (list 'bla n m x))
+		(format t "i ~3d ~3d ~3,1f~%" n m (* 1e7 x))
 		x)))))
 
+#+nil
+(loop for e in *plot* and f in *bla-coef* and i from 0 collect ;; divide both integration methods for comparison
+     (loop for ee in e and ff in f and j from 0 collect
+	  (let ((val (/ (abs ee) ff)))
+	    (format t "/ ~3d ~3d ~3,1f~%" i j val)
+	    val)))
 
 #+nil
 (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede
@@ -525,13 +531,13 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	(num-elems 100)
 	(del-l (/ l2 num-elems))
 	(alpha (asin (/ del-l bend-radius)))
-	(wedge (make-array (list n n) :element-type '(complex double-float))))
+	(wedge (make-array (list n n) :element-type 'double-float)))
    (dotimes (i n)
      (dotimes (j n)
-       (setf (aref wedge j i) (exp (complex 0d0 (* k alpha i resol)))))) ;; is this supposed to be free-space?
+       (setf (aref wedge j i) (cos (* k alpha i resol))))) ;; is this supposed to be free-space?
    (values wedge resol)))
 #+nil
-(calculate-bend-wedge)
+(calculate-bend-waedge)
 
 (defun calculate-couple-coeffs (fields)
   ;; i might have to figure out the proper sampling by calculating a
@@ -540,22 +546,21 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
   (declare (type (simple-array double-float 3) fields))
   (destructuring-bind (nmodes h w) (array-dimensions fields)
     (multiple-value-bind (wedge resol) (calculate-bend-wedge :n w)
-      (declare (type (simple-array (complex double-float) 2) wedge))
+      (declare (type (simple-array double-float 2) wedge))
       (let* ((couple-coeffs (make-array (list nmodes nmodes)
-					:element-type '(complex double-float))))
-	(declare (type (simple-array (complex double-float) 2) couple-coeffs))
-	(dotimes (a nmodes)
-	  (dotimes (b nmodes)
-	    (format t "~a ~%" (list 'couple a b))
-	    (setf (aref couple-coeffs b a) 
-		  (* resol resol
-		     (loop for j below h sum
-			  (loop for i below w sum
-			       (* (aref fields a j i)
-				  (aref fields b j i)
-				  (aref wedge j i))))))
-	    (format t "~a ~%" (list 'couple a b (aref couple-coeffs b a)))))
-	couple-coeffs))))
+					:element-type 'double-float)))
+	(declare (type (simple-array double-float 2) couple-coeffs))
+	(loop for a below 10 collect
+	  (loop for b below 10 collect
+	       (prog1
+		   (setf (aref couple-coeffs b a) 
+			 (* resol resol
+			    (loop for j below h sum
+				 (loop for i below w sum
+				      (* (aref fields a j i)
+					 (aref fields b j i)
+					 (aref wedge j i))))))
+		 (format t "s ~3d ~3d ~3,1f ~%" a b (* 1e7 (aref couple-coeffs b a))))))))))
 
 #+nil
 (time (defparameter *bla-coef* (calculate-couple-coeffs *bla*)))
