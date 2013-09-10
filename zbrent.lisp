@@ -1,6 +1,7 @@
 (in-package :cl-fiber-prop)
 
 (define-condition root-not-bracketed () ())
+(define-condition max-iterations-exceeded () ())
 
 (defun zbrent (fun x1 x2 &optional (tol 1d-6) (itermax 100))
   "Find zero of function fun between x1 and x2. Reference: Numerical Recipes in C"
@@ -24,9 +25,10 @@
 	 (let ((tol1 (+ (* .5 tol)
 			(* 2 double-float-epsilon (abs b))))
 	       (xm (* .5 (- c b))))      (declare (type double-float tol1 xm))
-	   (when (or (<= (abs xm) tol1)
-		     (= fb 0))
-	     (return-from zbrent b))
+	       (when (or (and (<= (abs xm) tol1)
+			      (<= (abs fb) 1e-3))
+			 (= fb 0))
+		 (return-from zbrent b))
 	   (if (and (<= tol1 (abs e))
 		    (< (abs fb) (abs fa)))
 	       (let ((p 0d0) (q 0d0) (r 0d0) (s (/ fb fa))) (declare (type double-float p q r s))
@@ -44,7 +46,7 @@
 	   (setf a b  fa fb)
 	   (incf b (if (< tol1 (abs d)) d   (* (abs tol1) (signum xm))))
 	   (setf fb (funcall fun b))))
-    (error "maximum number of iterations exceeded")))
+    (error 'max-iterations-exceeded)))
 
 #+nil
 (zbrent #'sin 1d0 4d0)

@@ -65,10 +65,22 @@
 				     (handler-case 
 					 (zbrent #'(lambda (x) (char-step-index-fiber x v l))
 						 (+ (elt us (1- m)) du) (- (elt us m) du))
-				       (root-not-bracketed ()))))))))
+				       (root-not-bracketed ())
+				       (max-iterations-exceeded ()))))))))
       ;; occasionally there is no mode in the gap between the last pole and v
       (remove-if #'null (mapcar #'(lambda (y) (remove-if #'(lambda (x) (null x)) y))
 				modes)))))
+
+
+#+nil
+(zbrent #'(lambda (x) (char-step-index-fiber x 30d0 10))
+	(+ -.000001 28.887375508582966d0) 30d0 1d-15)
+#+nil
+(char-step-index-fiber 28.887375063530467 30d0 10)
+
+#+nil
+(defparameter *bla*
+ (step-fiber-eigenvalues 30d0))
 
 #+nil
 (time 
