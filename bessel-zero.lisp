@@ -285,7 +285,10 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	 (r-a (make-array (list n n) :element-type 'double-float)) ;; some arrays that store reusable intermediate results
 	 (phi-a (make-array (list n n) :element-type 'double-float))
 	 (sin-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float))
-	 (cos-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float)))
+	 (cos-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float))
+	 (umax (first (find-fastest-mode (step-fiber-eigenvalues-linear u-modes))))
+	 (wmin (sqrt (- (* v v) (* umax umax))))
+	 )
     (macrolet ((doplane ((j i) &body body) `(dotimes (,j n) (dotimes (,i n) ,@body))))
       (doplane (j i) (let* ((x (* 2 scale (- i (floor n 2)) (/ 1d0 n)))
 			    (y (* 2 scale (- j (floor n 2)) (/ 1d0 n)))
@@ -295,6 +298,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	   (if debug (format t "azimuthal ~d/~d~%" l azimuthal-mode-count))
 	   (doplane (j i) (setf (aref sin-a (1- l) j i) (sin (* l (aref phi-a j i)))))
 	   (doplane (j i) (setf (aref cos-a (1- l) j i) (cos (* l (aref phi-a j i))))))
+      (bessel-j-interp-init :end (* 1.01 v) :n 2000 :lmax azimuthal-mode-count)
+      (bessel-k-scaled-interp-init :start (* .99 wmin) :end (* 1.01 scale v) :n 2000 :lmax azimuthal-mode-count)
       (let ((start (get-universal-time)))
        (loop for k below (number-of-modes u-modes) do
 	    (when (and debug (= 0 (mod k 10))) (let* ((current (- (get-universal-time) start))
@@ -312,16 +317,19 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 			      (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))) 
 			      (gsll:cylindrical-bessel-k-scaled (- l 1) w)
 			      (gsll:cylindrical-bessel-k-scaled (+ l 1) w)))
-		     (norm (expt (* nphi nrad) -.5)))
+		     (norm (expt (* nphi nrad) -.5))
+		     (scale-j (/ (jn l u)))
+		     (scale-k (/ (gsll:cylindrical-bessel-k-scaled l w))))
 		(doplane (j i) (setf (aref fields k j i)
 				     (* norm (cond ((= l 0) 1d0) 
 						   ((< l 0) (aref sin-a (- (abs l) 1) j i))
 						   (t (aref cos-a (- l 1) j i)))
 					(let ((r (aref r-a j i)))
 					  (if (<= r 1d0)
-					      (/ (jn l (* u r)) (jn l u))
-					      (/ (gsll:cylindrical-bessel-k-scaled l (* w r))
-						 (gsll:cylindrical-bessel-k-scaled l w))))))))))))
+					      (* scale-j (bessel-j-interp (abs l) (* u r))
+						 )
+					      (* scale-k (bessel-k-scaled-interp (abs l) (* w r))
+						 )))))))))))
     fields))
 
 
@@ -330,11 +338,11 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
  (progn
    (defparameter *bla* nil)
    (defparameter *bla*
-     (let ((v 94d0)
-	   (start (get-time-of-day)))
+     (let ((v 32d0) ;; 32 took 1.95s with direct bessel, takes 1.49s with lookup
+	   (start (sb-unix::get-time-of-day)))
        (format t "calculating eigenvalues~%")
        (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
-       (format t "ev took ~3d s time~%" (- (get-time-of-day) start))
+       (format t "ev took ~3d s time~%" (- (sb-unix::get-time-of-day) start))
        (step-fiber-fields *bla-ev* v :debug t)))
    (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* :fun #'identity) :scale .9 :offset -.2d0))))
 
