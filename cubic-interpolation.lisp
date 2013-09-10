@@ -127,10 +127,18 @@
 
 (def-interp bessel-j bessel-j-and-deriv)
 
+(declaim (inline bessel-j))
 (defun bessel-j (l x)
+  (declare (type fixnum l)
+	   (type double-float x)
+	   (values double-float &optional)
+	   (optimize (speed 3) (safety 1) (debug 0)))
   (if (<= 0 l)
       (bessel-j-interp l x)
-      (* (expt -1 l) (bessel-j-interp (abs l) x))))
+      (* (if (oddp l) -1 1)
+	 (bessel-j-interp (abs l) x))))
+
+
 
 (def-interp bessel-k bessel-k-and-deriv)
 (def-interp bessel-k-scaled bessel-k-scaled-and-deriv)
