@@ -444,13 +444,12 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	     (w1 (sqrt (- (expt v 2) (expt u1 2))))
 	     (scale-norm (* (mode-norm l0 u0) (mode-norm l1 u1)))
 	     (scale-in (/ scale-norm (* (jn l0 u0) (jn l1 u1))))
-#+nil	     (scale-out (/ scale-norm (* (gsll:cylindrical-bessel-k l0 w0)
+	     (scale-out (/ scale-norm (* (gsll:cylindrical-bessel-k l0 w0)
 					 (gsll:cylindrical-bessel-k l1 w1))))
 	     (mo0 (mod (+ l0 l1) 4))
 	     (mo1 (abs (mod (- l0 l1) 4))))
 	
-#+nil	(bessel-k-scaled-interp-init :start (* .6 (min w0 w1)) :end (* 2.2 (max w0 w1))
-				     :n 200 :lmax (max (+ l0 l1) (abs (- l0 l1))))
+	
 	(when (and (or (= mo0 0) (= mo0 2))   ;; real result
 		   (or (= mo1 0) (= mo1 2)))
 	  (+ 
@@ -465,17 +464,16 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 						  (* (if (= mo1 0) 1 -1) (bessel-j (- l0 l1) arg)))))))
 				  0d0 1d0 6 1e-3 1e-2))	   
 	   
-	   #+nil(* scale-out
+	   (* scale-out
 	      (gsl:integration-qagiu 
 	       #'(lambda (r) 
 		   (* (bessel-k-scaled-interp l0 (* w0 r))
 		      (bessel-k-scaled-interp l1 (* w1 r))
-		      (exp (* -1 w0 r))
-		      (exp (* -1 w1 r))
+		      (exp (+ (* -1 w0 r) (* -1 w1 r)))
 		      r
 		      (* 2 (/ pi)
 			 (let ((arg (* k alpha rho r)))
-			   (+ (* (if (= mo0 0) 1 -1) (bessel-j-interp (+ l0 l1) arg))
+			   (+ (* (if (= mo0 0) 1 -1) (bessel-j (+ l0 l1) arg))
 			      (* (if (= mo1 0) 1 -1) (bessel-j (- l0 l1) arg)))))))
 	       1d0)))))))))
 
@@ -486,8 +484,12 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 (defparameter *plot*
   (let* ((v 30d0)
 	 (u-modes *bla-ev*)
-	 (lmax (+ 1 (* 2 (length (mapcar #'length u-modes))))))
+	 (lmax (+ 1 (* 2 (length (mapcar #'length u-modes)))))
+	 (umax (first (find-fastest-mode (step-fiber-eigenvalues-linear u-modes))))
+	 (wmin (sqrt (- (* v v) (* umax umax)))))
     (bessel-j-interp-init :end (* 1.01 v) :n 2000 :lmax lmax)
+    (bessel-k-scaled-interp-init :start (* .9 wmin) :end (* 1.1 (sqrt 2) scale v)
+				 :n 2000 :lmax (max (+ l0 l1) (abs (- l0 l1))))
     (loop for n from 0 below 10 #+nil (number-of-modes u-modes) collect
 	 (loop for m from 0 below 10 #+nil (number-of-modes u-modes) collect
 	      (let ((x (couple u-modes n m v)))
