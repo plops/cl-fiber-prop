@@ -298,8 +298,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	   (if debug (format t "azimuthal ~d/~d~%" l azimuthal-mode-count))
 	   (doplane (j i) (setf (aref sin-a (1- l) j i) (sin (* l (aref phi-a j i)))))
 	   (doplane (j i) (setf (aref cos-a (1- l) j i) (cos (* l (aref phi-a j i))))))
-      (bessel-j-interp-init :end (* 1.01 v) :n 100 :lmax azimuthal-mode-count)
-      (bessel-k-scaled-interp-init :start (* .99 wmin) :end (* 1.01 (sqrt 2) scale v) :n 100 :lmax azimuthal-mode-count)
+      (bessel-j-interp-init :end umax :n 2100 :lmax azimuthal-mode-count)
+      (bessel-k-scaled-interp-init :start wmin :end (* (sqrt 2) scale v) :n 2100 :lmax azimuthal-mode-count)
       (let ((start (get-universal-time)))
        (loop for k below (number-of-modes u-modes) do
 	    (when (and debug (= 0 (mod k 10))) (let* ((current (- (get-universal-time) start))
@@ -319,7 +319,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 			      (gsll:cylindrical-bessel-k-scaled (+ l 1) w)))
 		     (norm (expt (* nphi nrad) -.5))
 		     (scale-j (/ (jn l u)))
-		     (scale-k (/ (gsll:cylindrical-bessel-k-scaled l w))))
+		     (scale-k (/ (gsl::cylindrical-bessel-k-scaled (abs l) w))))
 		(doplane (j i) (setf (aref fields k j i)
 				     (* norm (cond ((= l 0) 1d0) 
 						   ((< l 0) (aref sin-a (- (abs l) 1) j i))
@@ -337,14 +337,14 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
  (progn
    (defparameter *bla* nil)
    (defparameter *bla*
-     (let ((v 40d0) ;; 32 took 1.95s with direct bessel, takes 1.49s with lookup, 96.7s for v=94 with .017s per field
+     (let ((v 30d0) ;; 32 took 1.95s with direct bessel, takes 1.49s with lookup, 96.7s for v=94 with .017s per field
 	   (start (sb-unix::get-time-of-day)))
        (format t "calculating eigenvalues~%")
        (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
        (format t "ev took ~3d s time~%" (- (sb-unix::get-time-of-day) start))
-       (step-fiber-fields *bla-ev* v :scale 3d0 :debug t)))
-   (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
-								  ) :scale .9 :offset -.2d0
+       (step-fiber-fields *bla-ev* v :debug t)))
+   (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* :fun #'identity
+								  ) :scale .7 :offset -.2d0
 					     ))))
 
 
