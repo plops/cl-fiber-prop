@@ -289,7 +289,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 (with-open-file (s "/run/q/n-min-modes.dat" :direction :output
 		   :if-exists :supersede :if-does-not-exist :create)
  (loop for (wmin umax j n) in *bla* and v from 3d0 by .1d0 do
-      (format s "~f ~d ~d~%" v j n))) ;; for v=10.2 wmin is very small
+      (format s "~f ~d ~d~%" v j n))) ;; for v=10.2 wmin is very small, for v=30.0 wmin is quite big wmin=6.3
 
 
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
@@ -312,8 +312,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	   (if debug (format t "azimuthal ~d/~d~%" l azimuthal-mode-count))
 	   (doplane (j i) (setf (aref sin-a (1- l) j i) (sin (* l (aref phi-a j i)))))
 	   (doplane (j i) (setf (aref cos-a (1- l) j i) (cos (* l (aref phi-a j i))))))
-      (bessel-j-interp-init :end umax :n 2100 :lmax azimuthal-mode-count)
-      (bessel-k-scaled-interp-init :start wmin :end (* (sqrt 2) scale v) :n 2100 :lmax azimuthal-mode-count)
+      (bessel-j-interp-init :end (* 1.1 umax) :n 2100 :lmax (+ 1 azimuthal-mode-count))
+      (bessel-k-scaled-interp-init :start (* .9 wmin) :end (* 1.1 (sqrt 2) scale v) :n 2100 :lmax (+ 1 azimuthal-mode-count))
       (let ((start (get-universal-time)))
        (loop for k below (number-of-modes u-modes) do
 	    (when (and debug (= 0 (mod k 10))) (let* ((current (- (get-universal-time) start))
@@ -340,28 +340,38 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 						   (t (aref cos-a (- l 1) j i)))
 					(let ((r (aref r-a j i)))
 					  (if (<= r 1d0)
-					      (* scale-j (bessel-j l (* u r)))
-					      (* scale-k (bessel-k-scaled-interp (abs l) (* w r)))))))))))))
+					      (- (* scale-j (bessel-j l (* u r)))
+						 (/ (jn l (* u r))
+						    (jn l u)))
+					      (- (* scale-k (bessel-k-scaled-interp (abs l) (* w r)))
+						 (/ (gsll:cylindrical-bessel-k-scaled l (* w r))
+						    (gsll:cylindrical-bessel-k-scaled l w)))))))))))))
     fields))
 #+nil
 (sb-ext:gc :full t)
 
+;; v=10 l=10 looks weird, v=40 l=18 looks weird
 #+nil
 (time 
  (progn
    (defparameter *bla* nil)
    (defparameter *bla*
-     (let ((v 32d0) ;; 32 took 1.95s with direct bessel, takes 1.49s with lookup, 96.7s for v=94 with .017s per field
+     (let ((v 30d0) 
 	   (start (sb-unix::get-time-of-day)))
        (format t "calculating eigenvalues~%")
        (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
        (format t "ev took ~3d s time~%" (- (sb-unix::get-time-of-day) start))
-       (step-fiber-fields *bla-ev* v :debug t)))
+       (step-fiber-fields *bla-ev* v :scale 3d0 :debug t)))
    (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* :fun #'identity
-								  ) :scale .7 :offset -.2d0
+								  ) :scale 12.7 ;:offset -.2d0
 					     ))))
 
-
+#+nil
+(write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* :fun #'identity
+							       ) :scale 1d6 ;:offset -.2d0
+								 ))
+#+nil
+(mapcar #'length *bla-ev*) ;; there is one place where the number of modes increases with l
 
 (defun create-field-mosaic (fields u-modes &key (fun #'(lambda (x) (expt x 2))))
   (declare (type (simple-array double-float 3) fields)
@@ -476,6 +486,15 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		   :if-does-not-exist :create
 		   )
   (format s "~{~{~f ~}~%~}" *plot*))
+
+#+nil
+(with-open-file (s "/run/q/char-v30-l10.dat" :direction :output :if-exists :supersede
+		   :if-does-not-exist :create
+		   )
+  (let ((l 10)
+	(v 30d0))
+   (loop for u from 1d0 below v by .001d0 do
+	(format s "~f ~f ~f~%" u (char-step-index-fiber u v l) (log (abs (jn l u)))))))
 
 (defun calculate-bend-wedge (&key (v 32d0) (n 100) (scale 2d0))
  (let* ((lambd .0005)
