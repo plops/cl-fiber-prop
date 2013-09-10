@@ -61,7 +61,7 @@
 %\usepackage[showrefs,showcites,ignoreunlbld]{refcheck} % for draft, uncomment for final
 %\usepackage[notref,notcite]{showkeys}
 
-\usepackage[disable]{todonotes} % for draft, disable for final
+ \usepackage[disable]{todonotes} % for draft, disable for final
 
 \usepackage{lineno}
 \usepackage[refpage]{nomencl}
@@ -291,8 +291,11 @@ $l$. Zur Zeit ist mir nicht klar, ob ein anderer Algorithmus zur
 Berechnung der charaketeristischen Funktion ausreicht oder ob zu einem
 anderen Datentyp (insbesondere 128-bit quadfloat) gewechselt werden
 muss. Das Verh\"altnis von Besselfunktionen kann man als continued
-fraction schreiben. Vielleicht wuerde dies auch helfen
-[mathworld.wolfram.com/BesselFunctionoftheFirstKind].
+fraction schreiben [Stegun 9.1.73]. 
+\begin{align}
+  \frac{J_l(z)}{J_{l-1}(z)} &= \frac{1}{2lz^{-1}-} \frac{1}{2(l+1)z^{-1}-} \frac{1}{2(l+2)z^{-1} -}\cdots \\
+  &= \frac{\frac{1}{2}z/l}{1-} \frac{\frac{1}{4}z^2/(l(l+1))}{1-} \frac{\frac{1}{4}z^2/(l(l+1)(l+2))}{1-} \cdots
+\end{align}
 
 
 Bei gegebenen Modenparameter $u$ kann die Ausbreitungskonstante
@@ -406,6 +409,7 @@ vernachlaessigbar.
   K''_1(x) &= \frac{1}{4}\(K_3(x)+3K_1(x)\)\\
   K''_l(x) &= \frac{1}{4}\(K_{l+2}(x)+2K_l(x)+K_{l-2}(x)\)
 \end{align}
+Hier gilt $K_{-l}(x) = K_l(x)$ [Stegun p 375]. 
 
 F\"ur die skalierte Besselfunktion $k_l(x)=K_l(x)e^x$ sind die zweiten Ableitungen
 \begin{align}
@@ -461,10 +465,17 @@ ver\"anderlich. Ausserdem kann man das Produkt
 $\cos(l\phi)\cos(m\phi)$ der zwei azimuthalen Feldfunktionen als Summe
 von Oszillationen mit der Differenz- und Summenfrequenzen schreiben:
 
+% a:trigsimp(demoivre(expand(exponentialize(cos(l*x)*cos(m*x)))));
+% b:trigsimp(demoivre(expand(exponentialize(cos(l*x)*sin(m*x)))));
+% c:trigsimp(demoivre(expand(exponentialize(sin(l*x)*sin(m*x)))));
+
+% integrate(cos(l*x)*exp(%i*z*cos(x)),x,0,2*%pi);
+% integrate(cos(l*x)*cos(z*cos(x)),x,0,2*%pi);
+
 \begin{align}
   I_\phi(r) = \int_0^{2\pi}\!\!\!\!\!\! \cos(l\phi)\cos(m\phi) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi = \nonumber \\
-  \int_0^{2\pi}\!\!\!\!\!\! \cos\((l+m)\phi\) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi  \nonumber \\
-  + \int_0^{2\pi}\!\!\!\!\!\! \cos\((l-m)\phi\) e^{i\underbrace{k_0\alpha\rho r}_z\cos(\phi)} \textrm{d}\phi
+  \frac{1}{2}\int_0^{2\pi}\!\!\!\!\!\! \cos\((l+m)\phi\) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi  \nonumber \\
+  + \frac{1}{2}\int_0^{2\pi}\!\!\!\!\!\! \cos\((l-m)\phi\) e^{i\underbrace{k_0\alpha\rho r}_z\cos(\phi)} \textrm{d}\phi
 \end{align}
 
 Hierbei ist $x=\rho r \cos(\phi)$.
@@ -476,12 +487,14 @@ Gleichung:
 \end{align}
 
 \begin{align}
-  I_\phi(r) = \frac{2 }{\pi} \(i^{-(l+m)} J_{l+m}(k_0\alpha\rho r)+i^{m-l} J_{l-m}(k_0\alpha\rho r)\)
+  I_\phi(r) = \frac{1 }{\pi} \(i^{-(l+m)} J_{l+m}(k_0\alpha\rho r)+i^{m-l} J_{l-m}(k_0\alpha\rho r)\)
 \end{align}
 
-Bei der numerischen Auswertung des Azimuthalen Integrals sollte man
-die Funktion \verb!integration_qawo()! anwenden, die f\"ur
-oszillierende Integranden ausgelegt ist und eine Tabelle mit
+
+Mir ist noch unklar, ob man das Integral analytisch f\"ur beliebige
+Winkel l\"osen kann.  Bei der numerischen Auswertung des Azimuthalen
+Integrals sollte man die Funktion \verb!integration_qawo()! anwenden,
+die f\"ur oszillierende Integranden ausgelegt ist und eine Tabelle mit
 entsprechenden Chebyshev Momenten benutzt.
 
 Das Integral im Inneren des Kerns kann mit der Funktion
