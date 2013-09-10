@@ -339,23 +339,14 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	      (let* ((u (elt (elt u-modes (abs l)) m))
 		     (w (sqrt (- (expt v 2) (expt u 2))))
 		     (nphi (* pi (if (= l 0) 2 1)))
-		     (nrad (* .5 (+ (- 1
-				       (/ (* (gsll:cylindrical-bessel-k (- l 1) w)
-					     (gsll:cylindrical-bessel-k (+ l 1) w))
-					  (expt (gsll:cylindrical-bessel-k l w) 2)))
-				    (- 1
-				       (/ (* (jn (- l 1) u)
-					     (jn (+ l 1) u))
-					  (expt (jn l u) 2))))) 
-		       )
-		     (nrad-b (* (expt v 2) 
+		     (nrad (* (expt v 2) 
 			      (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))) 
 			      (gsll:cylindrical-bessel-k-scaled (- l 1) w)
 			      (gsll:cylindrical-bessel-k-scaled (+ l 1) w)))
 		     (norm (expt (* nphi nrad) -.5))
 		     (scale-j (/ (jn l u)))
 		     (scale-k (/ (gsl::cylindrical-bessel-k-scaled (abs l) w))))
-		(format t "~a~%" (list l m u nrad nrad-b (/ nrad nrad-b)))
+; 		(format t "~a~%" (list l m u nrad))
 		(doplane (j i) (setf (aref fields k j i)
 				     (* norm (cond ((= l 0) 1d0) 
 						   ((< l 0) (aref sin-a (- (abs l) 1) j i))
@@ -384,31 +375,15 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
        (format t "calculating eigenvalues~%")
        (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
        (format t "ev took ~3d s time~%" (- (sb-unix::get-time-of-day) start))
-       (step-fiber-fields *bla-ev* v :scale 6d0 :debug t)))
-   (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* :fun #'identity
-								  ) :scale .7 :offset -.2d0
+       (let ((sc 3d0))
+	(step-fiber-fields *bla-ev* v :scale sc 
+			   :n (* 2 (step-fiber-minimal-sampling *bla-ev* v :scale sc))
+			   :debug t))))
+   (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
+								  ) :scale .7 ;:offset -.2d0
 					     ))))
 
-#+nil
-(defparameter *intens*
- (destructuring-bind (a b c) (array-dimensions *bla*)
-   (loop for k below a collect
-	(loop for j below b sum
-	     (loop for i below c sum
-		  (expt
-		   (aref *bla* k j i) 2))))))
-#+nil
-(defparameter *intens-sor* ;; intensity between 2847 and 174.9
-			   ;; (scale=10), with better sampling
-			   ;; 3030..642 (scale=3), 6604..642 (scale=6)
- (sort *intens* #'<))
 
-#+nil
-(write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* :fun #'identity
-							       ) :scale 1d6 ;:offset -.2d0
-								 ))
-#+nil
-(mapcar #'length *bla-ev*) ;; there is one place where the number of modes increases with l
 
 (defun create-field-mosaic (fields u-modes &key (fun #'(lambda (x) (expt x 2))))
   (declare (type (simple-array double-float 3) fields)
@@ -473,7 +448,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 					 (gsll:cylindrical-bessel-k l1 w1))))
 	     (mo0 (mod (+ l0 l1) 4))
 	     (mo1 (abs (mod (- l0 l1) 4))))
-	(bessel-j-interp-init :end (* 1.01 v) :n 2000 :lmax (max (+ l0 l1 1) (abs (+ 1 (- l0 l1)))))
+	
 #+nil	(bessel-k-scaled-interp-init :start (* .6 (min w0 w1)) :end (* 2.2 (max w0 w1))
 				     :n 200 :lmax (max (+ l0 l1) (abs (- l0 l1))))
 	(when (and (or (= mo0 0) (= mo0 2))   ;; real result
@@ -501,18 +476,20 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		      (* 2 (/ pi)
 			 (let ((arg (* k alpha rho r)))
 			   (+ (* (if (= mo0 0) 1 -1) (bessel-j-interp (+ l0 l1) arg))
-			     (* (if (= mo1 0) 1 -1) (bessel-j (- l0 l1) arg)))))))
+			      (* (if (= mo1 0) 1 -1) (bessel-j (- l0 l1) arg)))))))
 	       1d0)))))))))
 
 #+nil
-(let ((v 32d0))
- (defparameter *bla* (step-fiber-eigenvalues v)))
+(let ((v 30d0))
+ (defparameter *bla-ev* (step-fiber-eigenvalues v)))
 #+nil
 (defparameter *plot*
-  (let* ((v 32d0)
-	 (u-modes *bla*))
-    (loop for n from 0 below 20 #+nil (number-of-modes u-modes) collect
-	 (loop for m from 0 below 20 #+nil (number-of-modes u-modes) collect
+  (let* ((v 30d0)
+	 (u-modes *bla-ev*)
+	 (lmax (+ 1 (* 2 (length (mapcar #'length u-modes))))))
+    (bessel-j-interp-init :end (* 1.01 v) :n 2000 :lmax lmax)
+    (loop for n from 0 below  (number-of-modes u-modes) collect
+	 (loop for m from 0 below (number-of-modes u-modes) collect
 	      (let ((x (couple u-modes n m v)))
 		(format t "~a~%" (list 'bla n m x))
 		x)))))
@@ -547,11 +524,11 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	(bend-radius (* .5 (+ delx (/ (expt l2 2) delx))))
 	(num-elems 100)
 	(del-l (/ l2 num-elems))
-	(phi (asin (/ del-l bend-radius)))
+	(alpha (asin (/ del-l bend-radius)))
 	(wedge (make-array (list n n) :element-type '(complex double-float))))
    (dotimes (i n)
      (dotimes (j n)
-       (setf (aref wedge j i) (exp (complex 0d0 (* nco k phi i resol)))))) ;; is this supposed to be free-space?
+       (setf (aref wedge j i) (exp (complex 0d0 (* k alpha i resol)))))) ;; is this supposed to be free-space?
    (values wedge resol)))
 #+nil
 (calculate-bend-wedge)
@@ -559,26 +536,29 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 (defun calculate-couple-coeffs (fields)
   ;; i might have to figure out the proper sampling by calculating a
   ;; high resolution cross section through the highest mode
-  (multiple-value-bind (wedge resol) (calculate-bend-wedge)
-    (destructuring-bind (nmodes n nx) (array-dimensions fields)
-      (declare (ignore nx))
+  (declare (optimize (speed 3)))
+  (declare (type (simple-array double-float 3) fields))
+  (destructuring-bind (nmodes h w) (array-dimensions fields)
+    (multiple-value-bind (wedge resol) (calculate-bend-wedge :n w)
+      (declare (type (simple-array (complex double-float) 2) wedge))
       (let* ((couple-coeffs (make-array (list nmodes nmodes)
 					:element-type '(complex double-float))))
 	(declare (type (simple-array (complex double-float) 2) couple-coeffs))
 	(dotimes (a nmodes)
-	 (dotimes (b nmodes)
-	   (format t "~a ~%" (list 'couple a b))
-	   (setf (aref couple-coeffs b a) 
-		 (* (expt resol 2)
-		    (loop for j below n sum
-			 (loop for i below n sum
-			      (* (aref fields a j i)
-				 (aref fields b j i)
-				 (aref wedge j i))))))))
-       couple-coeffs))))
+	  (dotimes (b nmodes)
+	    (format t "~a ~%" (list 'couple a b))
+	    (setf (aref couple-coeffs b a) 
+		  (* resol resol
+		     (loop for j below h sum
+			  (loop for i below w sum
+			       (* (aref fields a j i)
+				  (aref fields b j i)
+				  (aref wedge j i))))))
+	    (format t "~a ~%" (list 'couple a b (aref couple-coeffs b a)))))
+	couple-coeffs))))
 
 #+nil
-(time (defparameter *bla-coef* (calculate-couple-coeffs)))
+(time (defparameter *bla-coef* (calculate-couple-coeffs *bla*)))
 #+nil
 (time  (write-pgm "/run/q/bla-coef.pgm" (convert-ub8  (convert-df *bla-coef*))))
 #+nil
