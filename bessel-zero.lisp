@@ -280,7 +280,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 			     (< (aref field (- i 1)) (aref field i)))
 		     collect i))
 	       (dists (loop for i below (1- (length ma)) collect (* (/ 1d0 n) (- (elt ma (+ 1 i)) (elt ma i))))))
-	  (ceiling (* 2 2 2 2 scale (/ (if dists (reduce #'min dists) .6d0)))) ;; note that you need more sampling for intensity
+	  (ceiling (* 2 2 2 scale (/ (if dists (reduce #'min dists) .6d0)))) ;; note that you need more sampling for intensity
 	  )))))
 
 #+nil
@@ -339,13 +339,23 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	      (let* ((u (elt (elt u-modes (abs l)) m))
 		     (w (sqrt (- (expt v 2) (expt u 2))))
 		     (nphi (* pi (if (= l 0) 2 1)))
-		     (nrad (* (expt v 2) 
+		     (nrad (* .5 (+ (- 1
+				       (/ (* (gsll:cylindrical-bessel-k (- l 1) w)
+					     (gsll:cylindrical-bessel-k (+ l 1) w))
+					  (expt (gsll:cylindrical-bessel-k l w) 2)))
+				    (- 1
+				       (/ (* (jn (- l 1) u)
+					     (jn (+ l 1) u))
+					  (expt (jn l u) 2))))) 
+		       )
+		     (nrad-b (* (expt v 2) 
 			      (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))) 
 			      (gsll:cylindrical-bessel-k-scaled (- l 1) w)
 			      (gsll:cylindrical-bessel-k-scaled (+ l 1) w)))
 		     (norm (expt (* nphi nrad) -.5))
 		     (scale-j (/ (jn l u)))
 		     (scale-k (/ (gsl::cylindrical-bessel-k-scaled (abs l) w))))
+		(format t "~a~%" (list l m u nrad nrad-b (/ nrad nrad-b)))
 		(doplane (j i) (setf (aref fields k j i)
 				     (* norm (cond ((= l 0) 1d0) 
 						   ((< l 0) (aref sin-a (- (abs l) 1) j i))
@@ -356,6 +366,10 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 					      (* scale-k (bessel-k-scaled-interp (abs l) (* w r)))
 					      ))))))))))
     fields))
+
+;; integrate(bessel_j(0,r)^2*r,r,0,1)
+
+
 #+nil
 (sb-ext:gc :full t)
 

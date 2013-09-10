@@ -317,6 +317,20 @@ Damit ist die Normierungskonstante
   N \propto \frac{v^2}{2 u^2} \frac{K_{l-1}(w)K_{l+1}(w)}{K_l^2(w)}
 \end{align}
 
+Die Integrale sind [Snyder p. 716]: 
+% taylor(z^2/2 * (bessel_k(l,a*z)^2- bessel_k(l-1,a*z)*bessel_k(l+1,a*z)),z,inf);
+%bk(nu,z):=sqrt(%pi/(2*z))*exp(-z)*(1+(4*nu^2-1)/(8*z));
+%assume(a>0);
+%taylor(factor(expand(z^2/2 * (bk(l,a*z)^2- bk(l-1,a*z)*bk(l+1,a*z)))),z,inf,3);
+\begin{align}
+  I_\textrm{core}(z) &= \int z J_m^2(az) \textrm{d} z \\&= \frac{z^2}{2}(J_m^2(az)-J_{m-1}(az)J_{m+1}(az))\\
+  I_\textrm{core} {}^1_0 &= \frac{1}{2}(J_m^2(a)-J_{m-1}(a)J_{m+1}(a)) \\
+  I_\textrm{clad}(z) &= \int z K_m^2(az) \textrm{d} z \\&= \frac{z^2}{2}(K_m^2(az)-K_{m-1}(az)K_{m+1}(az)) \\
+  \lim_{z\rightarrow \infty} K_\nu(z) &\sim \sqrt{\frac{\pi}{2z}} e^{-z}\(1+\frac{\mu-1}{8z}\), \quad \mu=4\nu^2 \\ % stegun 9.7.2
+  \lim_{z\rightarrow \infty} I_\textrm{clad}(z)  & = \lim_{z\rightarrow \infty} -\frac{\pi}{4a^2}e^{-2az} \rightarrow 0 \\
+  I_\textrm{clad} {}^\infty_1 &= \frac{1}{2}(K_m^2(a)-K_{m-1}(a)K_{m+1}(a)) 
+\end{align}
+
 \begin{figure}[hbtp]
   \centering
   \svginput{1}{modes}
