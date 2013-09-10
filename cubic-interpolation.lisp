@@ -52,7 +52,7 @@
 	    (DECLARE (TYPE (INTEGER 0 10000) L)
 		     (TYPE double-float X)
 		     (VALUES double-float &OPTIONAL))
-	    (DECLARE (OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 0)))
+	    (DECLARE (OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 1)))
 	    (MULTIPLE-VALUE-BIND (I XX) (truncate (* ,(s s) (- x ,(s start))))
 	      (DECLARE (TYPE fixnum I)
 		       (TYPE double-float XX))

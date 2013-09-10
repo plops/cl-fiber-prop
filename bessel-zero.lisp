@@ -277,6 +277,21 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	(us (step-fiber-eigenvalues v)))
    (step-fiber-minimal-sampling us v :n 256 :scale 1.4)))
 
+#+nil
+(time
+ (defparameter *bla*
+   (loop for v from 3d0 below 60d0 by .1d0 collect
+	(let ((lin (step-fiber-eigenvalues-linear v)))
+	  (destructuring-bind (umax j) (find-fastest-mode lin)
+	    (list (sqrt (- (* v v) (* umax umax))) umax j (length lin) v))))))
+
+#+nil
+(with-open-file (s "/run/q/n-min-modes.dat" :direction :output
+		   :if-exists :supersede :if-does-not-exist :create)
+ (loop for (wmin umax j n) in *bla* and v from 3d0 by .1d0 do
+      (format s "~f ~d ~d~%" v j n))) ;; for v=10.2 wmin is very small
+
+
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   (declare (values (simple-array double-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
@@ -287,8 +302,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	 (sin-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float))
 	 (cos-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float))
 	 (umax (first (find-fastest-mode (step-fiber-eigenvalues-linear u-modes))))
-	 (wmin (sqrt (- (* v v) (* umax umax))))
-	 )
+	 (wmin (sqrt (- (* v v) (* umax umax)))))
     (macrolet ((doplane ((j i) &body body) `(dotimes (,j n) (dotimes (,i n) ,@body))))
       (doplane (j i) (let* ((x (* 2 scale (- i (floor n 2)) (/ 1d0 n)))
 			    (y (* 2 scale (- j (floor n 2)) (/ 1d0 n)))
@@ -337,7 +351,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
  (progn
    (defparameter *bla* nil)
    (defparameter *bla*
-     (let ((v 30d0) ;; 32 took 1.95s with direct bessel, takes 1.49s with lookup, 96.7s for v=94 with .017s per field
+     (let ((v 32d0) ;; 32 took 1.95s with direct bessel, takes 1.49s with lookup, 96.7s for v=94 with .017s per field
 	   (start (sb-unix::get-time-of-day)))
        (format t "calculating eigenvalues~%")
        (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
