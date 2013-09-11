@@ -6,8 +6,8 @@
 (in-package :cl-fiber-prop)
 
 (defun hollow-fnm (n u a)
-    (/ (if (= n 0) 1d0 (sqrt 2))
-     (* (sqrt pi) a (jn (+ n 1) u))))
+  (/ (if (= n 0) 1d0 (sqrt 2))
+     (* #+nil (sqrt pi) a (jn (+ n 1) u))))
 
 (defun hollow-u (n m)
   "m-th root of the n-th order bessel function"
@@ -16,7 +16,7 @@
   (gsll:bessel-zero-jnu (* 1d0 n) m))
 
 #+nil
-(hollow-u 0 1)
+(hollow-u 0 2)
 
 (defun hollow-field (n m a)
   "construct lambda that calculates the field for a hollow dielectric
@@ -29,7 +29,8 @@ waveguide"
     #'(lambda (r phi)
 	(declare (type double-float r phi)
 		 (values double-float &optional))
-	(* f (jn n (* u r (/ a))) (if (= n 0) 1 (cos (* n phi)))))))
+	(* f (jn n (* u r (/ a))) 
+	   (cos (* n phi))))))
 
 #+nil
 (funcall (hollow-field 0 1 1d0) 0d0 0d0)
@@ -59,6 +60,14 @@ waveguide"
 	  (* (expt (complex 0 1) (+ n nn)) (hollow-i n u nn uu (+ n nn) kappa))))))
 
 #+nil
-(with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
- (loop for phi from 0d-3 below 20d-3 by .1d-3 do
-      (format s "~f ~f~%" phi (expt (abs (hollow-couple-coef phi 0 0 0 0)) 2))))
+(loop for (n m nn mm) in '((0 1 0 1) (0 2 0 2) (0 1 2 1) (0 1 0 2)) do
+     (with-open-file (s (format nil "/run/q/couple-~d-~d-~d-~d.dat" n m nn mm) :direction :output :if-exists :supersede :if-does-not-exist :create)
+       (loop for phi from 0d-3 below 20d-3 by .1d-3 do
+	    (format s "~f ~f~%" phi (expt (abs (hollow-couple-coef phi n m nn mm)) 2)))))
+
+#+nil
+(loop for (n m nn mm) in '((1 1 1 1) (0 1 1 1) (1 2 1 2)) do
+     (with-open-file (s (format nil "/run/q/couple2-~d-~d-~d-~d.dat" n m nn mm) :direction :output :if-exists :supersede :if-does-not-exist :create)
+       (loop for phi from 0d-3 below 20d-3 by .1d-3 do
+	    (format s "~f ~f~%" phi (expt (abs (hollow-couple-coef phi n m nn mm)) 2)))))
+
