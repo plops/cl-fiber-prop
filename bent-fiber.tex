@@ -501,7 +501,25 @@ Gleichung:
 \end{align}
 
 \begin{align}
-  I_\phi(r) = \frac{1 }{\pi} \(i^{-(l+m)} J_{l+m}(k_0\alpha\rho r)+i^{m-l} J_{l-m}(k_0\alpha\rho r)\)
+  I_\phi(r) &= \frac{1 }{\pi} \(i^{-(l+m)} J_{l+m}(k_0\alpha\rho r)+i^{m-l} J_{l-m}(k_0\alpha\rho r)\) \\
+  &= \frac{1 }{\pi} \(i^{-(l+m)} J_{l+m}(k_0\alpha\rho r)+ (-1)^{l-m} i^{m-l} J_{|l-m|}(k_0\alpha\rho r)\) 
+\end{align}
+
+Hier haben die offenbar voll abgefahrene Umformungen gemacht, aber im
+Paper leider nicht hingeschrieben:
+\begin{align}
+J_{-l}(x) &= -J_l(x) \\
+\sign \nu &= \nu<0 ? -1 : 1 = \nu/|\nu| = |\nu|/\nu \\
+J_\nu(x) &= (-1)^{(\sign{\nu}-1)/2} J_{|\nu|}(x) \\ 
+& = (-1)^{\frac{1}{2}(\nu/|\nu|-1)} J_{|\nu|}(x) \\ 
+& = ((-1)^{\frac{1}{2}})^{\nu/|\nu|-1} J_{|\nu|}(x) \\ 
+& = i^{\nu/|\nu|-1} J_{|\nu|}(x)\\
+i^{-\mu} J_\mu(x) &= i^{-\mu} i^{\mu/|\mu|-1} J_{|\mu|}(x)\\
+&= i^{\mu/|\mu|-1 -\mu } J_{|\mu|}(x) \\
+&= i^{\mu/|\mu| -\mu } (-i) J_{|\mu|}(x) \\
+&= i^{|\mu|/\mu-\mu} (-i) J_{|\mu|}(x) \\
+&= i^{|\mu|/\mu-|\mu| |\mu| /\mu-1} J_{|\mu|}(x) \\
+&= i^{|\mu|/\mu-|\mu| |\mu| /\mu-|\mu|/|\mu|} J_{|\mu|}(x)
 \end{align}
 
 
