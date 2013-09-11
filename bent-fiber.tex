@@ -489,7 +489,9 @@ von Oszillationen mit der Differenz- und Summenfrequenzen schreiben:
 \begin{align}
   I_\phi(r) = \int_0^{2\pi}\!\!\!\!\!\! \cos(l\phi)\cos(m\phi) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi = \nonumber \\
   \frac{1}{2}\int_0^{2\pi}\!\!\!\!\!\! \cos\((l+m)\phi\) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi  \nonumber \\
-  + \frac{1}{2}\int_0^{2\pi}\!\!\!\!\!\! \cos\((l-m)\phi\) e^{i\underbrace{k_0\alpha\rho r}_z\cos(\phi)} \textrm{d}\phi
+  + \frac{1}{2}\int_0^{2\pi}\!\!\!\!\!\! \cos\((l-m)\phi\) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi \nonumber \\
+  =  \int_0^{\pi}\! e^{ik_0\alpha\rho r\cos(\phi)} \cos\((l+m)\phi\) \textrm{d}\phi  \nonumber \\
+  + \int_0^{\pi}\! e^{i\underbrace{k_0\alpha\rho r}_z\cos(\phi)} \cos\((l-m)\phi\)  \textrm{d}\phi
 \end{align}
 
 Hierbei ist $x=\rho r \cos(\phi)$.
@@ -501,8 +503,7 @@ Gleichung:
 \end{align}
 
 \begin{align}
-  I_\phi(r) &= \frac{1 }{\pi} \(i^{-(l+m)} J_{l+m}(k_0\alpha\rho r)+i^{m-l} J_{l-m}(k_0\alpha\rho r)\) \\
-  &= \frac{1 }{\pi} \(i^{-(l+m)} J_{l+m}(k_0\alpha\rho r)+ (-1)^{l-m} i^{m-l} J_{|l-m|}(k_0\alpha\rho r)\) 
+  I_\phi(r) &= \pi \(i^{l+m} J_{l+m}(k_0\alpha\rho r)+i^{l-m} J_{l-m}(k_0\alpha\rho r)\)
 \end{align}
 
 Hier haben die offenbar voll abgefahrene Umformungen gemacht, aber im

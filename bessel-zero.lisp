@@ -305,6 +305,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
+  "for proper normalization result must be multiplied with 1/sqrt(r_co^2 n_co sqrt(epsilon_0/mu_0))"
   (declare (values (simple-array double-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
 	 (azimuthal-mode-count (length radial-mode-counts))
@@ -339,7 +340,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	      (let* ((u (elt (elt u-modes (abs l)) m))
 		     (w (sqrt (- (expt v 2) (expt u 2))))
 		     (nphi (* pi (if (= l 0) 2 1)))
-		     (nrad (* (expt v 2) 
+		     (nrad (* (expt v 2) pi
 			      (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled (abs l) w) 2))) 
 			      (gsll:cylindrical-bessel-k-scaled (abs (- l 1)) w)
 			      (gsll:cylindrical-bessel-k-scaled (abs (+ l 1)) w)))
@@ -363,6 +364,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 #+nil
 (sb-ext:gc :full t)
+#+nil
+(room)
 
 ;; v=10 l=10 looks weird, v=40 l=18 looks weird
 #+nil
@@ -375,9 +378,9 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
        (format t "calculating eigenvalues~%")
        (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
        (format t "ev took ~3d s time~%" (- (sb-unix::get-time-of-day) start))
-       (let ((sc 2d0))
+       (let ((sc 10d0))
 	(step-fiber-fields *bla-ev* v :scale sc 
-			   :n (* 4 (step-fiber-minimal-sampling *bla-ev* v :scale sc))
+			   :n (* 1 (step-fiber-minimal-sampling *bla-ev* v :scale sc))
 			   :debug t))))
 #+nil   (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
 								  ) :scale .7 ;:offset -.2d0
@@ -416,75 +419,74 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 (declaim (optimize (debug 3)))
 
 (defun couple (u-modes j0 j1 v &key scale alpha)
- (flet ((mode-norm (l u)
-	  (let* ((w (sqrt (- (expt v 2) (expt u 2))))
-		 (nphi (* pi (if (= l 0) 2 1)))
-		 (nrad (* (expt v 2) 
-			  (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled (abs l) w) 2))) 
-			  (gsll:cylindrical-bessel-k-scaled (abs (- l 1)) w)
-			  (gsll:cylindrical-bessel-k-scaled (abs (+ l 1)) w))))
-	    (expt (* nphi nrad) -.5))))
-   (destructuring-bind (nl0 m0) (fiber-linear-to-lm-index j0 u-modes)
-     (destructuring-bind (nl1 m1) (fiber-linear-to-lm-index j1 u-modes)
-      (let* ((lambd .0005)
-	     (l0 (abs nl0))
-	     (l1 (abs nl1))
-	     (nco 1.5)
-	     (ncl 1.46)
-	     (k (* 2 pi (/ lambd))) 
-	     ;; diameter of the fiber:
-	     (rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
-	     (l2 40d0)
-	     (delx 4)
-	     (bend-radius (* .5 (+ delx (/ (expt l2 2) delx))))
-	     (num-elems 100)
-	     (del-l (/ l2 num-elems))
-	     (alpha (if alpha alpha (asin (/ del-l bend-radius))))
-	     (u0 (elt (elt u-modes (abs l0)) m0))
-	     (u1 (elt (elt u-modes (abs l1)) m1))
-	     (w0 (sqrt (- (expt v 2) (expt u0 2))))
-	     (w1 (sqrt (- (expt v 2) (expt u1 2))))
-	     (scale-norm (* (mode-norm l0 u0) (mode-norm l1 u1)))
-	     (scale-in (/ scale-norm (* (jn (abs l0) u0) (jn (abs l1) u1))))
-	     (scale-out (/ scale-norm (* (gsll:cylindrical-bessel-k (abs l0) w0)
-					 (gsll:cylindrical-bessel-k (abs l1) w1))))
-	     (mo0 (mod (+ l0 l1) 4))
-	     (mo1 (abs (mod (- l0 l1) 4)))
-	     (ij1 (gsl:integration-qng #'(lambda (r) 
-					   (* r (bessel-j-interp l0 (* u0 r))
-					      (bessel-j-interp l1 (* u1 r))
-					      (bessel-j-interp (+ l0 l1) (* k alpha rho r))))
-				       0d0 1d0))
-	     (ij2 (gsl:integration-qng #'(lambda (r) 
-					   (* r (bessel-j-interp l0 (* u0 r))
-					      (bessel-j-interp l1 (* u1 r))
-					      (bessel-j-interp (abs (- l0 l1)) (* k alpha rho r))))
-				       0d0 1d0))
-	     (ik1 (gsl:integration-qng 
-		   #'(lambda (r) (* r (bessel-k-scaled-interp l0 (* w0 r))
-			       (bessel-k-scaled-interp l1 (* w1 r))
-			       (exp (- (+ (* w0 r) (* w1 r)))) 
-			       (bessel-j-interp (+ l0 l1) (* k alpha rho r))))
-		   1d0 scale))
-	     (ik2 (gsl:integration-qng 
-		   #'(lambda (r) (* r (bessel-k-scaled-interp l0 (* w0 r))
-			       (bessel-k-scaled-interp l1 (* w1 r))
-			       (exp (- (+ (* w0 r) (* w1 r)))) 
-			       (bessel-j-interp (abs (- l0 l1)) (* k alpha rho r))))
-		   1d0 scale)))
-	
-	
-	(expt (abs (+ 
-		    (* scale-in  ;(/ pi)
-		       (+ (* ij1 (expt (complex 0 1) (+ l0 l1)))
-			  (* ij2 (expt (complex 0 1) (abs (- l0 l1))))))	   
-	 
-	       
-	       #+nil
-	       (* scale-out (/ pi)
-		  (+ (* ik1 (expt (complex 0 1) (+ l0 l1)))
-		     (* ik2 (expt (complex 0 1) (abs (- l0 l1)))))
-		  ))) 2))))))
+  (destructuring-bind (nl0 m0) (fiber-linear-to-lm-index j0 u-modes)
+    (destructuring-bind (nl1 m1) (fiber-linear-to-lm-index j1 u-modes)
+     (let* ((lambd .0005)
+	    (l0 (abs nl0))
+	    (l1 (abs nl1))
+	    (nco 1.5)
+	    (ncl 1.46)
+	    (k (* 2 pi (/ lambd))) 
+	    ;; diameter of the fiber:
+	    (rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
+	    )
+       (flet ((mode-norm (l u)
+		(let* ((w (sqrt (- (expt v 2) (expt u 2))))
+		       (nphi (* pi (if (= l 0) 2 1)))
+		       (nrad (* (expt v 2) pi nco rho rho
+				(/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled (abs l) w) 2))) 
+				(gsll:cylindrical-bessel-k-scaled (abs (- l 1)) w)
+				(gsll:cylindrical-bessel-k-scaled (abs (+ l 1)) w))))
+		  (expt (* nphi nrad) -.5))))
+	 (let* ((l2 40d0)
+		(delx 4)
+		(bend-radius (* .5 (+ delx (/ (expt l2 2) delx))))
+		(num-elems 100)
+		(del-l (/ l2 num-elems))
+		(alpha (if alpha alpha (asin (/ del-l bend-radius))))
+		(u0 (elt (elt u-modes (abs l0)) m0))
+		(u1 (elt (elt u-modes (abs l1)) m1))
+		(w0 (sqrt (- (expt v 2) (expt u0 2))))
+		(w1 (sqrt (- (expt v 2) (expt u1 2))))
+		(scale-norm (* (mode-norm l0 u0) (mode-norm l1 u1)))
+		(scale-in (/ scale-norm (* (jn (abs l0) u0) (jn (abs l1) u1))))
+		(scale-out (/ scale-norm (* (gsll:cylindrical-bessel-k (abs l0) w0)
+					    (gsll:cylindrical-bessel-k (abs l1) w1))))
+		(ij1 (gsl:integration-qng #'(lambda (r) 
+					      (* r (bessel-j-interp l0 (* u0 r))
+						 (bessel-j-interp l1 (* u1 r))
+						 (bessel-j-interp (+ l0 l1) (* k alpha rho r))))
+					  0d0 1d0))
+		(ij2 (gsl:integration-qng #'(lambda (r) 
+					      (* r (bessel-j-interp l0 (* u0 r))
+						 (bessel-j-interp l1 (* u1 r))
+						 (bessel-j-interp (abs (- l0 l1)) (* k alpha rho r))))
+					  0d0 1d0))
+		(ik1 (gsl:integration-qng 
+		      #'(lambda (r) (* r (bessel-k-scaled-interp l0 (* w0 r))
+				  (bessel-k-scaled-interp l1 (* w1 r))
+				  (exp (- (+ (* w0 r) (* w1 r)))) 
+				  (bessel-j-interp (+ l0 l1) (* k alpha rho r))))
+		      1d0 scale))
+		(ik2 (gsl:integration-qng 
+		      #'(lambda (r) (* r (bessel-k-scaled-interp l0 (* w0 r))
+				  (bessel-k-scaled-interp l1 (* w1 r))
+				  (exp (- (+ (* w0 r) (* w1 r)))) 
+				  (bessel-j-interp (abs (- l0 l1)) (* k alpha rho r))))
+		      1d0 scale)))
+	   
+	   
+	   (expt (abs (+ 
+		       (* scale-in  pi
+			  (+ (* ij1 (expt (complex 0 1) (+ l0 l1)))
+			     (* ij2 (expt (complex 0 1) (abs (- l0 l1))))))	   
+		       
+		       
+		       #+nil
+		       (* scale-out pi
+			  (+ (* ik1 (expt (complex 0 1) (+ l0 l1)))
+			     (* ik2 (expt (complex 0 1) (abs (- l0 l1)))))
+			  ))) 2)))))))
 
 (expt (complex 0 1) -1)
 #+nil
@@ -505,7 +507,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
      (loop for n from 0 below 7 #+nil (number-of-modes u-modes) collect
 	  (loop for m from 0 below 7 #+nil (number-of-modes u-modes) collect
 	       (let ((x  (couple u-modes n m v :scale 2d0 :alpha 30e-3)))
-		 (format t "i ~3d ~3d ~3,8f~%" n m (* 100 x))
+		 (format t "i ~3d ~3d ~f~%" n m x)
 		 x))))))
 
 
@@ -516,8 +518,11 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	    (format t "/ ~3d ~3d ~3,8f~%" i j val)
 	    val)))
 
+#+nil
+(loop for i from -3 upto 3 collect (list i
+				    (expt (complex 0 1) i)))
 
-
+#+nil
 (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede
 		   :if-does-not-exist :create
 		   )
@@ -551,17 +556,17 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
    (dotimes (i n)
      (dotimes (j n)
        (setf (aref wedge j i) (exp (complex 0d0 (* k alpha i resol))))))
-   (values wedge resol)))
+   (values wedge resol nco rho)))
 #+nil
 (calculate-bend-wedge :scale 3d0 :n 150 :v 30d0)
 
-(defun calculate-couple-coeffs (fields &key scale v radius)
+(defun calculate-couple-coeffs (fields &key scale v radius alpha)
   ;; i might have to figure out the proper sampling by calculating a
   ;; high resolution cross section through the highest mode
   (declare (optimize (speed 3)))
   (declare (type (simple-array double-float 3) fields))
   (destructuring-bind (nmodes h w) (array-dimensions fields)
-    (multiple-value-bind (wedge resol) (calculate-bend-wedge :n w :v v :scale scale :alpha 30e-3)
+    (multiple-value-bind (wedge resol nco rco) (calculate-bend-wedge :n w :v v :scale scale :alpha alpha)
       
       (declare (type (simple-array (complex double-float) 2) wedge))
       (defparameter *resol* resol)
@@ -575,25 +580,26 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 			 (* resol resol
 			    (expt
 			     (abs
-			      (loop for j below h sum
-				   (loop for i below w sum
-					#+nil
-				      (* (aref fields a j i)
-						 (aref fields b j i)
-						 (aref wedge j i))
-					(let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
-					       (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
-					       (r (sqrt (+ (expt x 2) (expt y 2)))))
-					  (if (< r 1d0)
-					      (* (aref fields a j i)
-						 (aref fields b j i)
-						 (aref wedge j i))
-					      0d0)))))
+			      (* (/ (* rco rco nco))
+			       (loop for j below h sum
+				    (loop for i below w sum
+					 #+nil
+					 (* (aref fields a j i)
+					    (aref fields b j i)
+					    (aref wedge j i))
+					 (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
+						(y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
+						(r (sqrt (+ (expt x 2) (expt y 2)))))
+					   (if (< r 1d0)
+					       (* (aref fields a j i)
+						  (aref fields b j i)
+						  (aref wedge j i))
+					       0d0))))))
 			     2)))
 		 (format t "s ~3d ~3d ~3,8f ~%" a b (* 100 (aref couple-coeffs b a))))))))))
 
 #+nil
-(time (defparameter *bla-coef* (calculate-couple-coeffs *bla* :v 30d0 :scale 2d0 :radius 2d0)))
+(time (defparameter *bla-coef* (calculate-couple-coeffs *bla* :v 30d0 :scale 2d0 :radius 2d0 :alpha 30d-3)))
 #+nil
 (time  (write-pgm "/run/q/bla-coef.pgm" (convert-ub8  (convert-df *bla-coef*))))
 #+nil
@@ -601,7 +607,24 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 #+nil
 (time  (write-pgm "/run/q/bla-coef-phase.pgm" (convert-ub8  (convert-df *bla-coef* :fun #'phase))))
 
-
+#+nil
+(destructuring-bind (nmodes h w) (array-dimensions *bla*)
+  (let* ((v 30d0)
+	 (scale 10d0)
+	 (lambd .0005)
+	(nco 1.5)
+	(ncl 1.46)
+	(k (* 2 pi (/ lambd))) 
+	;; diameter of the fiber:
+	(rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
+	;; resolution of the field in mm/px:
+	(resol (/ (* 2 scale rho) w)))
+    (loop for a below 45 collect
+	 (let ((norm 
+		(loop for j below h sum
+		     (loop for i below w sum
+			  (expt (aref *bla* a j i) 2)))))
+	   (format t "s ~3d ~3,8f ~%" a (* norm resol resol))))))
 
 ;; page 432 mode launching, fields reflected from the end surface are
 ;; extermely complicated, but there is a simple approximation for
