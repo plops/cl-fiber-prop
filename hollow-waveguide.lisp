@@ -60,14 +60,24 @@ waveguide"
 	  (* (expt (complex 0 1) (+ n nn)) (hollow-i n u nn uu (+ n nn) kappa))))))
 
 #+nil
-(loop for (n m nn mm) in '((0 1 0 1) (0 2 0 2) (0 1 2 1) (0 1 0 2)) do
-     (with-open-file (s (format nil "/run/q/couple-~d-~d-~d-~d.dat" n m nn mm) :direction :output :if-exists :supersede :if-does-not-exist :create)
-       (loop for phi from 0d-3 below 20d-3 by .1d-3 do
-	    (format s "~f ~f~%" phi (expt (abs (hollow-couple-coef phi n m nn mm)) 2)))))
+(let ((files  ;; figure 4
+       (loop for (n m nn mm) in '((0 1 0 1) (0 2 0 2) (0 1 2 1) (0 1 0 2)) collect
+	    (let ((fn (format nil "/run/q/couple-~d-~d-~d-~d.dat" n m nn mm)))
+	      (with-open-file (s fn :direction :output :if-exists :supersede :if-does-not-exist :create)
+		(loop for phi from 0d-3 below 20d-3 by .1d-3 do
+		     (format s "~f ~f~%" phi (expt (abs (hollow-couple-coef phi n m nn mm)) 2))))
+	      fn))))
+  (sb-ext:run-program "/usr/bin/graph" (append '("-TX") files)))
+
 
 #+nil
-(loop for (n m nn mm) in '((1 1 1 1) (0 1 1 1) (1 2 1 2)) do
-     (with-open-file (s (format nil "/run/q/couple2-~d-~d-~d-~d.dat" n m nn mm) :direction :output :if-exists :supersede :if-does-not-exist :create)
-       (loop for phi from 0d-3 below 20d-3 by .1d-3 do
-	    (format s "~f ~f~%" phi (expt (abs (hollow-couple-coef phi n m nn mm)) 2)))))
+(let ((files  ;; figure 4
+       (loop for (n m nn mm) in '((1 1 1 1) (0 1 1 1) (1 2 1 2)) collect
+	    (let ((fn (format nil "/run/q/couple2-~d-~d-~d-~d.dat" n m nn mm)))
+	      (with-open-file (s fn :direction :output :if-exists :supersede :if-does-not-exist :create)
+		(loop for phi from 0d-3 below 20d-3 by .1d-3 do
+		     (format s "~f ~f~%" phi (expt (abs (hollow-couple-coef phi n m nn mm)) 2))))
+	      fn))))
+  (sb-ext:run-program "/usr/bin/graph" (append '("-TX") files)))
+
 
