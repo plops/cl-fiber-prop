@@ -292,6 +292,35 @@ Berechnung der charaketeristischen Funktion ausreicht oder ob zu einem
 anderen Datentyp (insbesondere 128-bit quadfloat) gewechselt werden
 muss. Das Verh\"altnis von Besselfunktionen kann man als continued
 fraction schreiben [Stegun 9.1.73]. 
+
+In [1964Marcatili] wird eine N\"aherungsloesung fuer die Eigenwerte
+eines hohlen Wellenleiters entwickelt f\"ur Wellenleiterradien viel
+gr\"o\ss er als die Wellenl\"ange $ka = 2\pi a/\lambda \gg |\nu|
+u_{nm}$ (mit komplexem Index $\nu$). Uebertragen auf unser
+Eigenwertproblem ergibt sich:
+
+% k(n,z) := sqrt(%pi/(2*z))*exp(-z)*(1+(4*n*n-1)/(8*z)); taylor(k(n+1,z)/k(n,z),z,inf,1);
+% k(n,z) := (n-1)!/2 *(2/z)^n;taylor(k(n+1,z)/k(n,z),z,0,1);
+\begin{align}
+  \lim_{z\rightarrow \infty} K_\nu(z) &\sim \sqrt{\frac{\pi}{2z}} e^{-z}\(1+\frac{\mu-1}{8z}\), \quad \mu=4\nu^2 \\ % stegun 9.7.2
+  \lim_{z\rightarrow \infty} \frac{K_{\nu+1}(z)}{K_{\nu}(z)} &\sim 1+\frac{2\nu+1}{2z} \\
+  \lim_{z\rightarrow 0} K_\nu(z) &\sim \frac{(\nu-1)!}{2} \(\frac{2}{z}\)^\nu \\ % snyder 37-86
+  \lim_{z\rightarrow 0     } \frac{K_{\nu+1}(z)}{K_{\nu}(z)} &\sim \frac{2\nu}{z}
+\end{align}
+Der Fall $z\rightarrow \infty$ macht hier keinen Sinn, denn $w$ kann
+maximal $v$ werden.
+\begin{align}
+  u\frac{J_{l+1}(u)}{J_l(u)}&=w+\frac{2l+1}{2}
+\end{align}
+Auf der anderen Seite, bei gut gef\"uhrten Moden gilt hingegen:
+\begin{align}
+  u\frac{J_{l+1}(u)}{J_l(u)}&=2l \\
+  \lim_{z\rightarrow 0} J_\nu(z) &= (z/2)^\nu/\nu!  \\
+    \lim_{z\rightarrow 0} \frac{J_{\nu+1}(z)}{J_{\nu}(z)} &\sim \frac{z}{2(\nu+1)} \\
+    \frac{u^2}{l+1} &= l  
+\end{align}
+
+
 \begin{align}
   \frac{J_l(z)}{J_{l-1}(z)} &= \frac{1}{2lz^{-1}-} \frac{1}{2(l+1)z^{-1}-} \frac{1}{2(l+2)z^{-1} -}\cdots \\
   &= \frac{\frac{1}{2}z/l}{1-} \frac{\frac{1}{4}z^2/(l(l+1))}{1-} \frac{\frac{1}{4}z^2/(l(l+1)(l+2))}{1-} \cdots
