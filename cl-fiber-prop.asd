@@ -13,5 +13,6 @@
 	       (:file "cubic-interpolation")
 	       (:file "zbrent")
 	       (:file "image")
+	       (:file "hollow-waveguide")
 	       (:file "bessel-zero"))
   :description "light propagation through a multimode fiber")
