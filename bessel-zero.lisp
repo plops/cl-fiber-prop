@@ -375,14 +375,19 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
        (format t "calculating eigenvalues~%")
        (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
        (format t "ev took ~3d s time~%" (- (sb-unix::get-time-of-day) start))
-       (let ((sc 1d0))
+       (let ((sc 2d0))
 	(step-fiber-fields *bla-ev* v :scale sc 
-			   :n (* 4 (step-fiber-minimal-sampling *bla-ev* v :scale sc))
+			   :n (* 8 (step-fiber-minimal-sampling *bla-ev* v :scale sc))
 			   :debug t))))
-   (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
+#+nil   (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
 								  ) :scale .7 ;:offset -.2d0
 					     ))))
 
+#+nil
+(time
+ (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
+								) :scale .7 ;:offset -.2d0
+								  )))
 
 
 (defun create-field-mosaic (fields u-modes &key (fun #'(lambda (x) (expt x 2))))
@@ -395,7 +400,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
     (loop for k below (number-of-modes u-modes) do
 	 (destructuring-bind (l m) (fiber-linear-to-lm-index k u-modes)
 	   (dotimes (j n) (dotimes (i n)
-			    (setf (aref a (+ j (* n (+ (- lmax 1) l))) (+ i (* n m)))   (funcall fun (aref fields k j i)))))))
+			    (setf (aref a (+ j (* n (+ (- lmax 1) l))) (+ i (* n m)))
+				  (expt (aref fields k j i) 2))))))
     a))
 
 
@@ -407,15 +413,9 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 ;; 1971 lether a generalized product rule for the unit cirlce
 ;; http://www.holoborodko.com/pavel/numerical-methods/numerical-integration/cubature-formulas-for-the-unit-disk/
 
-#+nil
-(gsll:make-qawo-table (* 1d0 (- l0 l1))
-		      (* 2 pi)
-		      :cosine
-		      32)
-
 (declaim (optimize (debug 3)))
 
-(defun couple (u-modes j0 j1 v)
+(defun couple (u-modes j0 j1 v &key scale)
  (flet ((mode-norm (l u)
 	  (let* ((w (sqrt (- (expt v 2) (expt u 2))))
 		 (nphi (* pi (if (= l 0) 2 1)))
@@ -453,7 +453,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	(when (and (or (= mo0 0) (= mo0 2))   ;; real result
 		   (or (= mo1 0) (= mo1 2)))
 	  (+ 
-	   (* scale-in (/ pi)
+	  #+nil (* scale-in (/ pi)
 	      (gsl:integration-qag #'(lambda (r) 
 				       (* (bessel-j l0 (* u0 r))
 					  (bessel-j l1 (* u1 r))
@@ -462,7 +462,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 					    (+ (* (if (= mo0 0) 1 -1) (bessel-j (+ l0 l1) arg))
 					       (* (if (= mo1 0) 1 -1) (bessel-j (- l0 l1) arg))))))
 				  0d0 1d0 6))	   
-	  #+nil
+	  
 	  (* scale-out (/ pi)
 	     (gsl:integration-qag 
 	      #'(lambda (r) 
@@ -473,7 +473,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		     (let ((arg (* k alpha rho r)))
 		       (+ (* (if (= mo0 0) 1 -1) (bessel-j (+ l0 l1) arg))
 			  (* (if (= mo1 0) 1 -1) (bessel-j (- l0 l1) arg))))))
-	      1d0 3d0 6)))))))))
+	      1d0 scale 6
+	      )))))))))
 
 #+nil
 (let ((v 30d0))
@@ -485,13 +486,13 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	 (lmax (+ 1 (* 2 (length (mapcar #'length u-modes)))))
 	 (umax (first (find-fastest-mode (step-fiber-eigenvalues-linear u-modes))))
 	 (wmin (sqrt (- (* v v) (* umax umax))))
-	 (scale 1d0))
+	 (scale 2d0))
     (bessel-j-interp-init :end (* 1.01 v) :n 2000 :lmax lmax)
     (bessel-k-scaled-interp-init :start (* .9 wmin) :end (* 1.1 (sqrt 2) scale v)
 				 :n 2000 :lmax lmax)
     (loop for n from 0 below 10 #+nil (number-of-modes u-modes) collect
 	 (loop for m from 0 below 10 #+nil (number-of-modes u-modes) collect
-	      (let ((x (couple u-modes n m v)))
+	      (let ((x (couple u-modes n m v :scale 2d0)))
 		(format t "i ~3d ~3d ~3,1f~%" n m (* 1e7 x))
 		x)))))
 
@@ -499,11 +500,10 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 (loop for e in *plot* and f in *bla-coef* and i from 0 collect ;; divide both integration methods for comparison
      (loop for ee in e and ff in f and j from 0 collect
 	  (let ((val (/ ee ff)))
-	    (format t "/ ~3d ~3d ~1,2f~%" i j val)
+	    (format t "/ ~3d ~3d ~1,2f~%" i j (* 1000 val))
 	    val)))
 
 
-#+nil
 (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede
 		   :if-does-not-exist :create
 		   )
@@ -541,7 +541,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 #+nil
 (calculate-bend-wedge :scale 3d0 :n 150 :v 30d0)
 
-(defun calculate-couple-coeffs (fields &key scale v)
+(defun calculate-couple-coeffs (fields &key scale v radius)
   ;; i might have to figure out the proper sampling by calculating a
   ;; high resolution cross section through the highest mode
   (declare (optimize (speed 3)))
@@ -562,7 +562,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 				      (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
 					     (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
 					     (r (sqrt (+ (expt x 2) (expt y 2)))))
-					(if (< r 1d0)
+					(if (< 1d0 r radius)
 					    (* (aref fields a j i)
 					       (aref fields b j i)
 					       (aref wedge j i))
@@ -570,7 +570,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		 (format t "s ~3d ~3d ~3,1f ~%" a b (* 1e7 (aref couple-coeffs b a))))))))))
 
 #+nil
-(time (defparameter *bla-coef* (calculate-couple-coeffs *bla* :v 30d0 :scale 1d0)))
+(time (defparameter *bla-coef* (calculate-couple-coeffs *bla* :v 30d0 :scale 2d0 :radius 2d0)))
 #+nil
 (time  (write-pgm "/run/q/bla-coef.pgm" (convert-ub8  (convert-df *bla-coef*))))
 #+nil
