@@ -415,18 +415,20 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 (declaim (optimize (debug 3)))
 
-(defun couple (u-modes j0 j1 v &key scale)
+(defun couple (u-modes j0 j1 v &key scale alpha)
  (flet ((mode-norm (l u)
 	  (let* ((w (sqrt (- (expt v 2) (expt u 2))))
 		 (nphi (* pi (if (= l 0) 2 1)))
 		 (nrad (* (expt v 2) 
-			  (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))) 
-			  (gsll:cylindrical-bessel-k-scaled (- l 1) w)
-			  (gsll:cylindrical-bessel-k-scaled (+ l 1) w))))
+			  (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled (abs l) w) 2))) 
+			  (gsll:cylindrical-bessel-k-scaled (abs (- l 1)) w)
+			  (gsll:cylindrical-bessel-k-scaled (abs (+ l 1)) w))))
 	    (expt (* nphi nrad) -.5))))
-   (destructuring-bind (l0 m0) (fiber-linear-to-lm-index j0 u-modes)
-     (destructuring-bind (l1 m1) (fiber-linear-to-lm-index j1 u-modes)
+   (destructuring-bind (nl0 m0) (fiber-linear-to-lm-index j0 u-modes)
+     (destructuring-bind (nl1 m1) (fiber-linear-to-lm-index j1 u-modes)
       (let* ((lambd .0005)
+	     (l0 (abs nl0))
+	     (l1 (abs nl1))
 	     (nco 1.5)
 	     (ncl 1.46)
 	     (k (* 2 pi (/ lambd))) 
@@ -437,46 +439,52 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	     (bend-radius (* .5 (+ delx (/ (expt l2 2) delx))))
 	     (num-elems 100)
 	     (del-l (/ l2 num-elems))
-	     (alpha (asin (/ del-l bend-radius)))
+	     (alpha (if alpha alpha (asin (/ del-l bend-radius))))
 	     (u0 (elt (elt u-modes (abs l0)) m0))
 	     (u1 (elt (elt u-modes (abs l1)) m1))
 	     (w0 (sqrt (- (expt v 2) (expt u0 2))))
 	     (w1 (sqrt (- (expt v 2) (expt u1 2))))
 	     (scale-norm (* (mode-norm l0 u0) (mode-norm l1 u1)))
-	     (scale-in (/ scale-norm (* (jn l0 u0) (jn l1 u1))))
-	     (scale-out (/ scale-norm (* (gsll:cylindrical-bessel-k l0 w0)
-					 (gsll:cylindrical-bessel-k l1 w1))))
+	     (scale-in (/ scale-norm (* (jn (abs l0) u0) (jn (abs l1) u1))))
+	     (scale-out (/ scale-norm (* (gsll:cylindrical-bessel-k (abs l0) w0)
+					 (gsll:cylindrical-bessel-k (abs l1) w1))))
 	     (mo0 (mod (+ l0 l1) 4))
 	     (mo1 (abs (mod (- l0 l1) 4)))
 	     (ij1 (gsl:integration-qng #'(lambda (r) 
-					   (* r (bessel-j-interp (abs l0) (* u0 r)) (bessel-j-interp (abs l1) (* u1 r))
+					   (* r (bessel-j-interp l0 (* u0 r))
+					      (bessel-j-interp l1 (* u1 r))
 					      (bessel-j-interp (+ l0 l1) (* k alpha rho r))))
 				       0d0 1d0))
 	     (ij2 (gsl:integration-qng #'(lambda (r) 
-					   (* r (bessel-j-interp (abs l0) (* u0 r)) (bessel-j-interp (abs l1) (* u1 r))
+					   (* r (bessel-j-interp l0 (* u0 r))
+					      (bessel-j-interp l1 (* u1 r))
 					      (bessel-j-interp (abs (- l0 l1)) (* k alpha rho r))))
 				       0d0 1d0))
 	     (ik1 (gsl:integration-qng 
-		   #'(lambda (r) (* r (bessel-k-scaled-interp (abs l0) (* w0 r))
-			       (bessel-k-scaled-interp (abs l1) (* w1 r))
+		   #'(lambda (r) (* r (bessel-k-scaled-interp l0 (* w0 r))
+			       (bessel-k-scaled-interp l1 (* w1 r))
 			       (exp (- (+ (* w0 r) (* w1 r)))) 
 			       (bessel-j-interp (+ l0 l1) (* k alpha rho r))))
 		   1d0 scale))
 	     (ik2 (gsl:integration-qng 
-		   #'(lambda (r) (* r (bessel-k-scaled-interp (abs l0) (* w0 r))
-			       (bessel-k-scaled-interp (abs l1) (* w1 r))
+		   #'(lambda (r) (* r (bessel-k-scaled-interp l0 (* w0 r))
+			       (bessel-k-scaled-interp l1 (* w1 r))
 			       (exp (- (+ (* w0 r) (* w1 r)))) 
 			       (bessel-j-interp (abs (- l0 l1)) (* k alpha rho r))))
 		   1d0 scale)))
 	
 	
-	(+ 
-	 (* scale-in (/ pi) (+ (* ij1 (expt (complex 0 1) (+ l0 l1)))
-			      (* ij2 (expt (complex 0 1) (abs (- l0 l1))))))	   
+	(expt (abs (+ 
+		    (* scale-in  ;(/ pi)
+		       (+ (* ij1 (expt (complex 0 1) (+ l0 l1)))
+			  (* ij2 (expt (complex 0 1) (abs (- l0 l1))))))	   
 	 
-	 #+nil
-	 (* scale-out (/ pi)
-	    )))))))
+	       
+	       #+nil
+	       (* scale-out (/ pi)
+		  (+ (* ik1 (expt (complex 0 1) (+ l0 l1)))
+		     (* ik2 (expt (complex 0 1) (abs (- l0 l1)))))
+		  ))) 2))))))
 
 (expt (complex 0 1) -1)
 #+nil
@@ -494,18 +502,20 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
     (bessel-k-scaled-interp-init :start (* .9 wmin) :end (* 1.1 (sqrt 2) scale v)
 				 :n 2100 :lmax lmax)
     (time
-     (loop for n from 0 below 10 #+nil (number-of-modes u-modes) collect
-	  (loop for m from 0 below 20 #+nil (number-of-modes u-modes) collect
-	       (let ((x (couple u-modes n m v :scale 2d0)))
-		 ;(format t "i ~3d ~3d ~3,1f~%" n m (* 1e7 x))
+     (loop for n from 0 below 7 #+nil (number-of-modes u-modes) collect
+	  (loop for m from 0 below 7 #+nil (number-of-modes u-modes) collect
+	       (let ((x  (couple u-modes n m v :scale 2d0 :alpha 30e-3)))
+		 (format t "i ~3d ~3d ~3,8f~%" n m (* 100 x))
 		 x))))))
+
 
 #+nil
 (loop for e in *plot* and f in *bla-coef* and i from 0 do ;; divide both integration methods for comparison
      (loop for ee in e and ff in f and j from 0 collect
 	  (let ((val (/ ee ff)))
-	    (format t "/ ~3d ~3d ~1,2f~%" i j (* 1000 val))
+	    (format t "/ ~3d ~3d ~3,8f~%" i j val)
 	    val)))
+
 
 
 (with-open-file (s "/run/q/bla.dat" :direction :output :if-exists :supersede
@@ -522,7 +532,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
    (loop for u from 1d0 below v by .001d0 do
 	(format s "~f ~f ~f~%" u (char-step-index-fiber u v l) (log (abs (jn l u)))))))
 
-(defun calculate-bend-wedge (&key (v 32d0) (n 100) (scale 2d0))
+(defun calculate-bend-wedge (&key (v 32d0) (n 100) (scale 2d0) alpha)
  (let* ((lambd .0005)
 	(nco 1.5)
 	(ncl 1.46)
@@ -536,11 +546,11 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	(bend-radius (* .5 (+ delx (/ (expt l2 2) delx))))
 	(num-elems 100)
 	(del-l (/ l2 num-elems))
-	(alpha (asin (/ del-l bend-radius)))
-	(wedge (make-array (list n n) :element-type 'double-float)))
+	(alpha (if alpha alpha (asin (/ del-l bend-radius))))
+	(wedge (make-array (list n n) :element-type '(complex double-float))))
    (dotimes (i n)
      (dotimes (j n)
-       (setf (aref wedge j i) (cos (* k alpha i resol))))) ;; is this supposed to be free-space?
+       (setf (aref wedge j i) (exp (complex 0d0 (* k alpha i resol))))))
    (values wedge resol)))
 #+nil
 (calculate-bend-wedge :scale 3d0 :n 150 :v 30d0)
@@ -551,27 +561,36 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
   (declare (optimize (speed 3)))
   (declare (type (simple-array double-float 3) fields))
   (destructuring-bind (nmodes h w) (array-dimensions fields)
-    (multiple-value-bind (wedge resol) (calculate-bend-wedge :n w :v v :scale scale)
-      (declare (type (simple-array double-float 2) wedge))
+    (multiple-value-bind (wedge resol) (calculate-bend-wedge :n w :v v :scale scale :alpha 30e-3)
+      
+      (declare (type (simple-array (complex double-float) 2) wedge))
+      (defparameter *resol* resol)
       (let* ((couple-coeffs (make-array (list nmodes nmodes)
 					:element-type 'double-float)))
 	(declare (type (simple-array double-float 2) couple-coeffs))
-	(loop for a below 10 collect
-	  (loop for b below 10 collect
+	(loop for a below 7 collect
+	  (loop for b below 7 collect
 	       (prog1
 		   (setf (aref couple-coeffs b a) 
-			 (* resol 
-			    (loop for j below h sum
-				 (loop for i below w sum
-				      (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
-					     (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
-					     (r (sqrt (+ (expt x 2) (expt y 2)))))
-					(if (< 1d0 r radius)
-					    (* (aref fields a j i)
-					       (aref fields b j i)
-					       (aref wedge j i))
-					    0d0))))))
-		 (format t "s ~3d ~3d ~3,1f ~%" a b (* 1e7 (aref couple-coeffs b a))))))))))
+			 (* resol resol
+			    (expt
+			     (abs
+			      (loop for j below h sum
+				   (loop for i below w sum
+					#+nil
+				      (* (aref fields a j i)
+						 (aref fields b j i)
+						 (aref wedge j i))
+					(let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
+					       (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
+					       (r (sqrt (+ (expt x 2) (expt y 2)))))
+					  (if (< r 1d0)
+					      (* (aref fields a j i)
+						 (aref fields b j i)
+						 (aref wedge j i))
+					      0d0)))))
+			     2)))
+		 (format t "s ~3d ~3d ~3,8f ~%" a b (* 100 (aref couple-coeffs b a))))))))))
 
 #+nil
 (time (defparameter *bla-coef* (calculate-couple-coeffs *bla* :v 30d0 :scale 2d0 :radius 2d0)))
