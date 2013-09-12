@@ -160,6 +160,7 @@ mm."
 		  (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))) 
 		  (gsll:cylindrical-bessel-k-scaled (- l 1) w)
 		  (gsll:cylindrical-bessel-k-scaled (+ l 1) w)))
+	 
 	 (norm (expt (* nphi nrad) -.5)))
     (when debug (break "~a" (list 'norm (/ norm) 'u u 'v v 'w w)))
     (dotimes (i n)
@@ -304,7 +305,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
       (format s "~f ~d ~d~%" v j n))) ;; for v=10.2 wmin is very small, for v=30.0 wmin is quite big wmin=6.3
 
 
-(defun step-fiber-fields (u-modes v &key (scale 1.3d0) (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
+(defun step-fiber-fields (u-modes v &key (scale 1.3d0) rco (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   "for proper normalization result must be multiplied with 1/sqrt(r_co^2 n_co sqrt(epsilon_0/mu_0))"
   (declare (values (simple-array double-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
@@ -344,10 +345,18 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 			      (/ (* 2 u u (expt (gsll:cylindrical-bessel-k-scaled (abs l) w) 2))) 
 			      (gsll:cylindrical-bessel-k-scaled (abs (- l 1)) w)
 			      (gsll:cylindrical-bessel-k-scaled (abs (+ l 1)) w)))
-		     (norm (expt (* nphi nrad) -.5))
+		     (nrad-gross (if rco (* .5 (gsll:cylindrical-bessel-k-scaled (- l 1) w) 
+					    (gsll:cylindrical-bessel-k-scaled (+ l 1) w)
+					    rco v
+					    (/ (* u (expt (gsll:cylindrical-bessel-k-scaled l w) 2))))))
+		     (norm (/ (sqrt (* nphi nrad-gross))))
 		     (scale-j (/ (jn (abs l) u)))
 		     (scale-k (/ (gsl::cylindrical-bessel-k-scaled (abs l) w))))
 ; 		(format t "~a~%" (list l m u nrad))
+		(when nrad-gross 
+		  (defparameter *nrad* 
+		    (list nrad nrad-gross (/ nrad nrad-gross)))
+		    (format t "nrad ~a~%" *nrad*))
 		(doplane (j i) (setf (aref fields k j i)
 				     (* norm (cond ((= l 0) 1d0) 
 						   ((< l 0) (aref sin-a (- (abs l) 1) j i))
@@ -373,38 +382,53 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
  (progn
    (defparameter *bla* nil)
    (defparameter *bla*
-     (let ((v 30d0) 
-	   (start (sb-unix::get-time-of-day)))
+     (let* ((v 30d0) 
+	   (start (sb-unix::get-time-of-day))
+	   (lambd .0005)
+	   (nco 1.5)
+	   (ncl 1.46)
+	   (k (* 2 pi (/ lambd))) 
+	   ;; diameter of the fiber:
+	   (rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
+	   )
        (format t "calculating eigenvalues~%")
        (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
        (format t "ev took ~3d s time~%" (- (sb-unix::get-time-of-day) start))
-       (let ((sc 10d0))
-	(step-fiber-fields *bla-ev* v :scale sc 
-			   :n (* 1 (step-fiber-minimal-sampling *bla-ev* v :scale sc))
+       (let ((sc 4d0))
+	(step-fiber-fields *bla-ev* v :scale sc :rco rho
+			   :n (* 4 (step-fiber-minimal-sampling *bla-ev* v :scale sc))
 			   :debug t))))
 #+nil   (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
 								  ) :scale .7 ;:offset -.2d0
 					     ))))
+#+nil
+(/ (-  sb-vm:dynamic-space-end sb-vm:dynamic-space-start)
+   (expt 1024 2))
 
 #+nil
 (time
  (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
-								) :scale .7 :offset -.2d0
+								) ;:scale .001 :offset -.2d0
 								  )))
 
 
 (defun create-field-mosaic (fields u-modes &key (fun #'(lambda (x) (expt x 2))))
   (declare (type (simple-array double-float 3) fields)
+	   (optimize (speed 3))
 	   (values (simple-array double-float 2) &optional))
   (let* ((lmax (length u-modes))
 	 (mmax (length (first u-modes)))
 	 (n (array-dimension fields 2))
+	 (nmodes (number-of-modes u-modes))
 	 (a (make-array (list (* (+ lmax (1- lmax)) n)  (* mmax n)) :element-type 'double-float)))
-    (loop for k below (number-of-modes u-modes) do
+    (declare (type (simple-array double-float 2) a)
+	     (type fixnum n nmodes lmax mmax))
+    (loop for k below nmodes do
 	 (destructuring-bind (l m) (fiber-linear-to-lm-index k u-modes)
+	   (declare (type fixnum l m))
 	   (dotimes (j n) (dotimes (i n)
 			    (setf (aref a (+ j (* n (+ (- lmax 1) l))) (+ i (* n m)))
-				  (aref fields k j i) )))))
+				  (log (expt (abs (+ 1e-3 (aref fields k j i))) 2)) )))))
     a))
 
 
@@ -623,8 +647,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	 (let ((norm 
 		(loop for j below h sum
 		     (loop for i below w sum
-			  (expt (aref *bla* a j i) 2)))))
-	   (format t "s ~3d ~3,8f ~%" a (* norm resol resol))))))
+			  (expt (abs (aref *bla* a j i)) 2)))))
+	   (format t "s ~3d ~3,8f ~%" a (* norm resol))))))
 
 ;; page 432 mode launching, fields reflected from the end surface are
 ;; extermely complicated, but there is a simple approximation for

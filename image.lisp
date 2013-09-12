@@ -3,11 +3,14 @@
 (defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0) (debug nil))
   (declare (type (simple-array double-float 2) a)
 	   (type double-float scale)
+	   (optimize (speed 3))
 	   (values (simple-array (unsigned-byte 8) 2) &optional))
   (let ((b (make-array (array-dimensions a)
 		       :element-type '(unsigned-byte 8)))
 	(scale2 scale)
 	(offset2 offset))
+    (declare (type double-float scale2 offset2)
+	     (type (simple-array (unsigned-byte 8) 2) b))
     (unless scale-p
       (let ((ma (reduce #'max (sb-ext:array-storage-vector a)))
 	    (mi (reduce #'min (sb-ext:array-storage-vector a))))
@@ -18,6 +21,7 @@
 	(when debug
 	 (break "~a" (list 'scale scale2 'offset offset2 'max ma)))))
     (destructuring-bind (h w) (array-dimensions a)
+      (declare (type fixnum h w))
       (dotimes (i w)
 	(dotimes (j h)
 	  (setf (aref b j i) (min 255 (max 0 (floor (* 255 scale2 (- (aref a j i) offset2)))))))))

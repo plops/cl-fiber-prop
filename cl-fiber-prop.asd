@@ -14,5 +14,5 @@
 	       (:file "zbrent")
 	       (:file "image")
 	       (:file "hollow-waveguide")
-	       (:file "bessel-zero"))
+	       (:file "step-waveguide"))
   :description "light propagation through a multimode fiber")
