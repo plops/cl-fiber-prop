@@ -249,20 +249,42 @@ Indexkontrast. Ihre Brechzahlverteilung ist definiert als
 \begin{align}
 n(r)&=\nco\sqrt{1-2\Delta\theta(r-\rco)} \\
 \theta(r)&=\begin{cases}0 &r<0,\\ 1 & r\ge 0\end{cases} \\
-\Delta &= \frac{\nco^2-\ncl^2}{2\nco^2}
+\Delta &= \frac{\nco^2-\ncl^2}{2\nco^2} \approx \frac{\nco-\ncl}{\nco}
 \end{align}
 mit der Stufenfunktion $\Delta(r)$ und dem Profilh\"ohenparameter
 $\Delta$. An der Sprungstelle des Brechungsindex m\"ussen sowohl
 $\psi$ als auch $\psi_{,r}$ stetig \"ubergehen. F\"ur st\"uckweise konstante Brechzahl $n(r)$ ist Gleichung \eqref{eq:bessel-dgl} die Besselsche Differentialgleichung und hat die L\"osung
 \begin{align}
   R&=r/\rco\\
-  \psi(R)&=N\begin{cases}
+  \psi(R)&=\frac{1}{\sqrt{N}}\begin{cases}
   J_l(uR)/J_l(u), & 0\le R\le 1\\
   K_l(wR)/K_l(w), & 1<R<\infty 
   \end{cases}\label{eq:psi}\\
   u &= \rco k_0 \sqrt{\nco^2-\neff^2} \\
   w &= \rco k_0 \sqrt{\neff^2-\ncl^2} 
 \end{align}
+
+[Snyder 13-9a] zeigt, dass man in zylindersymmetrischen Fasern zwei
+senkrecht zueinander polarisierte Moden hat, mit gleicher
+Ausbreitungskonstante:
+
+\begin{align}
+  E_x &= \psi_0(r) \exp(i\beta z)\quad H_y = \sqrt{\frac{\epsilon_0}{\mu_0}} \nco E_x\\
+  E_y &= \psi_0(r) \exp(i\beta z)\quad H_x = -\sqrt\frac{\epsilon_0}{\mu_0} \nco E_y
+\end{align}
+
+Mit Permittivit\"at des Vakuums ist definiert als $\epsilon_0 =
+\mu_0^{-1}c^{-2} \approx \unit[8.854 187 817 \times 10^{-12}]{F/m}$, wobei 
+$c=\unit[299792458]{m/s}$ und
+$\mu_0=
+\unit[4\pi\times10^{-7}]{H/m}$.
+
+Man nennt die Moden LP-moden um auszudr\"ucken, dass die Felder
+\"uberall in die gleiche Richtung polarisiert sind. F\"ur $l>0$ gibt
+es zwei weitere Moden mit gleicher Ausbreitungskonstante, also
+insgesamt vier. In h\"oherer Ordnung unterscheiden sich die
+Ausbreitungskonstanten dieser Moden [Snyder p. 304].
+
 Die Terme im radialen Feld in Gleichung \eqref{eq:psi} sind so
 skaliert, dass $\psi$ auf dem Rand $r=\rco$ stetig ist. Die Bedingung,
 dass auch die Ableitung $\psi_{,r}$ am \"Ubergang vom Kern zum Mantel
@@ -340,10 +362,17 @@ Da der Indexkontrast klein ist ($\Delta \ll 1$), k\"onnen longitudinale Feldkomp
 \end{align}
 Damit ist die Normierungskonstante 
 \begin{align}
-  N \propto \frac{v^2}{2 u^2} \frac{K_{l-1}(w)K_{l+1}(w)}{K_l^2(w)}
+  N &= \frac{\pi \rco^2 \nco}{2} \sqrt{\frac{\epsilon_0}{\mu_0}} \frac{v^2}{u^2} \frac{K_{l-1}(w)K_{l+1}(w)}{K_l^2(w)}\\
+  \lim_{v\rightarrow\infty} N &= \frac{\pi \rco^2 \nco}{2} \sqrt{\frac{\epsilon_0}{\mu_0}} \frac{v^2}{u^2} \frac{w+1}{w}
 \end{align}
 
-Die Integrale sind [Snyder p. 716]: 
+Die N\"aherungsgleichung f\"ur grosse $v$ ist aus [Snyder p 318].
+
+[Snyder p. 264] gibt Felder f\"ur Stufenprofil mit beliebigem
+Indexkontrast an. Dann gibt es aber drei verschiedene
+Eigenwertgleichungen.
+
+Die Integrale in $N$ sind [Snyder p. 716]: 
 % taylor(z^2/2 * (bessel_k(l,a*z)^2- bessel_k(l-1,a*z)*bessel_k(l+1,a*z)),z,inf);
 %bk(nu,z):=sqrt(%pi/(2*z))*exp(-z)*(1+(4*nu^2-1)/(8*z));
 %assume(a>0);
@@ -427,8 +456,13 @@ $x\in[0,v]$ und $l\in[0,\lmax]$.
 Hierbei wurde die Eigenschaft $J_{-n}(x) = (-1)^n J_n(x)$ von
 Besselfunktionen mit ganzzahliger Ordnung angewendet.
 
-Die Anzahl der radialen Oszillationen ist maximal f\"ur $J_0(v)$. Dies
-liefert eine weitere Grenze f\"ur die Pixelgr\"osse des Feldes.
+Die Anzahl der radialen Oszillationen ist maximal f\"ur $J_0(u_{0
+  m_\textrm{max}} r)$.  Es gilt $u_{0 m_\textrm{max}} \approx v$. Uns
+interessiert der Abstand zwischen den zwei a\"ussersten Ringen im
+Kernfeld, also $j_{0m_\textrm{max}} - j_{0 (m_\textrm{max}-1)}$, wobei
+$j_{nm}$ die $m-$te Nullstelle der Besselfunktion $n-$ter Ordnung
+beschreibt.  Dies liefert eine weitere Grenze f\"ur die Pixelgr\"osse
+des Feldes.
 
 Die Argumente f\"ur die Funktion $K_l(x)$ erstrecken sich von $w$ nach
 unendlich. Das kleinste $w$ ist $\sqrt{v^2-\umax^2}$. Dieser Wert kann
@@ -495,7 +529,7 @@ integrieren. Damit l\"a\ss t sich besser feststellen ob ausreichend
 Rand mit einbezogen wurde.
 
 \begin{align}
-  \Re\{c_{nm}\}&=\int_0^{\infty}\!\!\!\!\int_0^{2\pi}\!\!\!\!\!\! \cos(n\phi)\cos(m\phi) \cos(k_0\alpha x) \textrm{d}\phi\, \psi_n(r) \psi_m(r) r\, \textrm{d}r 
+  \Re\{c_{nm}\}&\propto\int_0^{\infty}\!\!\!\!\int_0^{2\pi}\!\!\!\!\!\! \cos(n\phi)\cos(m\phi) \cos(k_0\alpha x) \textrm{d}\phi\, \psi_n(r) \psi_m(r) r\, \textrm{d}r 
 \end{align}
 
 Hier bricht $x=r \cos(\phi)$ die Zylindersymmetrie, aber verglichen
@@ -562,7 +596,7 @@ Regeln mit 15 bis 61 Punkten implementiert.  [2012Auluck] diskutiert
 die Eigenschaften und eine Approximation des dreifachen Bessel
 Integrals, das brauche ich aber hier nicht weiter.
 \begin{align}
-    c_{nm}^\textrm{in}&=\frac{N_n N_m}{J_n(u_n) J_m(u_m)}
+    c_{nm}^\textrm{in}&=\frac{1}{\sqrt{N_n N_m} J_n(u_n) J_m(u_m)}
     \int_0^1\!\!\!\! I_\phi(r) J_n(u_n r) J_m(u_m r) r\, \textrm{d}r 
 \end{align}
 
@@ -572,7 +606,7 @@ $(a,\infty)$ mit der Transformation $r=a+(1-t)/t$ auf $(0,1]$
 abbildet.
 
 \begin{align}
-    c_{nm}^\textrm{out}&=\frac{N_n N_m}{K_n(w_n) K_m(w_m)}
+    c_{nm}^\textrm{out}&=\frac{1}{\sqrt{N_n N_m}K_n(w_n) K_m(w_m)}
     \int_1^\infty\!\!\!\! I_\phi(r) K_n(w_n r) K_m(w_m r) r\, \textrm{d}r 
 \end{align}
 
