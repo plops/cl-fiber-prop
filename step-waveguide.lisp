@@ -359,7 +359,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		(when nrad-gross 
 		  (defparameter *nrad* 
 		    (list nrad nrad-gross (/ nrad nrad-gross)))
-		    (format t "nrad ~a~%" *nrad*))
+		    ;(format t "nrad ~a~%" *nrad*)
+		    )
 		(doplane (j i) (setf (aref fields k j i)
 				     (* norm (cond ((= l 0) 1d0) 
 						   ((< l 0) (aref sin-a (- (abs l) 1) j i))
@@ -610,7 +611,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 (defun calculate-couple-coeffs (fields &key scale v radius alpha)
   ;; i might have to figure out the proper sampling by calculating a
   ;; high resolution cross section through the highest mode
-  (declare (optimize (speed 3)))
+;  (declare (optimize (speed 3)))
   (declare (type (simple-array double-float 3) fields))
   (destructuring-bind (nmodes h w) (array-dimensions fields)
     (multiple-value-bind (wedge resol nco rco) (calculate-bend-wedge :n w :v v :scale scale :alpha alpha)
@@ -654,11 +655,16 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 #+nil
 (time  (write-pgm "/run/q/bla-coef-phase.pgm" (convert-ub8  (convert-df *bla-coef* :fun #'phase))))
 
+#+nil
 
 
 #+nil
 (destructuring-bind (nmodes h w) (array-dimensions *bla*)
-  (loop for jmode below 1 #+nil nmodes collect 
+  (loop for jmode in (mapcar #'first ;; sort modes by u starting with ground mode
+			     (sort (loop for j across (step-fiber-eigenvalues-linear *bla-ev*) 
+				      and i from 0 collect
+					(list i j)) #'< :key #'first)) 
+     do
        (destructuring-bind (l m) (fiber-linear-to-lm-index jmode *bla-ev*)
 	 (let* ((v 30d0)
 		(scale 1.3d0)
@@ -670,7 +676,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		(rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
 		;; resolution of the field in mm/px:
 		(resol (/ (* 2 scale rho) w))
-		(u (elt (elt *bla-ev* l) m))
+		(u (elt (elt *bla-ev* (abs l)) m))
 		(w (sqrt (- (expt v 2) (expt u 2))))
 		(nphi (* pi (if (= l 0) 2 1)))
 		(mu0 (* 4d-7 pi))
@@ -689,36 +695,39 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		(clad-numerical (gsl:integration-qagiu 
 				 #'(lambda (r) (* r (expt
 						(gsll:cylindrical-bessel-k l (* w r)) 2)))
-				 1d0))
+				 1d0 1d-15 1d-12 5000))
 		;; this is not stable for the ground mode, and gives a negative result
-		(clad-analytical (let ((a (gsll:cylindrical-bessel-k-scaled (- l 1) u))
-				       (b (gsll:cylindrical-bessel-k-scaled l u))
-				       (c (gsll:cylindrical-bessel-k-scaled (+ l 1) u))) 
-				   (defparameter *blub* (list a b c))
-				   (* .5  (* (exp (* -2 u)) (- (* b b ) (*  a c) )))))
-		(fiber-analytical (* .5 ;(expt (/ v u) 2)
-				     (gsll:cylindrical-bessel-k (- l 1) u) 
-				     (gsll:cylindrical-bessel-k (+ l 1) u) 
-				     (expt (gsll:cylindrical-bessel-k l u) -2))))
-	   
-	   (list 'co  core-numerical core-analytical
-		 'cl clad-numerical clad-analytical
-		 'full (+ core-numerical clad-numerical) fiber-analytical)))
-     #+nil
-     (loop for a below nmodes do
-	  (let ((norm 
-		 (loop for j below h sum
-		      (loop for i below w sum
-			   #+nil(expt (abs (aref *bla* a j i)) 2)
-			  
-			   (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
-				  (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
-				  (r (sqrt (+ (expt x 2) (expt y 2)))))
-			     (if (<= r 1d0)
-				 (expt (abs (aref *bla* a j i)) 2)
-				 0d0))
-			   ))))
-	    (format t "s ~3d ~3,8f ~%" a (* norm resol resol)))))))
+		(clad-analytical (- (expt (gsll:cylindrical-bessel-k l u) 2)
+				    (* (gsll:cylindrical-bessel-k (- l 1) u)
+				       (gsll:cylindrical-bessel-k (+ l 1) u))))
+		(full-analytical (* .5 (expt (/ v u) 2)
+				     (gsll:cylindrical-bessel-k (- l 1) w) 
+				     (gsll:cylindrical-bessel-k (+ l 1) w) 
+				     (expt (gsll:cylindrical-bessel-k l w) -2)))
+		(core-simple (loop for j below h sum
+				  (loop for i below w sum
+				       (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
+					      (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
+					      (r (sqrt (+ (expt x 2) (expt y 2)))))
+					 (if (<= r 1d0)
+					     (expt (abs (aref *bla* jmode j i)) 2)
+					     0d0)))))
+		(clad-simple (loop for j below h sum
+				  (loop for i below w sum
+				       (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
+					      (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
+					      (r (sqrt (+ (expt x 2) (expt y 2)))))
+					 (if (<= 1d0 r)
+					     (expt (abs (aref *bla* jmode j i)) 2)
+					     0d0))))))
+	   (format 
+	    t "~3d ~6,3f ~6,3f co ~6,3f ~6,3f ~6,3f  cl ~8,2,2e ~8,2,2e co/full ~9,1,2e full ~6,3f ~6,3f~%"
+	    jmode u w core-numerical core-analytical (* resol resol core-simple)
+	    clad-numerical clad-analytical (/ core-numerical (+ core-numerical clad-numerical)); (* resol resol clad-simple)
+	    (+ core-numerical clad-numerical) full-analytical)))))
+
+
+#+nil
 
 ;; Integrate[r BesselJ[l, u r]^2, {r, 0, 1} ]
 ;; 1/2 (BesselJ[-1 + l, u]^2 - (2 l BesselJ[-1 + l, u] BesselJ[l, u])/u +
@@ -742,7 +751,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 ;; coordinates, using the eigenmodes of the ideal fiber, which are
 ;; orthonormal Hermite–Gaussian function
 
-
+#+nil
 (defun solve-couple-into-lp-modes (matrix)
   "Solve the linear equation using SVD with the supplied matrix and
    a right-hand side vector which is the reciprocal of one more than
