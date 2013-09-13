@@ -659,86 +659,120 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 
 (defun check (fn pos &rest args)
+  "call a gsll function and check that the error lies within a margin i can live with. pos is there to indicate which of many calls was the problematic one"
   (multiple-value-bind (v err) (apply fn args)
-    (when (< 1e-4 err)
+    (when (< 8e-6 err)
 	(break "error: function is not precise enough ~a" (list pos 'args args 'result v 'error err)))
     v))
 #+nil
-(check #'gsll:cylindrical-bessel-k 40 3d0)
+(check #'gsll:cylindrical-bessel-k 1 40 3d0)
 #+nil
-(check #'gsll:cylindrical-bessel-k 10 3d0)
+(check #'gsll:cylindrical-bessel-k 2 10 3d0)
 
 
 #+nil
-(destructuring-bind (nmodes h w) (array-dimensions *bla*)
-  (loop for jmode in (mapcar #'first ;; sort modes by u starting with ground mode
-			     (sort (loop for j across (step-fiber-eigenvalues-linear *bla-ev*) 
-				      and i from 0 collect
-					(list i j)) #'< :key #'second)) 
-     do
-       (destructuring-bind (l m) (fiber-linear-to-lm-index jmode *bla-ev*)
-	 (let* ((v 30d0)
-		(scale 1.3d0)
-		(lambd .0005)
-		(nco 1.5)
-		(ncl 1.46)
-		(k (* 2 pi (/ lambd))) 
-		;; diameter of the fiber:
-		(rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
-		;; resolution of the field in mm/px:
-		(resol (/ (* 2 scale rho) w))
-		(u (elt (elt *bla-ev* (abs l)) m))
-		(w (sqrt (- (expt v 2) (expt u 2))))
-		(nphi (* pi (if (= l 0) 2 1)))
-		(mu0 (* 4d-7 pi))
-		(c0 299792458d0)
-		;;(eps0 (/ (* mu0 (expt c0 2))))
-		(nrad (* .5 pi nco (/ (* c0 mu0)) (expt (/ v u) 2)
-			 (expt (check #'gsll:cylindrical-bessel-k-scaled 1 (abs l) w) -2) 
-			 (check #'gsll:cylindrical-bessel-k-scaled 2 (abs (- l 1)) w)
-			 (check #'gsll:cylindrical-bessel-k-scaled 3 (abs (+ l 1)) w)))
-		(core-numerical (/ (gsl:integration-qng 
-				    #'(lambda (r) (* r (expt 
-						   (check #'gsll:cylindrical-bessel-j 4 l (* u r)) 2)))
-				    0d0 1d0)
-				   (expt (check #'gsll:cylindrical-bessel-j 5 l u) 2)))
-		(core-analytical (* .5  (- 1 
-					   (* (jn (- l 1) u)  (jn (+ l 1) u) 
-					      (expt (jn l u) -2)))))
-		(clad-numerical (* (gsl:integration-qagiu 
-				    #'(lambda (r) (* r (expt
-						   (check #'gsll:cylindrical-bessel-k 6 l (* w r)) 2)))
-				    1d0 1d-15 1d-12 5000)
-				   (expt (check #'gsll:cylindrical-bessel-j 7 l u) -2)))
-		;; this is not stable for the ground mode, and gives a negative result
-		(clad-analytical (- 1 (/ (* (check #'gsll:cylindrical-bessel-k 8 (- l 1) w)
-					    (check #'gsll:cylindrical-bessel-k 9 (+ l 1) w))
-					 (expt (check #'gsll:cylindrical-bessel-k 10 l w) 2))))
-		(full-analytical (* .5 (expt (/ v u) 2)
-				    (check #'gsll:cylindrical-bessel-k 11 (- l 1) w) 
-				    (check #'gsll:cylindrical-bessel-k 12 (+ l 1) w) 
-				    (expt (check #'gsll:cylindrical-bessel-k 13 l w) -2)))
-		(core-simple (loop for j below h sum
-				  (loop for i below w sum
-				       (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
-					      (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
-					      (r (sqrt (+ (expt x 2) (expt y 2)))))
-					 (if (<= r 1d0)
-					     (expt (abs (aref *bla* jmode j i)) 2)
-					     0d0)))))
-		(clad-simple (loop for j below h sum
-				  (loop for i below w sum
-				       (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
-					      (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
-					      (r (sqrt (+ (expt x 2) (expt y 2)))))
-					 (if (<= 1d0 r)
-					     (expt (abs (aref *bla* jmode j i)) 2)
-					     0d0))))))
-	   (format 
-	    t "~3d ~6,3f ~6,3f co ~6,3f ~6,3f ~6,3f  cl ~8,2,2e ~8,2,2e cl/full ~9,1,2e full ~6,3f ~6,3f~%"
-	    jmode u w core-numerical core-analytical (* resol resol core-simple)
-	    clad-numerical clad-analytical (/ clad-numerical (+ core-numerical clad-numerical)); (* resol resol clad-simple)
-	    (+ core-numerical clad-numerical) full-analytical)))))
+(defparameter *res* 
+ (let ((res ()))
+   (destructuring-bind (nmodes h w) (array-dimensions *bla*)
+     (loop for jmode in (mapcar #'first ;; sort modes by u starting with ground mode
+				(sort (loop for j across (step-fiber-eigenvalues-linear *bla-ev*) 
+					 and i from 0 collect
+					   (list i j)) #'< :key #'second)) 
+	do
+	  (destructuring-bind (l m) (fiber-linear-to-lm-index jmode *bla-ev*)
+	    (let* ((v 30d0)
+		   (scale 1.3d0)
+		   (lambd .0005)
+		   (nco 1.5)
+		   (ncl 1.46)
+		   (k (* 2 pi (/ lambd))) 
+		   ;; diameter of the fiber:
+		   (rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
+		   ;; resolution of the field in mm/px:
+		   (resol (/ (* 2 scale rho) w))
+		   (u (elt (elt *bla-ev* (abs l)) m))
+		   (w (sqrt (- (expt v 2) (expt u 2))))
+		   (nphi (* pi (if (= l 0) 2 1)))
+		   (mu0 (* 4d-7 pi))
+		   (c0 299792458d0)
+		   ;;(eps0 (/ (* mu0 (expt c0 2))))
+		   (nrad (* .5 pi nco (/ (* c0 mu0)) (expt (/ v u) 2)
+			    (expt (check #'gsll:cylindrical-bessel-k-scaled 1 (abs l) w) -2) 
+			    (check #'gsll:cylindrical-bessel-k-scaled 2 (abs (- l 1)) w)
+			    (check #'gsll:cylindrical-bessel-k-scaled 3 (abs (+ l 1)) w)))
+		   (core-numerical (/ (gsl:integration-qng 
+				       #'(lambda (r) (* r (expt 
+						      (check #'gsll:cylindrical-bessel-j 4 l (* u r)) 2)))
+				       0d0 1d0)
+				      (expt (check #'gsll:cylindrical-bessel-j 5 l u) 2)))
+		   (core-analytical (* .5  (- 1 
+					      (* (check #'gsll:cylindrical-bessel-j 51 (- l 1) u) 
+						 (check #'gsll:cylindrical-bessel-j 52 (+ l 1) u)
+						 (expt (check #'gsll:cylindrical-bessel-j 53 l u) -2)))))
+		   (clad-numerical (* (gsl:integration-qagiu 
+				       #'(lambda (r) (* r (expt
+						      (check #'gsll:cylindrical-bessel-k 6 l 
+							     (* w r)) 2)))
+				       1d0 1d-15 1d-12 5000)
+				      (expt (check #'gsll:cylindrical-bessel-j 7 l u) -2)))
+		   ;; this is not stable for the ground mode, and gives a negative result
+		   (clad-analytical (* .5 (- 1 (* (check #'gsll:cylindrical-bessel-k 8 (- l 1) w)
+						  (check #'gsll:cylindrical-bessel-k 9 (+ l 1) w)
+						  (expt (check #'gsll:cylindrical-bessel-k 10 l w) -2)))))
+		   (full-analytical (* .5 (expt (/ v u) 2)
+				       (check #'gsll:cylindrical-bessel-k 11 (- l 1) w) 
+				       (check #'gsll:cylindrical-bessel-k 12 (+ l 1) w) 
+				       (expt (check #'gsll:cylindrical-bessel-k 13 l w) -2)))
+		   (core-simple (loop for j below h sum
+				     (loop for i below w sum
+					  (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
+						 (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
+						 (r (sqrt (+ (expt x 2) (expt y 2)))))
+					    (if (<= r 1d0)
+						(expt (abs (aref *bla* jmode j i)) 2)
+						0d0)))))
+		   (clad-simple (loop for j below h sum
+				     (loop for i below w sum
+					  (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
+						 (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
+						 (r (sqrt (+ (expt x 2) (expt y 2)))))
+					    (if (<= 1d0 r)
+						(expt (abs (aref *bla* jmode j i)) 2)
+						0d0))))))
+	      
+	      (format 
+	       t "~3d ~6,3f ~6,3f co ~6,3f ~6,3f ~6,3f  cl ~8,2,2e ~8,2,2e cl/full ~9,1,2e full ~6,3f ~6,3f~%"
+	       jmode u w core-numerical core-analytical (* resol resol core-simple)
+	       clad-numerical clad-analytical (/ clad-numerical (+ core-numerical clad-numerical)) ; (* resol resol clad-simple)
+	       (+ core-numerical clad-numerical) full-analytical)
+	      (multiple-value-bind (a ae) (gsll:cylindrical-bessel-k (- l 1) w)
+		(multiple-value-bind (b be) (gsll:cylindrical-bessel-k l w)
+		  (multiple-value-bind (c ce) (gsll:cylindrical-bessel-k (+ l 1) w)
+		    (let ((ar (/ ae a))
+			  (br (/ be b))
+			  (cr (/ ce c)))
+		     (push (list jmode ae be ce
+				 (/ (* a c) 
+				    (* b b))
+				 (+ (* (abs (/ c (* b b))) ae)
+				    (* (abs (/ a (* b b))) ce)
+				    (* (abs (* 2 a c (expt b -3))) be)))
+			   res))))))))
+     res)))
+
+
+
+#+nil
+(loop for (jmode ae be ce res res-err) in *res* do
+     (format t "~3d e ~8,1,2e ~8,1,2e ~8,1,2e res ~10,2,2e err ~10,2,2e ~%"
+	     jmode ae be ce (- 1 res) res-err))
+
+;; diff(1-a*c/b^2,a);
+					; => |-c/b|*ae
+;; diff(1-a*c/b^2,c);
+					; => |-a/b|*ce
+;; diff(1-a*c*b^(-2),b);
+					; => |2*a*c*b^(-3)|*be
 
 
 
