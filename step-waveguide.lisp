@@ -402,7 +402,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
  (progn
    (defparameter *bla* nil)
    (defparameter *bla*
-     (let* ((v 30d0) 
+     (let* ((v 10d0) 
 	   (start (sb-unix::get-time-of-day))
 	   (lambd .0005)
 	   (nco 1.5)
@@ -680,7 +680,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 					   (list i j)) #'< :key #'second)) 
 	do
 	  (destructuring-bind (l m) (fiber-linear-to-lm-index jmode *bla-ev*)
-	    (let* ((v 30d0)
+	    (let* ((v 10d0)
 		   (scale 1.3d0)
 		   (lambd .0005)
 		   (nco 1.5)
@@ -709,16 +709,17 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 					      (* (check #'gsll:cylindrical-bessel-j 51 (- l 1) u) 
 						 (check #'gsll:cylindrical-bessel-j 52 (+ l 1) u)
 						 (expt (check #'gsll:cylindrical-bessel-j 53 l u) -2)))))
-		   (clad-numerical (* (gsl:integration-qagiu 
-				       #'(lambda (r) (* r (expt
-						      (check #'gsll:cylindrical-bessel-k 6 l 
-							     (* w r)) 2)))
-				       1d0 1d-15 1d-12 5000)
-				      (expt (check #'gsll:cylindrical-bessel-j 7 l u) -2)))
+		   (clad-numerical (* (check #'gsl:integration-qagiu 
+					     61
+					     #'(lambda (r) (* r (expt
+							    (check #'gsll:cylindrical-bessel-k 6 l 
+								   (* w r)) 2)))
+					     1d0 1d-15 1d-12 5000)
+				      (expt (check #'gsll:cylindrical-bessel-k 7 l w) -2)))
 		   ;; this is not stable for the ground mode, and gives a negative result
-		   (clad-analytical (* .5 (- 1 (* (check #'gsll:cylindrical-bessel-k 8 (- l 1) w)
-						  (check #'gsll:cylindrical-bessel-k 9 (+ l 1) w)
-						  (expt (check #'gsll:cylindrical-bessel-k 10 l w) -2)))))
+		   (clad-analytical (* .5 (abs (- 1 (* (check #'gsll:cylindrical-bessel-k 8 (- l 1) w)
+						   (check #'gsll:cylindrical-bessel-k 9 (+ l 1) w)
+						   (expt (check #'gsll:cylindrical-bessel-k 10 l w) -2))))))
 		   (full-analytical (* .5 (expt (/ v u) 2)
 				       (check #'gsll:cylindrical-bessel-k 11 (- l 1) w) 
 				       (check #'gsll:cylindrical-bessel-k 12 (+ l 1) w) 
@@ -741,9 +742,9 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 						0d0))))))
 	      
 	      (format 
-	       t "~3d ~6,3f ~6,3f co ~6,3f ~6,3f ~6,3f  cl ~8,2,2e ~8,2,2e cl/full ~9,1,2e full ~6,3f ~6,3f~%"
+	       t "~3d ~6,3f ~6,3f co ~6,3f ~6,3f ~6,3f  cl ~8,2,2e ~8,2,2e ~8,2,2e cl/full ~9,1,2e full ~6,3f ~6,3f~%"
 	       jmode u w core-numerical core-analytical (* resol resol core-simple)
-	       clad-numerical clad-analytical (/ clad-numerical (+ core-numerical clad-numerical)) ; (* resol resol clad-simple)
+	       clad-numerical clad-analytical (- clad-numerical clad-analytical) (/ clad-numerical (+ core-numerical clad-numerical)) ; (* resol resol clad-simple)
 	       (+ core-numerical clad-numerical) full-analytical)
 	      (multiple-value-bind (a ae) (gsll:cylindrical-bessel-k (- l 1) w)
 		(multiple-value-bind (b be) (gsll:cylindrical-bessel-k l w)
@@ -752,20 +753,20 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 			  (br (/ be b))
 			  (cr (/ ce c)))
 		     (push (list jmode ae be ce
-				 (/ (* a c) 
-				    (* b b))
-				 (+ (* (abs (/ c (* b b))) ae)
-				    (* (abs (/ a (* b b))) ce)
-				    (* (abs (* 2 a c (expt b -3))) be)))
+				 (* .5 (- 1 (/ (* a c) 
+					  (* b b))))
+				 (* .5 (+ (* (abs (/ c (* b b))) ae)
+				     (* (abs (/ a (* b b))) ce)
+				     (* (abs (* 2 a c (expt b -3))) be))))
 			   res))))))))
-     res)))
+     (reverse res))))
 
 
 
 #+nil
 (loop for (jmode ae be ce res res-err) in *res* do
      (format t "~3d e ~8,1,2e ~8,1,2e ~8,1,2e res ~10,2,2e err ~10,2,2e ~%"
-	     jmode ae be ce (- 1 res) res-err))
+	     jmode ae be ce res res-err))
 
 ;; diff(1-a*c/b^2,a);
 					; => |-c/b|*ae
@@ -774,8 +775,11 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 ;; diff(1-a*c*b^(-2),b);
 					; => |2*a*c*b^(-3)|*be
 
-
-
+;; integrate(bessel_k(0,10*r)^2*r,r,1,inf);
+;; 
+;; quad_qagi(bessel_k(0,1*r)^2*r/bessel_k(0,.1),r,1,inf);
+;; w:9.758; f(r):= bessel_k(0,w*r)^2*r/bessel_k(0,w)^2 ; a:[quad_qag(f(r),r,1,2,6), quad_qag(f(r),r,1,4,6), quad_qag(f(r),r,1,10,6), quad_qagi(f(r),r,1,inf), .5*(1-bessel_k(1,w)^2/bessel_k(0,w)^2)] ;
+;; 
 #+nil
 
 ;; Integrate[r BesselJ[l, u r]^2, {r, 0, 1} ]
