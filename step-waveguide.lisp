@@ -346,19 +346,15 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	      (let* ((u (elt (elt u-modes (abs l)) m))
 		     (w (sqrt (- (expt v 2) (expt u 2))))
 		     (nphi (* pi (if (= l 0) 2 1)))
-		     (mu0 (* 4d-7 pi))
-		     (c0 299792458d0)
-					;(eps0 (/ (* mu0 (expt c0 2))))
-		     (nrad-scale (* .5 pi (expt rco 2) 
-				    (/ nco (* mu0 c0))))
-		     (nrad-core (- 1 (* (expt (gsll:cylindrical-bessel-j l w) -2) 
-					(gsll:cylindrical-bessel-j (- l 1) w)
-					(gsll:cylindrical-bessel-j (+ l 1) w))))
-		     (nrad-clad (- (* (expt (gsll:cylindrical-bessel-k-scaled (abs l) w) -2) 
-				      (gsll:cylindrical-bessel-k-scaled (abs (- l 1)) w)
-				      (gsll:cylindrical-bessel-k-scaled (abs (+ l 1)) w))
-				   1))
-		     (nrad (* nrad-scale (+ nrad-core nrad-clad)))
+		     (nrad-core (* .5 (- 1 (* (expt (gsll:cylindrical-bessel-j l u) -2) 
+					      (gsll:cylindrical-bessel-j (- l 1) u)
+					      (gsll:cylindrical-bessel-j (+ l 1) u)))))
+		     (nrad-clad (* .5 (- (* (expt
+					     (gsll:cylindrical-bessel-k-scaled (abs l) w) -2) 
+					    (gsll:cylindrical-bessel-k-scaled (abs (- l 1)) w)
+					    (gsll:cylindrical-bessel-k-scaled (abs (+ l 1)) w))
+				    1)))
+		     (nrad (+ nrad-core nrad-clad))
 		     (norm (let ((a (* nphi nrad)))
 			     (if (or (< nrad-core 0) (< nrad-clad 0)
 				     (< a 0))
@@ -370,7 +366,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		     (scale-k (/ (gsl::cylindrical-bessel-k-scaled (abs l) w))))
 		(when debug
 		 (format t "m ~3d l ~4d u ~6,3f w ~6,3f co ~8,2,2e cl ~8,2,2,2e cl/full ~6,1f%~%" 
-			 m l u w (* nrad-scale nrad-core) (* nrad-scale nrad-clad) (/ (* 100 nrad-scale nrad-clad)  nrad)))
+			 m l u w  nrad-core nrad-clad (/ (* 100 nrad-clad)  nrad)))
 		(doplane (j i) (setf (aref fields k j i)
 				     (* norm (cond ((= l 0) 1d0) 
 						   ((< l 0) (aref sin-a (- (abs l) 1) j i))
@@ -423,9 +419,9 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
        (format t "calculating eigenvalues~%")
        (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
        (format t "ev took ~3d s time~%" (- (sb-unix::get-time-of-day) start))
-       (let ((sc 1.3d0))
+       (let ((sc 4d0))
 	(step-fiber-fields *bla-ev* v :scale sc :rco rho :nco nco
-			   :n (* 2 (step-fiber-minimal-sampling *bla-ev* v :scale sc))
+			   :n (* 4 (step-fiber-minimal-sampling *bla-ev* v :scale sc))
 			   :debug t))))
 #+nil   (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
 								  ) :scale .7 ;:offset -.2d0
@@ -433,7 +429,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 #+nil
 (time
  (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
-								) ;:scale 1e-7 ;:offset -.2d0
+								) :invert t :scale .8d0 ;:offset -.2d0
 								  )))
 
 
@@ -534,7 +530,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 						 (bessel-j-interp l1 (* u1 r))
 						 (bessel-j-interp (abs (- l0 l1)) (* k alpha rco r))))
 					  0d0 1d0))
-		(ik1 (gsl:integration-qng 
+		(ik1 (gsl:integration-qng
 		      #'(lambda (r) (* r (bessel-k-scaled-interp l0 (* w0 r))
 				  (bessel-k-scaled-interp l1 (* w1 r))
 				  (exp (- (+ (* w0 r) (* w1 r)))) 
@@ -577,8 +573,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
     (bessel-k-scaled-interp-init :start (* .9 wmin) :end (* 1.1 (sqrt 2) scale v)
 				 :n 2100 :lmax lmax)
     (terpri)
-    (loop for n from 0 below 6 #+nil (number-of-modes u-modes) collect
-	 (loop for m from 0 below 6 #+nil (number-of-modes u-modes) collect
+    (loop for n from 0 below (number-of-modes u-modes) collect
+	 (loop for m from 0 below (number-of-modes u-modes) collect
 	      (let ((x  (couple u-modes n m v :scale 2d0 :alpha 10e-3)))
 		(format t "i n ~3d m ~3d ~12,5f%~%" n m (* 100 x))
 		x)))) )
@@ -814,7 +810,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	do
 	  (destructuring-bind (l m) (fiber-linear-to-lm-index jmode *bla-ev*)
 	    (let* ((v 30d0)
-		   (scale 1.3d0)
+		   (scale 4d0)
 		   (lambd .0005)
 		   (nco 1.5)
 		   (ncl 1.46)
@@ -823,12 +819,6 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		   (rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
 		   ;; resolution of the field in mm/px:
 		   (resol (/ (* 2 scale rho) w))
-		   (u (elt (elt *bla-ev* (abs l)) m))
-		   (w (sqrt (- (expt v 2) (expt u 2))))
-		   (nphi (* pi (if (= l 0) 2 1)))
-		   (mu0 (* 4d-7 pi))
-		   (c0 299792458d0)
-		   ;;(eps0 (/ (* mu0 (expt c0 2))))
 		   (core-simple (* resol resol (loop for j below h sum
 				      (loop for i below w sum
 					   (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
@@ -837,21 +827,24 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 					     (if (<= r 1d0)
 						 (expt (abs (aref *bla* jmode j i)) 2)
 						 0d0))))))
-		   (clad-simple (* resol resol (loop for j below h sum
+		   (clad-simple (* resol resol  (loop for j below h sum
 				      (loop for i below w sum
 					   (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
 						  (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
 						  (r (sqrt (+ (expt x 2) (expt y 2)))))
 					     (if (<= 1d0 r)
 						 (expt (abs (aref *bla* jmode j i)) 2)
-						 0d0)))))))
+						 0d0))))))
+		   (full-simple (*  (loop for j below h sum
+				      (loop for i below w sum
+					   (expt (abs (aref *bla* jmode j i)) 2)
+					 )))))
 	      
 	      (format 
-	       t "~3d ~6,3f ~6,3f co ~8,2,2e cl ~8,2,2e~%"
-	       jmode u w core-simple clad-simple)
-	      )))
-)
+	       t "~d ~3d co ~8,2,2e cl ~8,2,2e full ~12,4f ~12,1f ~%"
+	       w jmode core-simple clad-simple full-simple (/ (* resol)))))))
 
+(/ (* 66 66) (* 2 pi))
 ;; Integrate[r BesselJ[l, u r]^2, {r, 0, 1} ]
 ;; 1/2 (BesselJ[-1 + l, u]^2 - (2 l BesselJ[-1 + l, u] BesselJ[l, u])/u +
 ;;    BesselJ[l, u]^2)

@@ -1,6 +1,6 @@
 (in-package :cl-fiber-prop)
 
-(defun convert-ub8 (a &key (scale 1d0 scale-p) (offset 0d0) (debug nil))
+(defun convert-ub8 (a &key (scale 1d0 scale-p) (invert nil) (offset 0d0) (debug nil))
   (declare (type (simple-array double-float 2) a)
 	   (type double-float scale)
 	   (optimize (speed 3))
@@ -22,9 +22,13 @@
 	 (break "~a" (list 'scale scale2 'offset offset2 'max ma)))))
     (destructuring-bind (h w) (array-dimensions a)
       (declare (type fixnum h w))
-      (dotimes (i w)
-	(dotimes (j h)
-	  (setf (aref b j i) (min 255 (max 0 (floor (* 255 scale2 (- (aref a j i) offset2)))))))))
+      (if invert
+	  (dotimes (i w)
+	    (dotimes (j h)
+	      (setf (aref b j i) (- 255 (min 255 (max 0 (floor (* 255 scale2 (- (aref a j i) offset2)))))))))
+	  (dotimes (i w)
+	    (dotimes (j h)
+	      (setf (aref b j i) (min 255 (max 0 (floor (* 255 scale2 (- (aref a j i) offset2))))))))))
     b))
 
 (defun convert-df (a &key (fun #'abs))

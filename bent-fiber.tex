@@ -295,6 +295,18 @@ Gleichung, zur Bestimmung des Modenparameters $u$
   v^2 &= u^2+w^2\\
   v &= \rco k_0 \sqrt{\nco^2-\ncl^2}
 \end{align}
+
+F\"ur gro\ss e $l$ verhinderten roundoff Fehler die numerische
+Auswertung. Deshalb habe ich die rechte Seite folgendermassen
+approximiert (f\"ur $w<0.1 \sqrt{1+l}$):
+\begin{align}
+  w\frac{K_{l+1}(w)}{K_l(w)} \sim \begin{cases}
+    -\frac{1}{\log(w/2)+\gamma} &l=0\\
+    2l &\textrm{sonst}
+    \end{cases}
+\end{align}
+mit der Eulerzahl $\gamma=0.577215664901532860$.
+
 Man kann zeigen, dass diese Gleichung f\"ur $0<v<2.405$ nur eine
 einzig L\"osung hat (single-mode). Der Wertebereich f\"ur m\"ogliche
 L\"osungen fuer $u$ liegt zwischen 0 und $v$. Bemerkenswert ist, dass
@@ -367,7 +379,14 @@ Damit ist die Normierungskonstante
   \lim_{v\rightarrow\infty} N &= \frac{\pi \rco^2 \nco}{2} \sqrt{\frac{\epsilon_0}{\mu_0}} \frac{v^2}{u^2} \frac{w+1}{w}
 \end{align}
 
-Die N\"aherungsgleichung f\"ur grosse $v$ ist aus [Snyder p 318].
+Die N\"aherungsgleichung f\"ur grosse $v$ ist aus [Snyder p 318]. Im
+Buch wird nicht erl\"autert, wie obige Gleichung hergeleitet werden
+kann. Deshalb schreibe ich die Integrale f\"ur Intensitaet in Kern und
+Mantel explizit aus.
+
+In meinem Computerprogramm verwende ich nicht den Faktor $\rco^2 \nco
+\sqrt{\epsilon_0/\mu_0}$. Das verringert die Anzahl an Argumenten, die
+zwischen den Funktionen \"ubergeben werden m\"ussen.
 
 [Snyder p. 264] gibt Felder f\"ur Stufenprofil mit beliebigem
 Indexkontrast an. Dann gibt es aber drei verschiedene
@@ -515,7 +534,11 @@ durch
 [1989Hill]
 Ausgehend von einer Modenverteilung in geraden Faserst\"ucken, kann
 die Kopplung durch einen Phasenkeil mit Winkel $\alpha$ vermittelt
-werden:
+werden. Im Paper berechnet der Autor die Ausbreitung in einem hohlen
+(luftgefuellten) Wellenleiter und verwendet einen Phasenkeil in
+Luft. F\"ur unser Problem findet der wesentliche Teil der Kopplung im
+Kern statt und der Phasenkeil wird deshalb auf den Index $\nco$
+bezogen.
 \begin{align}
   F_{j(l,m)}(r,\phi) &= \psi(r) 
   \begin{cases}
@@ -523,7 +546,7 @@ werden:
     \sin(l \phi) & l<0
   \end{cases} \\
   \delta L &= R_b \sin\alpha\\
-  c_{nm}&=\int\!\!\!\int\! F_n(x,y)F_m(x,y) e^{ik_0\alpha x} \textrm{d}x \textrm{d}y
+  c_{nm}&=\int\!\!\!\int\! F_n(x,y)F_m(x,y) e^{i\nco k_0\alpha x} \textrm{d}x \textrm{d}y
 \end{align}
 
 Alternativ kann man auch bez\"uglich Zylinderkoordinaten
@@ -760,5 +783,4 @@ Die GNU Scientific Library stellt f\"ur diese Aufgabe die Funktionen \verb!SV_de
 %%% mode: latex
 %%% TeX-master: t
 %%% eval: (reftex-mode)
-%%% eval: (flyspell-mode)
 %%% End: 
