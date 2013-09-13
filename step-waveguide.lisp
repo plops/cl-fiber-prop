@@ -658,12 +658,23 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 #+nil
 
 
+(defun check (fn pos &rest args)
+  (multiple-value-bind (v err) (apply fn args)
+    (when (< 1e-4 err)
+	(break "error: function is not precise enough ~a" (list pos 'args args 'result v 'error err)))
+    v))
+#+nil
+(check #'gsll:cylindrical-bessel-k 40 3d0)
+#+nil
+(check #'gsll:cylindrical-bessel-k 10 3d0)
+
+
 #+nil
 (destructuring-bind (nmodes h w) (array-dimensions *bla*)
   (loop for jmode in (mapcar #'first ;; sort modes by u starting with ground mode
 			     (sort (loop for j across (step-fiber-eigenvalues-linear *bla-ev*) 
 				      and i from 0 collect
-					(list i j)) #'< :key #'first)) 
+					(list i j)) #'< :key #'second)) 
      do
        (destructuring-bind (l m) (fiber-linear-to-lm-index jmode *bla-ev*)
 	 (let* ((v 30d0)
@@ -683,27 +694,30 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		(c0 299792458d0)
 		;;(eps0 (/ (* mu0 (expt c0 2))))
 		(nrad (* .5 pi nco (/ (* c0 mu0)) (expt (/ v u) 2)
-			 (expt (gsll:cylindrical-bessel-k-scaled (abs l) w) -2) 
-			 (gsll:cylindrical-bessel-k-scaled (abs (- l 1)) w)
-			 (gsll:cylindrical-bessel-k-scaled (abs (+ l 1)) w)))
-		(core-numerical (gsl:integration-qng 
-				 #'(lambda (r) (* r (expt 
-						(gsll:cylindrical-bessel-j  l (* u r)) 2)))
-				 0d0 1d0))
-		(core-analytical (* .5  (- (expt (jn l u) 2)
-					   (* (jn (- l 1) u)  (jn (+ l 1) u) )) ))
-		(clad-numerical (gsl:integration-qagiu 
-				 #'(lambda (r) (* r (expt
-						(gsll:cylindrical-bessel-k l (* w r)) 2)))
-				 1d0 1d-15 1d-12 5000))
+			 (expt (check #'gsll:cylindrical-bessel-k-scaled 1 (abs l) w) -2) 
+			 (check #'gsll:cylindrical-bessel-k-scaled 2 (abs (- l 1)) w)
+			 (check #'gsll:cylindrical-bessel-k-scaled 3 (abs (+ l 1)) w)))
+		(core-numerical (/ (gsl:integration-qng 
+				    #'(lambda (r) (* r (expt 
+						   (check #'gsll:cylindrical-bessel-j 4 l (* u r)) 2)))
+				    0d0 1d0)
+				   (expt (check #'gsll:cylindrical-bessel-j 5 l u) 2)))
+		(core-analytical (* .5  (- 1 
+					   (* (jn (- l 1) u)  (jn (+ l 1) u) 
+					      (expt (jn l u) -2)))))
+		(clad-numerical (* (gsl:integration-qagiu 
+				    #'(lambda (r) (* r (expt
+						   (check #'gsll:cylindrical-bessel-k 6 l (* w r)) 2)))
+				    1d0 1d-15 1d-12 5000)
+				   (expt (check #'gsll:cylindrical-bessel-j 7 l u) -2)))
 		;; this is not stable for the ground mode, and gives a negative result
-		(clad-analytical (- (expt (gsll:cylindrical-bessel-k l u) 2)
-				    (* (gsll:cylindrical-bessel-k (- l 1) u)
-				       (gsll:cylindrical-bessel-k (+ l 1) u))))
+		(clad-analytical (- 1 (/ (* (check #'gsll:cylindrical-bessel-k 8 (- l 1) w)
+					    (check #'gsll:cylindrical-bessel-k 9 (+ l 1) w))
+					 (expt (check #'gsll:cylindrical-bessel-k 10 l w) 2))))
 		(full-analytical (* .5 (expt (/ v u) 2)
-				     (gsll:cylindrical-bessel-k (- l 1) w) 
-				     (gsll:cylindrical-bessel-k (+ l 1) w) 
-				     (expt (gsll:cylindrical-bessel-k l w) -2)))
+				    (check #'gsll:cylindrical-bessel-k 11 (- l 1) w) 
+				    (check #'gsll:cylindrical-bessel-k 12 (+ l 1) w) 
+				    (expt (check #'gsll:cylindrical-bessel-k 13 l w) -2)))
 		(core-simple (loop for j below h sum
 				  (loop for i below w sum
 				       (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
@@ -721,10 +735,11 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 					     (expt (abs (aref *bla* jmode j i)) 2)
 					     0d0))))))
 	   (format 
-	    t "~3d ~6,3f ~6,3f co ~6,3f ~6,3f ~6,3f  cl ~8,2,2e ~8,2,2e co/full ~9,1,2e full ~6,3f ~6,3f~%"
+	    t "~3d ~6,3f ~6,3f co ~6,3f ~6,3f ~6,3f  cl ~8,2,2e ~8,2,2e cl/full ~9,1,2e full ~6,3f ~6,3f~%"
 	    jmode u w core-numerical core-analytical (* resol resol core-simple)
-	    clad-numerical clad-analytical (/ core-numerical (+ core-numerical clad-numerical)); (* resol resol clad-simple)
+	    clad-numerical clad-analytical (/ clad-numerical (+ core-numerical clad-numerical)); (* resol resol clad-simple)
 	    (+ core-numerical clad-numerical) full-analytical)))))
+
 
 
 #+nil
