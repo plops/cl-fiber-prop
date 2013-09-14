@@ -20,7 +20,6 @@
 #+nil
 (char-step-index-fiber 1e-9 89.54 32)
 
-(defparameter *euler-m* 0.57721566490153286060651209008240243104215933593992d0)
 
 (defun check (fn pos &rest args)
   "call a gsll function and check that the error lies within a margin i can live with. pos is there to indicate which of many calls was the problematic one"
@@ -40,19 +39,30 @@
 	(let ((w (sqrt posrad)))
 	 (declare (type (double-float 0d0) w))
 	 (return-from char-step-index-fiber 
-	   (- (/ (* u (check #'gsll:cylindrical-bessel-j 1 (+ l 1) u))
-		 (check #'gsll:cylindrical-bessel-j 2 l u))
-	      (if (< w (* .1 (sqrt (+ l 1)))) 
-		  (if (= l 0)
-		      (/ -1d0 (+ (log (* w .5)) *euler-m*))
-		      (* 2 l))
+	   (- (if (< 139 l)
+		  (/ (expt u 2) (* 2 l))
+		  (/ (* u (check #'gsll:cylindrical-bessel-j 1 (+ l 1) u))
+		     (check #'gsll:cylindrical-bessel-j 2 l u)))
+	      (if (and (< w (* .1 (sqrt (+ l 1)))) (< 0 l)) 
+		  (* 2 l)
 		  (/ (* w (check #'gsll:cylindrical-bessel-k-scaled 3 (+ l 1) w))
 		     (check #'gsll:cylindrical-bessel-k-scaled 4 l w))))))))))
+
+#+nil
+(CHAR-STEP-INDEX-FIBER 1.000000001 1.4723156246069147e-321 149)
+
 #+nil
 (let ((l 140)
       (w 3.4d0))
   (* w (gsll:cylindrical-bessel-k-scaled (+ l 1) w)
      (/ (gsll:cylindrical-bessel-k-scaled l w))))
+
+#+nil
+(let ((l 139)
+      (u 1d0))
+  (list (/ (* u u) (* 2 l))
+   (* u (gsll:cylindrical-bessel-j (+ l 1) u)
+      (/ (gsll:cylindrical-bessel-j         l u)))))
 
 
 (defun step-fiber-eigenvalues (v)
@@ -92,9 +102,10 @@
 #+nil
 (char-step-index-fiber 28.887375063530467 30d0 10)
 
+
 #+nil
 (defparameter *bla*
- (step-fiber-eigenvalues 240d0))
+ (step-fiber-eigenvalues 260d0))
 
 #+nil
 (number-of-modes *bla*)

@@ -305,7 +305,28 @@ approximiert (f\"ur $w<0.1 \sqrt{1+l}$):
     2l &\textrm{sonst}
     \end{cases}
 \end{align}
-mit der Eulerzahl $\gamma=0.577215664901532860$.
+mit der Eulerzahl $\gamma=0.577215664901532860$. Aber f\"ur $l=0$,
+brauche ich diese N\"aherung nie anwenden.
+
+\begin{figure}[!hbt]
+  \centering
+  \includegraphics{plots/char-v30-l10.pdf}
+  \caption{Verlauf der charakteristischen Funktion f\"ur $v=30$ (rot)
+    und eine Darstellung der Nullstellen der Besselfunktion als
+    pr\"agnante Peaks in $\log|J_{10}(u)|$ (gr\"un). Die horizontale
+    Achse ist $u$.}
+  \label{fig:char}
+\end{figure}
+
+Das n\"achste Problem ergibt f\"ur die rechte Seite bei $l\approx 149$
+und $u=1$. Abhilfe schafft die folgende N\"aherung f\"ur gro\ss e $l$
+[Stegun 9.3.1]:
+\begin{align}
+  J_\nu(z)&\sim \frac{1}{2\pi\nu}\(\frac{ez}{2\nu}\)^\nu \\
+  u\frac{J_{l+1}(u)}{J_l(u)} &\sim \frac{u^2}{2l} + O(l^{-2})
+\end{align}
+
+% j(l,z):=1/sqrt(2*%pi*l)*(%e*z/(2*l))^l; taylor(expand(z*j(l+1,z)/j(l,z)),l,inf,2);
 
 Man kann zeigen, dass diese Gleichung f\"ur $0<v<2.405$ nur eine
 einzig L\"osung hat (single-mode). Der Wertebereich f\"ur m\"ogliche
@@ -351,6 +372,39 @@ Auf der anderen Seite, bei gut gef\"uhrten Moden mit kleinem $w$ gilt:
     \frac{u^2}{l+1} &= l
 \end{align}
 Ich verstehe nicht wie man da perturbation technique anwenden soll.
+
+
+In [Snyder 14-7 und 12-3] wird beschrieben wie man eine
+N\"aherungsl\"osung f\"ur $u$ bei gro\ss en $v$ und $l\ge 1$ bekommt
+[[8] ist Kogelnik 1975 integrated optics p 53-61].
+
+\begin{align}
+  \lim_{v\rightarrow\infty }u \rightarrow u_\infty \(1-\frac{2l}{v}\)^\frac{1}{2l}
+\end{align}
+
+Die Angaben f\"ur $u_\infty$ werden im Buch nur f\"ur nicht-LP Moden gemacht:
+
+\begin{align}
+  J_1(u_\infty) = 0  &\quad \textrm{TE}_{0m}, \textrm{TM}_{0m}\\
+  J_0(u_\infty) = 0  &\quad \textrm{HE}_{1m}\\
+J_{l+1}(u_\infty) = 0  &\quad \textrm{EH}_{lm}\\
+J_{l-1}(u_\infty) = 0  &\quad \textrm{HE}_{lm}, l> 1
+\end{align}
+
+Mit Hilfe der WKB N\"aherung k\"onnen einfachere Formeln f\"ur die
+h\"oheren Moden (bei $v,u,l\gg 1$ hergeleitet werden:
+
+Die Eigenwertgleichung wird unter der Bedingung $u-l\gg l^{1/3}$:
+\begin{align}
+  \tan\chi &= \sqrt{\frac{w^2+l^2}{u^2+l^2}}\\
+  \chi &= \sqrt{u^2-l^2}-l\arccos(l/u)-\pi/4\\
+  \frac{K_{l-1}(w)K_{l+1}(w)}{K_l^2(w)} &\sim \begin{cases}
+    \frac{u^2 \sin^2\chi - l^2}{w^2 \cos^2\chi}&  u-l\gg l^{1/3}\\
+   1+\frac{1}{\sqrt{w^2+l^2}} & l\gg 1
+\end{cases}
+\end{align}
+Die anderen beiden Ausdr\"ucke k\"onnen zur Orthonomierung mit $N$
+benutzt werden.
 
 \begin{align}
   \frac{J_l(z)}{J_{l-1}(z)} &= \frac{1}{2lz^{-1}-} \frac{1}{2(l+1)z^{-1}-} \frac{1}{2(l+2)z^{-1} -}\cdots \\
@@ -451,6 +505,12 @@ F\"ur die Auswertung berechne ich:
 \section{Vorgehensweise zur Berechnung der Modenfelder}
 Um die Feldverteilung der einzelnen Moden auszurechnen, kann man
 einige Zwischenergebnisse wiederverwenden.
+
+Eine N\"aherungsgleichung f\"ur die Anzahl der Moden ist in [Snyder
+p257] f\"ur $v\gg 1$ angegeben:
+\begin{align}
+  M_\textrm{bm} = \textrm{ceiling}\(v^2/2\)
+\end{align}
 
 Folgende Funktionen und ihre Ableitungen kann man tabellieren und
 sp\"ater mit Spline-Interpolation auswerten um 2D Felder
