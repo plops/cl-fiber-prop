@@ -22,6 +22,14 @@
 
 (defparameter *euler-m* 0.57721566490153286060651209008240243104215933593992d0)
 
+(defun check (fn pos &rest args)
+  "call a gsll function and check that the error lies within a margin i can live with. pos is there to indicate which of many calls was the problematic one"
+  (multiple-value-bind (v err) (apply fn args)
+    (when (and (< .1 (/ err v))
+	       (< .01 v))
+	(break "error: function is not precise enough ~a" (list pos 'args args 'result v 'error err)))
+    v))
+
 (defun char-step-index-fiber (u v l)
   (declare (type (integer 0 1000000) l)
 	   (type (double-float 0d0) u v))
@@ -32,14 +40,20 @@
 	(let ((w (sqrt posrad)))
 	 (declare (type (double-float 0d0) w))
 	 (return-from char-step-index-fiber 
-	   (- (/ (* u (jn (+ l 1) u))
-		 (jn l u))
+	   (- (/ (* u (check #'gsll:cylindrical-bessel-j 1 (+ l 1) u))
+		 (check #'gsll:cylindrical-bessel-j 2 l u))
 	      (if (< w (* .1 (sqrt (+ l 1)))) 
 		  (if (= l 0)
 		      (/ -1d0 (+ (log (* w .5)) *euler-m*))
 		      (* 2 l))
-		  (/ (* w (gsll:cylindrical-bessel-k-scaled (+ l 1) w))
-		     (gsll:cylindrical-bessel-k-scaled l w))))))))))
+		  (/ (* w (check #'gsll:cylindrical-bessel-k-scaled 3 (+ l 1) w))
+		     (check #'gsll:cylindrical-bessel-k-scaled 4 l w))))))))))
+#+nil
+(let ((l 140)
+      (w 3.4d0))
+  (* w (gsll:cylindrical-bessel-k-scaled (+ l 1) w)
+     (/ (gsll:cylindrical-bessel-k-scaled l w))))
+
 
 (defun step-fiber-eigenvalues (v)
   (let ((lmax (+ 1 (floor (* 2 V (/ pi)))))
@@ -80,7 +94,10 @@
 
 #+nil
 (defparameter *bla*
- (step-fiber-eigenvalues 30d0))
+ (step-fiber-eigenvalues 240d0))
+
+#+nil
+(number-of-modes *bla*)
 
 #+nil
 (time 
@@ -675,13 +692,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 #+nil
 (time  (write-pgm "/run/q/bla-coef-phase.pgm" (convert-ub8  (convert-df *bla-coef* :fun #'phase))))
 
-#+nil
-(defun check (fn pos &rest args)
-  "call a gsll function and check that the error lies within a margin i can live with. pos is there to indicate which of many calls was the problematic one"
-  (multiple-value-bind (v err) (apply fn args)
-    (when (< 8e-6 err)
-	(break "error: function is not precise enough ~a" (list pos 'args args 'result v 'error err)))
-    v))
+
+
 #+nil
 (check #'gsll:cylindrical-bessel-k 1 40 3d0)
 #+nil
