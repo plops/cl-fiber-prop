@@ -39,17 +39,24 @@
 	(let ((w (sqrt posrad)))
 	 (declare (type (double-float 0d0) w))
 	 (return-from char-step-index-fiber 
-	   (- (if (< 139 l)
-		  (/ (expt u 2) (* 2 l))
-		  (/ (* u (check #'gsll:cylindrical-bessel-j 1 (+ l 1) u))
-		     (check #'gsll:cylindrical-bessel-j 2 l u)))
-	      (if (and (< w (* .1 (sqrt (+ l 1)))) (< 0 l)) 
-		  (* 2 l)
-		  (/ (* w (check #'gsll:cylindrical-bessel-k-scaled 3 (+ l 1) w))
-		     (check #'gsll:cylindrical-bessel-k-scaled 4 l w))))))))))
+	   (if (and (< 80 v) (< 80 u) (< 100 l) (< (* .05 (expt l 1/3)) (- u l)))
+	       ;; wkb approximation
+	       (let ((chi (+ (sqrt (- (expt u 2) (expt l 2)))
+			   (* -1 l (acos (/ l u)))
+			   (* pi -.25))))
+		 (- (tan chi) (sqrt (/ (+ (expt w 2) (expt l 2))
+				     (+ (expt u 2) (expt l 2))))))
+	       (- (if (< 130 l)
+		      (/ (expt u 2) (* 2 l))
+		      (/ (* u (check #'gsll:cylindrical-bessel-j 1 (+ l 1) u))
+			 (check #'gsll:cylindrical-bessel-j 2 l u)))
+		  (if (and (< w (* .1 (sqrt (+ l 1)))) (< 0 l)) 
+		      (* 2 l)
+		      (/ (* w (check #'gsll:cylindrical-bessel-k-scaled 3 (+ l 1) w))
+			 (check #'gsll:cylindrical-bessel-k-scaled 4 l w)))))))))))
 
 #+nil
-(CHAR-STEP-INDEX-FIBER 1.000000001 1.4723156246069147e-321 149)
+(CHAR-STEP-INDEX-FIBER 100d0 200d0 71)
 
 #+nil
 (let ((l 140)
@@ -65,7 +72,7 @@
       (/ (gsll:cylindrical-bessel-j         l u)))))
 
 
-(defun step-fiber-eigenvalues (v)
+(defun step-fiber-eigenvalues (v &key debug)
   (let ((lmax (+ 1 (floor (* 2 V (/ pi)))))
 	(mmax (ceiling (- (/ V pi) 1/4))))
     
@@ -84,7 +91,7 @@
 		   (when poles (append '(1d0) poles (list v))))))
 	   (modes (loop for us in poles and l from 0 collect
 		       (loop for m from 1 below (length us) collect
-			    (progn (format t "checking ~a~%" (list l (1- m) (elt us (1- m)) (elt us m)))
+			    (progn (when debug (format t "checking ~a~%" (list l (1- m) (elt us (1- m)) (elt us m))))
 				   (let ((du 1d-9))
 				     (handler-case 
 					 (zbrent #'(lambda (x) (char-step-index-fiber x v l))
@@ -104,8 +111,9 @@
 
 
 #+nil
-(defparameter *bla*
- (step-fiber-eigenvalues 260d0))
+(time
+ (defparameter *bla*
+   (step-fiber-eigenvalues 2000d0)))
 
 #+nil
 (number-of-modes *bla*)
@@ -113,7 +121,7 @@
 #+nil
 (time 
  (let ((count 0))
-   (loop for e in (step-fiber-eigenvalues 243d0) do
+   (loop for e in (step-fiber-eigenvalues 1000d0) do
 	(loop for f in e do (incf count)))
    count)) ;; finding 6995 modes takes .924 s
 
