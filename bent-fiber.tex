@@ -837,6 +837,24 @@ als
 \end{align}
 Die GNU Scientific Library stellt f\"ur diese Aufgabe die Funktionen \verb!SV_decomp(A,V,S,vec work)! und  \verb!SV_solve(U,V,S,vec b,vec x)! bereit.
 
+
+\section{Vergleich mit FIMMPROP}
+die benutzen auch joints um bends zu repraesentieren
+
+7.4 boundary reflections in the bend
+
+modenkopplung
+
+fimmprop can can easily model loss in single mode fibers (multimode is
+*much* harder)!
+
+in manchen faellen koppelt man nur in gleiche p-ordnung, z.b. TE_10
+(morder 1 porder 2) und horizontal gebogene faser
+
+fimmprop kann nur bis ca. 40 moden simulieren
+
+wie geht in meiner simulation energie verloren? ich muesste eigentlich auch noch an strahlungsmoden koppeln
+
 \end{document}
 
 %%% Local Variables: 
