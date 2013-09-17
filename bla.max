@@ -21,11 +21,11 @@ plot2d([[discrete, vsin],[discrete,vcos],[discrete,vsincos]]);
 
 load("basic");
 set_plot_option([gnuplot_term,ps]);
-set_plot_option([gnuplot_out_file,"/home/martin/0828/cl-fiber-prop/oscillation-arbitrary-bend-angle.pdf"]);
+set_plot_option([gnuplot_out_file,"/home/martin/0828/cl-fiber-prop/oscillation-arbitrary-bend-angle.eps"]);
 l:[];for t:0 thru %pi/8 step (%pi/8)/7 do (v:[],for a:.1 thru 10 step .1 do (push([a,quad_qawo(cos(a*[sin(t),cos(t)].[cos(x),sin(x)]),x,0,2*%pi,4,cos)[1]],v)), push([discrete,v],l)); leg:[];for t:0 thru %pi/8 step (%pi/8)/7 do(push(t,leg));
-set_plot_option([gnuplot_term,"pdfcairo");
-set_plot_option([gnuplot_out_file,"/home/martin/0828/cl-fiber-prop/oscillation-arbitrary-bend-angle.max"]);
-set_plot_option([gnuplot_preamble, "set outp \"/run/q/bla.pdf\";set term pdf size 8cm,4.5cm"]); plot2d(l,append([legend],leg),[ylabel,"int(cos(4x) cos(a [sin(t),cos(t)].[cos(x),sin(x)]),x,0,2*%pi)"]);
+set_plot_option([gnuplot_out_file,"/home/martin/0828/cl-fiber-prop/oscillation-arbitrary-bend-angle.eps"]);
+set_plot_option([gnuplot_ps_term_command, "set term postsc eps size 9cm,4.5cm"]);
+plot2d(l,append([legend],leg),[ylabel,"int(cos(4x) cos(a [sin(t),cos(t)].[cos(x),sin(x)]),x,0,2*%pi)"]);
 system("epstopdf /home/martin/0828/cl-fiber-prop/oscillation-arbitrary-bend-angle.eps");
 
 
