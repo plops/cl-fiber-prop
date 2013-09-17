@@ -20,11 +20,17 @@ v:[];for a:.1 thru 30 step .1 do (v:append(v,[[a,quad_qawo(cos(a*[sin(t),cos(t)]
 plot2d([[discrete, vsin],[discrete,vcos],[discrete,vsincos]]);
 
 load("basic");
-l:[];for t:0 thru %pi step .3 do (v:[],for a:.1 thru 30 step .1 do (push([a,quad_qawo(cos(a*[sin(t),cos(t)].[cos(x),sin(x)]),x,0,2*%pi,4,cos)[1]],v)), push([discrete,v],l));
+set_plot_option([gnuplot_term,ps]);
+set_plot_option([gnuplot_out_file,"/home/martin/0828/cl-fiber-prop/oscillation-arbitrary-bend-angle.pdf"]);
+l:[];for t:0 thru %pi/8 step (%pi/8)/7 do (v:[],for a:.1 thru 10 step .1 do (push([a,quad_qawo(cos(a*[sin(t),cos(t)].[cos(x),sin(x)]),x,0,2*%pi,4,cos)[1]],v)), push([discrete,v],l)); leg:[];for t:0 thru %pi/8 step (%pi/8)/7 do(push(t,leg));
+set_plot_option([gnuplot_term,"pdfcairo");
+set_plot_option([gnuplot_out_file,"/home/martin/0828/cl-fiber-prop/oscillation-arbitrary-bend-angle.max"]);
+set_plot_option([gnuplot_preamble, "set outp \"/run/q/bla.pdf\";set term pdf size 8cm,4.5cm"]); plot2d(l,append([legend],leg),[ylabel,"int(cos(4x) cos(a [sin(t),cos(t)].[cos(x),sin(x)]),x,0,2*%pi)"]);
+system("epstopdf /home/martin/0828/cl-fiber-prop/oscillation-arbitrary-bend-angle.eps");
 
-v:[];for a:.1 thru 30 step .1 do (push([a,quad_qawo(cos(a*[sin(t),cos(t)].[cos(x),sin(x)]),x,0,2*%pi,4,cos)[1]],v));
 
-plot2d(l);
+v:[];for a:.1 thru 10 step .3 do (push([a,quad_qawo(cos(a*[sin(t),cos(t)].[cos(x),sin(x)]),x,0,2*%pi,4,cos)[1]],v));
+
 
 [sin(t),cos(t)].[cos(x),sin(x)],t=.2;
 
@@ -36,3 +42,7 @@ cos(z cos(phi) + b sin(phi))
 
 
 cos(n x)cos(m x) = cos((n+m)x) + cos((n-m)x)
+
+to_lisp();
+(plot-temp-file "bla")
+(to-maxima)
