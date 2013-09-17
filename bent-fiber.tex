@@ -632,11 +632,11 @@ von Oszillationen mit der Differenz- und Summenfrequenzen schreiben:
 % integrate(cos(l*x)*cos(z*cos(x)),x,0,2*%pi);
 
 \begin{align}
-  I_\phi(r) = \int_0^{2\pi}\!\!\!\!\!\! \cos(l\phi)\cos(m\phi) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi = \nonumber \\
-  \frac{1}{2}\int_0^{2\pi}\!\!\!\!\!\! \cos\((l+m)\phi\) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi  \nonumber \\
-  + \frac{1}{2}\int_0^{2\pi}\!\!\!\!\!\! \cos\((l-m)\phi\) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi \nonumber \\
-  =  \int_0^{\pi}\! e^{ik_0\alpha\rho r\cos(\phi)} \cos\((l+m)\phi\) \textrm{d}\phi  \nonumber \\
-  + \int_0^{\pi}\! e^{i\underbrace{k_0\alpha\rho r}_z\cos(\phi)} \cos\((l-m)\phi\)  \textrm{d}\phi
+  I_\phi(r) &= \int_0^{2\pi}\!\!\!\!\!\! \cos(l\phi)\cos(m\phi) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi = \nonumber \\
+  &\frac{1}{2}\int_0^{2\pi}\!\!\!\!\!\! \cos\((l+m)\phi\) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi  \nonumber \\
+  &+ \frac{1}{2}\int_0^{2\pi}\!\!\!\!\!\! \cos\((l-m)\phi\) e^{ik_0\alpha\rho r\cos(\phi)} \textrm{d}\phi \nonumber \\
+  &=  \int_0^{\pi}\! e^{ik_0\alpha\rho r\cos(\phi)} \cos\((l+m)\phi\) \textrm{d}\phi  \nonumber \\
+  &+ \int_0^{\pi}\! e^{i\underbrace{k_0\alpha\rho r}_z\cos(\phi)} \cos\((l-m)\phi\)  \textrm{d}\phi
 \end{align}
 
 Hierbei ist $x=\rho r \cos(\phi)$.
@@ -651,12 +651,23 @@ Gleichung:
   I_\phi(r) &= \pi \(i^{l+m} J_{l+m}(k_0\alpha\rho r)+i^{l-m} J_{l-m}(k_0\alpha\rho r)\)
 \end{align}
 
+Obige Integrale gehen davon aus, dass die Biegung der Faser in
+derselben Ebene wie die Modenrichtung erfolgt. Bei einer Verdrehung
+der Biegerichtung um den Winkel $\theta$ gegen\"uber dem
+Koordinatensystem der Moden ergibt sich hingegen das folgende
+Integral:
+\begin{align}
+  I_\phi(\theta,r) &= \int_0^{2\pi}\cos(\nu\phi) e^{ia(\sin(\theta)\cos(\phi)+\cos(\theta)\sin(\phi))} \textrm{d}\phi \label{eq:besselint}
+\end{align}
+
+
 \begin{figure}[!hbt]
   \centering
   \includegraphics{oscillation-arbitrary-bend-angle.pdf}
-  \caption{Numerische Integration im azimuthalen Teil des
-    Koppelkoeffizienten f\"ur verschiedene Winkel des Biegeradius
-    verglichen mit der Orientierung der Modenfelder.}
+  \caption{Numerische Integration im azimuthalen Teiles $\Re\(I_\phi(\theta,r)\)$ des
+    Koppelkoeffizienten gem\"a\ss\ Gleichung \eqref{eq:besselint}
+    f\"ur verschiedene Winkel des Biegeradius verglichen mit der
+    Orientierung der Modenfelder, $\nu=4$.}
   \label{fig:besselint}
 \end{figure}
 
