@@ -1,0 +1,28 @@
+
+bessel_k(2+1,1)/bessel_k(2,1)
+bessel_k(n+1,x)/bessel_k(n,x)
+
+
+f(z):=''(quad_qag(cos(4*phi)*cos(z*cos(phi)),phi,0,2*%pi,6)[1]); plot2d(f(z),[z,0,10]);
+
+plot3d(quad_qag(cos(4*phi)*cos(z*cos(phi)),phi,0,2*%pi,6)[1],[z,0,10]);
+
+
+integrate(cos(4.0*phi)*cos(.1*cos(phi)),phi,0.0,2.0*%pi),numer;
+
+f(z):=''(quad_qag(cos(4*phi)*cos(z*cos(phi)),phi,0.0,2.0*%pi,6)[1]);
+v:[];for a:.1 thru .8 step .21 do (v:append(v,[a,quad_qag(cos(4*x)*cos(a*cos(x)),x,0,2*%pi,6)[1]]));
+
+v:[];for a:.1 thru 30 step .1 do (v:append(v,[[a,quad_qawo(cos(a*cos(x)),x,0,2*%pi,4,cos)[1]]])); vcos:v;
+v:[];for a:.1 thru 30 step .1 do (v:append(v,[[a,quad_qawo(cos(a*sin(x)),x,0,2*%pi,4,cos)[1]]])); vsin:v;
+v:[];for a:.1 thru 30 step .1 do (v:append(v,[[a,quad_qawo(cos(a/sqrt(2)*(sin(x)+cos(x))),x,0,2*%pi,4,cos)[1]]])); vsincos:v;
+plot2d([[discrete, vsin],[discrete,vcos],[discrete,vsincos]]);
+
+
+plot2d(quad_qawo(cos(a*cos(x)),x,0,2*%pi,4,cos)[1],[a,.1,.7]);
+
+exp(i*(z*cos(phi)+b*sin(phi)))
+cos(z cos(phi) + b sin(phi))
+
+
+cos(n x)cos(m x) = cos((n+m)x) + cos((n-m)x)
