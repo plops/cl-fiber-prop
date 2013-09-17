@@ -657,7 +657,8 @@ der Biegerichtung um den Winkel $\theta$ gegen\"uber dem
 Koordinatensystem der Moden ergibt sich hingegen das folgende
 Integral:
 \begin{align}
-  I_\phi(\theta,r) &= \int_0^{2\pi}\cos(\nu\phi) e^{ia(\sin(\theta)\cos(\phi)+\cos(\theta)\sin(\phi))} \textrm{d}\phi \label{eq:besselint}
+  \label{eq:besselint}
+  I_\phi(\theta,r) &= \int_0^{2\pi}\cos(\nu\phi) e^{ia(\sin(\theta)\cos(\phi)+\cos(\theta)\sin(\phi))} \textrm{d}\phi 
 \end{align}
 
 
@@ -671,9 +672,9 @@ Integral:
   \label{fig:besselint}
 \end{figure}
 
-In \figref{fig:besselint} habe ich dieses Integral numerisch f\"ur
-verschiedene Werte von $\theta$ ausgewertet. Offenbar moduliert dies
-die h\"ohe der resultierenden Besselfunktion.
+In \figref{fig:besselint} habe ich den Realteil dieses Integrals
+numerisch f\"ur verschiedene Werte von $\theta$ ausgewertet. Offenbar
+moduliert dies die h\"ohe der resultierenden Besselfunktion.
 
 \begin{figure}[!hbt]
   \centering
@@ -689,6 +690,19 @@ spezifisch an der Stelle $a=5.2$ untersucht. Offenbar variert das
 Integral wie $\cos(4\theta)$. D.h. f\"ur $\theta=0$ treten Werte mit
 maximalen Betrag auf, w\"ahrend f\"ur $\theta=\pi/8$ das Integral
 verschwindet.
+
+Der Imagin\"arteil $\Im\(I_\phi(\theta,r)\)$ verschwindet offenbar
+f\"ur $\nu=4$, wie in \figref{fig:besselint-im} zu sehen ist.
+\begin{figure}[!hbt]
+  \centering
+  \includegraphics{oscillation-arbitrary-bend-angle-sin.pdf}
+  \caption{Numerische Integration im azimuthalen Teiles $\Im\(I_\phi(\theta,r)\)$ des
+    Koppelkoeffizienten gem\"a\ss\ Gleichung \eqref{eq:besselint}
+    f\"ur verschiedene Winkel des Biegeradius verglichen mit der
+    Orientierung der Modenfelder, $\nu=4$. Offenbar verschwindet dieses Integral.}
+  \label{fig:besselint-im}
+\end{figure}
+
 
 
 Hier haben die offenbar voll abgefahrene Umformungen gemacht, aber im
