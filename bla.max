@@ -50,6 +50,12 @@ system("epstopdf /home/martin/0828/cl-fiber-prop/oscillation-arbitrary-bend-angl
 
 
 
+leg:[];l:[];for t:0 thru %pi/8 step (%pi/8)/7 do (for t:0 thru %pi/8 step (%pi/8)/7 do(push(t,leg)),v:[],for a:.1 thru 10 step .3 do (push([a,quad_qawo(cos(a*[sin(t),cos(t)].[cos(x),sin(x)]),x,0,2*%pi,5,cos)[1]],v)), push([discrete,v],l)); 
+plot2d(l,append([legend],leg),[ylabel,"int(cos(4x) sin(a [sin(t),cos(t)].[cos(x),sin(x)]),x,0,2*%pi)"],[xlabel,"a"]);
+
+
+
+
 v:[];for a:.1 thru 10 step .3 do (push([a,quad_qawo(cos(a*[sin(t),cos(t)].[cos(x),sin(x)]),x,0,2*%pi,4,cos)[1]],v));
 
 

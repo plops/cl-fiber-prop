@@ -121,6 +121,7 @@ pdfsubject={Technical Report}]{hyperref}
 \def\E{\vect E}
 \def\f{\vect f}
 \def\H{\vect H}
+\def\h{\vect h}
 \def\c{\vect c}
 \def\x{\vect x}
 \def\y{\vect y}
@@ -590,7 +591,7 @@ durch
 \end{cases}
 \end{align}
 
-\section{Kopplung zweier gerader Faserst\"ucken}
+\section{Kopplung der gef\"uhrten Moden zweier gerader Faserst\"ucken}
 [1989Hill]
 Ausgehend von einer Modenverteilung in geraden Faserst\"ucken, kann
 die Kopplung durch einen Phasenkeil mit Winkel $\alpha$ vermittelt
@@ -658,14 +659,19 @@ Koordinatensystem der Moden ergibt sich hingegen das folgende
 Integral:
 \begin{align}
   \label{eq:besselint}
-  I_\phi(\theta,r) &= \int_0^{2\pi}\cos(\nu\phi) e^{ia(\sin(\theta)\cos(\phi)+\cos(\theta)\sin(\phi))} \textrm{d}\phi 
+  I^{+/\textcolor{red}{-}}_\phi(\theta,r) &= \int_0^{2\pi}
+  \begin{pmatrix}
+    \cos(\nu\phi)\\
+    \textcolor{red}{\sin(\nu\phi)}
+  \end{pmatrix}
+  e^{ia(\sin(\theta)\cos(\phi)+\cos(\theta)\sin(\phi))} \textrm{d}\phi 
 \end{align}
 
 
 \begin{figure}[!hbt]
   \centering
   \includegraphics{oscillation-arbitrary-bend-angle.pdf}
-  \caption{Numerische Integration im azimuthalen Teiles $\Re\(I_\phi(\theta,r)\)$ des
+  \caption{Numerische Integration im azimuthalen Teiles $\Re\(I^+_\phi(\theta,r)\)$ des
     Koppelkoeffizienten gem\"a\ss\ Gleichung \eqref{eq:besselint}
     f\"ur verschiedene Winkel des Biegeradius verglichen mit der
     Orientierung der Modenfelder, $\nu=4$.}
@@ -674,7 +680,7 @@ Integral:
 
 In \figref{fig:besselint} habe ich den Realteil dieses Integrals
 numerisch f\"ur verschiedene Werte von $\theta$ ausgewertet. Offenbar
-moduliert dies die h\"ohe der resultierenden Besselfunktion.
+moduliert dies die H\"ohe der resultierenden Besselfunktion.
 
 \begin{figure}[!hbt]
   \centering
@@ -692,7 +698,7 @@ maximalen Betrag auf, w\"ahrend f\"ur $\theta=\pi/8$ das Integral
 verschwindet.
 
 F\"ur $\nu=4$ verschwindet der Imagin\"arteil
-$\Im\(I_\phi(\theta,r)\)$ , wie in \figref{fig:besselint-im} zu sehen
+$\Im\(I^+_\phi(\theta,r)\)$ , wie in \figref{fig:besselint-im} zu sehen
 ist.
 \begin{figure}[!hbt]
   \centering
@@ -706,7 +712,7 @@ ist.
   \label{fig:besselint-im}
 \end{figure}
 
-F\"ur $\nu=5$ existiert der Imagin\"arteil $\Im\(I_\phi(\theta,r)\)$
+F\"ur $\nu=5$ existiert der Imagin\"arteil $\Im\(I^+_\phi(\theta,r)\)$
 hingegen. Dies ist in in \figref{fig:besselint-im-nu5} dargestellt.
 
 \begin{figure}[!hbt]
@@ -719,6 +725,17 @@ hingegen. Dies ist in in \figref{fig:besselint-im-nu5} dargestellt.
   \label{fig:besselint-im-nu5}
 \end{figure}
 
+Die numerischen Experimente geben Anlass f\"ur den folgenden analytischen Ausdruck f\"ur das Integral:
+\begin{align}
+  \label{eq:besselint}
+  I^{+/\textcolor{red}{-}}_\phi(\theta,r) &= \int_0^{2\pi}
+  \begin{pmatrix}
+    \cos(\nu\phi)\\
+    \textcolor{red}{\sin(\nu\phi)}
+  \end{pmatrix}
+  e^{ia(\sin(\theta)\cos(\phi)+\cos(\theta)\sin(\phi))} \textrm{d}\phi \\
+  &=\pi i^\nu \cos(4\theta)  J_\nu(a)
+\end{align}
 
 
 Hier haben die offenbar voll abgefahrene Umformungen gemacht, aber im
@@ -776,6 +793,65 @@ abbildet.
     angle $\alpha=\unit[2]{mrad}$.}
   \label{fig:coef}
 \end{figure}
+
+\section{Kopplung von Licht an Biegung in Strahlungsmdoden}
+An Biegungen kann auch Licht verloren gehen. F\"ur jede der diskreten
+Gef\"uhrten Moden kann eine Kopplungskonstante in das kontinierliche
+Spektrum der Strahlungsmoden bestimmt werden. Die Strahlungsmoden
+haben die Form:
+\begin{align}
+\E(x,y,z) = (\e_t(x,y)+e_z(x,y)\hz ) \exp(i\beta z)
+\end{align}
+Die Zeitabh\"angigkeit setzen wir \"uberall $e^{-i\omega t}$. Deshalb
+hat die Ausbreitungskonstante $\beta$ von vorw\"artslaufende Moden
+einen positiven Realteil. Die transversale Feldkomponente $\e_t$ wird
+nicht reell gew\"ahlt.  Uns interessieren hier nicht die evaneszenten
+Moden mit $0<\Im\beta<\infty$, diese transportieren schliesslich keine
+Energie. In [Snyder] wird der reelle Modenparameter $Q$ eingef\"uhrt,
+um evaneszente und sich ausbreitende Strahlungsmoden gleicherma\ss en
+behandeln zu k\"onnen.
+
+\begin{align}
+ Q = \rho \sqrt{k^2\ncl^2-\beta^2}
+\end{align}
+Das komplette Strahlungsfeld l\"a\ss t sich damit ausdr\"ucken als:
+\begin{align}
+\E_\textrm{rad} (x,y,z) = \sum_j \int_0^\infty a_j(Q) \e_j(x,y,Q) e^{i\beta(Q)z} \textrm{d} Q
+\end{align}
+
+Uns interessieren nur die ausbreitenden Strahlungsmoden im Bereich
+$0<Q\le k\rho\ncl$.
+
+Die Leistung in allen Strahlungsmoden ist:
+\begin{align}
+P_\textrm{rad}  = \sum_j \int_0^{k\rho\ncl}\!\!\!\!\!\!\!\!\! |a_j(Q)|^2 N_j(Q) \textrm{d}Q
+\end{align}
+Dieser Ausdruck ist unabh\"angig von $z$ und daher konstant entlang
+der Faser.
+
+Die Felder f\"ur Strahlungsmoden der schwach f\"uhrenden
+Stufenindexfaser sind:
+\begin{align}
+\Psi_l^\textrm{even} &= \cos(l\phi) \begin{cases}
+p_l J_l(UR)  & 0\le R \le 1 \\
+J_l(QR)+q_l H_l^{(1)} (QR) & 1 \le R < \infty
+\end{cases}\\
+\Psi_l^\textrm{odd} &= \Psi_l^\textrm{even} \tan(l\phi)
+\end{align}
+
+\begin{align}
+p_l &= \frac{2i}{\pi} (U J_{l+1}(U) H_l^{(1)}(Q)-QJ_l(U)H^{(1)}_{l+1}(Q))^{-1} \\
+q_l &= i \frac{\pi}{2} p_l(U J_{l+1}(U) J_l(Q)-QJ_l(U)     J_{l+1}(Q))
+\end{align}
+
+Die $\Psi$ werden dann linear kombiniert um $\e_t$ zu bilden. Dann
+gibt es einen komplizierten Ausdruck um mittels $\e_t$ $\h_t$, $e_z$
+und $h_z$ auszudr\"ucken. Die Normierungskonstante sieht
+verh\"aeltnism\"a\ss ig einfach aus. Das Kopplungsintegral ist
+vermutlich recht kompliziert numerisch auszuwerten, denn es enth\"alt
+die Integration \"uber $\beta$. Au\ss erdem sind die Felder der
+Strahlungsmoden nicht rein transversal.
+
 
 \section{Propagation entlang der Faser}
 \begin{align}
