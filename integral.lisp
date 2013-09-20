@@ -35,9 +35,9 @@
 #+nil
 (time
  (defparameter *data*
-   (let* ((w 80)
-	  (h 40)
-	  (ln 20)
+   (let* ((w 3)
+	  (h 80)
+	  (ln 4)
 	  (a (make-array (list ln h w) :element-type 'double-float)))
      (declare (optimize (speed 3))
 	      (type (simple-array double-float 3) a))
@@ -52,25 +52,28 @@
 			  (compute-integral-xy x y (* 1d0 l) 
 					       :cplx nil :trig :sine)))))))
        (let* ((procn 4)
-	      (chunk (ceiling ln procn))
+	      (chunk (floor ln procn))
 	      (arrays (loop for p below procn collect 
 			   (make-array (list chunk h w)
 				       :element-type 'double-float)))
-	      (threads (loop for proc fixnum below procn collect
+	      (threads (loop for proc fixnum below 3 #+nil procn collect
 			    (sb-thread:make-thread
 			     #'(lambda (proc chunk)
 				 (loop for l fixnum from (* proc chunk)
 				    below (* (+ proc 1) chunk) and bl from 0 do
 				      (when (< l ln) (calc-l (nth proc arrays) l bl))))
-			     :name (format nil "calc-~d" proc) 
+			     :name (format nil "calc-~d/~d" proc procn) 
 			     :arguments (list proc chunk)))))
+	 #+nil(loop for bl fixnum below (- ln (* procn chunk)) ;; calculate the rest
+	    and l from (* procn chunk) do (calc-l a l l))
 	 (declare (type fixnum procn chunk))
 	 (dolist (th threads)
 	   (sb-thread:join-thread th))
 	 (dotimes (p procn)
 	   (let ((b (nth p arrays)))
 	     (declare (type (simple-array double-float 3) b))
-	     (loop for l fixnum from (* p chunk) below (* (+ p 1) chunk) and bl fixnum from 0 do
+	     (loop for l fixnum from (* p chunk) below (* (+ p 1) chunk)
+		and bl fixnum from 0 do
 		  (when (< l ln)
 		    (dotimes (i w)
 		      (dotimes (j h)
@@ -82,8 +85,8 @@
 (cffi:defcfun jn :double (n :int) (x :double))
 #+nil
 (defparameter *data-cos*
-   (let* ((w 120)
-	  (h 120)
+   (let* ((w 60)
+	  (h 300)
 	  (ln 40)
 	  (trig :sine)
 	  (cplx nil)
@@ -126,11 +129,11 @@
    (progn
      (enable :depth-test)
      (clear :depth-buffer-bit))
-   (rotate -40 1 1 0)
-   ;(sleep .2)
-   ;;  (rotate -40 0 1 0)
-					(rotate (* 5 (glfw:get-time)) 0 0 1)
-   (rotate -25 0 0 1)
+   (rotate -90 1 0 0)
+   (rotate 40 1 0 0)
+   (rotate (+ 80 (* 7 (sin (* 2 (glfw:get-time))))) 0 0 1)
+   ;(rotate (* 5 (glfw:get-time)) 0 0 1)
+   ;(rotate -25 0 0 1)
 
    (color 1 1 1)
    
@@ -138,13 +141,13 @@
 	   (when data
 	    (destructuring-bind (ln h w) (array-dimensions data)
 	      (progn
-		(incf l 2)
+		;(incf l 2)
 	   (when (<= ln l)
 	     (setf l 0)))
 	      (when (< l ln)
 			 (color 0 0 0)
 	 (polygon-mode :front-and-back :fill)
-	 (color .1 .1 .01 .4)
+	 (color 0 0 0)
 	 (dotimes (i w) 
 	   (let ((x (* 2d0 (/ 1d0 w) (- i (/ w 2)))))
 	     (with-primitive :triangle-strip
@@ -188,6 +191,7 @@
 		    (vertex x y (+ .32 (* .1 (aref data l j i))))))))))
 
 	 )
+       #+nil
        (gl:with-primitive :triangles
 	 (color 1 0 0) (vertex  1  0 0)
 	 (color 0 1 0) (vertex -1  1 0)
