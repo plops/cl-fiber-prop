@@ -737,6 +737,30 @@ Die numerischen Experimente geben Anlass f\"ur den folgenden analytischen Ausdru
   &=\pi i^\nu \cos(4\theta)  J_\nu(a)
 \end{align}
 
+Durch Vergleich mit numerischer Quadratur habe ich folgende
+analytische Ausdr\"ucke f\"ur die Integrale bestimmt:
+\begin{align}
+  \chi &= \sin(\theta)\cos(\phi)+\cos(\theta)\sin(\phi) \\
+  \int_0^{2\pi}\cos(l \phi)\cos(r\chi) \textrm{d}\phi &=
+  \begin{cases}
+    2 \pi \cos(l\theta)  J_l(r) & l\ \textrm{even} \\
+    0 & \textrm{else} \end{cases}\\
+  \int_0^{2\pi}\sin(l \phi)\cos(r\chi) \textrm{d}\phi &=
+  \begin{cases}
+    2 J_0(r) & l=0 \\
+    -2 \pi \sin(l\theta)  J_l(r) & l\ \textrm{even} \\
+    0 & \textrm{else} \end{cases}\\
+  \int_0^{2\pi}\cos(l \phi)\sin(r\chi) \textrm{d}\phi &=
+  \begin{cases}
+    2 \pi \sin(l\theta)  J_l(r) & l\ \textrm{odd} \\
+    0 & \textrm{else} \end{cases}\\
+  \int_0^{2\pi}\sin(l \phi)\sin(r\chi) \textrm{d}\phi &=
+  \begin{cases}
+    2 \pi \cos(l\theta)  J_l(r) & l\ \textrm{odd} \\
+    0 & \textrm{else} \end{cases}  
+\end{align}
+
+
 
 Hier haben die offenbar voll abgefahrene Umformungen gemacht, aber im
 Paper leider nicht hingeschrieben:
