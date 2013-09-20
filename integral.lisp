@@ -35,9 +35,9 @@
 #+nil
 (time
  (defparameter *data*
-   (let* ((w 3)
+   (let* ((w 4)
 	  (h 80)
-	  (ln 4)
+	  (ln 40)
 	  (a (make-array (list ln h w) :element-type 'double-float)))
      (declare (optimize (speed 3))
 	      (type (simple-array double-float 3) a))
@@ -51,7 +51,7 @@
 		    (setf (aref a bl j i)
 			  (compute-integral-xy x y (* 1d0 l) 
 					       :cplx nil :trig :sine)))))))
-       (let* ((procn 4)
+       (let* ((procn 1)
 	      (chunk (floor ln procn))
 	      (arrays (loop for p below procn collect 
 			   (make-array (list chunk h w)
@@ -85,8 +85,8 @@
 (cffi:defcfun jn :double (n :int) (x :double))
 #+nil
 (defparameter *data-cos*
-   (let* ((w 60)
-	  (h 300)
+   (let* ((w 50)
+	  (h 80)
 	  (ln 40)
 	  (trig :sine)
 	  (cplx nil)
@@ -124,79 +124,73 @@
 
 
 (let ((l 2))
- (defun draw ()
-   (declare (optimize (debug 3)))
-   (progn
-     (enable :depth-test)
-     (clear :depth-buffer-bit))
-   (rotate -90 1 0 0)
-   (rotate 40 1 0 0)
-   (rotate (+ 80 (* 7 (sin (* 2 (glfw:get-time))))) 0 0 1)
-   ;(rotate (* 5 (glfw:get-time)) 0 0 1)
-   ;(rotate -25 0 0 1)
+  (defun draw ()
+    (declare (optimize (debug 3)))
+    (progn
+      (clear-color 0 0 0 1)
+      (enable :depth-test)
+      (clear :depth-buffer-bit))
+    (rotate -90 1 0 0)
+    (rotate 40 1 0 0)
+    (rotate (+ 80 (* 7 (sin (* 2 (glfw:get-time))))) 0 0 1)
+					;(rotate (* 5 (glfw:get-time)) 0 0 1)
+					;(rotate -25 0 0 1)
 
-   (color 1 1 1)
-   
-   (let ((data *data-cos*))
-	   (when data
-	    (destructuring-bind (ln h w) (array-dimensions data)
-	      (progn
-		;(incf l 2)
-	   (when (<= ln l)
-	     (setf l 0)))
-	      (when (< l ln)
-			 (color 0 0 0)
-	 (polygon-mode :front-and-back :fill)
-	 (color 0 0 0)
-	 (dotimes (i w) 
-	   (let ((x (* 2d0 (/ 1d0 w) (- i (/ w 2)))))
-	     (with-primitive :triangle-strip
-	       (dotimes (j h)
-		 (let ((y (* 2d0 (/ 1d0 h) (- j (/ h 2)))))
-		   (vertex x y (+ .3 (* .1 (aref data l j i))))
-		   (vertex x y 0))))))
-	 (dotimes (j h) 
-	   (let ((y (* 2d0 (/ 1d0 h) (- j (/ h 2)))))
-	     (with-primitive :triangle-strip
-	       (dotimes (i w)
-		 (let ((x (* 2d0 (/ 1d0 w) (- i (/ w 2)))))
-		   (vertex x y (+ .3 (* .1 (aref data l j i))))
-		   (vertex x y 0))))))
-	 (color .8 .2 .2)
-	 (line-width 1.9)
-		(dotimes (i w)
-		  (with-primitive :line-strip
-		    (dotimes (j h)
-		      (let ((x (* 2d0 (/ 1d0 w) (- i (/ w 2))))
-			    (y (* 2d0 (/ 1d0 h) (- j (/ h 2)))))
-			(vertex x y (+ .31 (* .1 (aref data l j i))))))))))))
+    (color 1 1 1)
+    (translate 0 0 2.4)
+    (let ((off .1) (sc .04) (s .4d0))
+     (loop for l below 10  by 2 do
+	  (translate 0 0 -.8)
+	  (let ((data *data-cos*))
+	    (when data
+	      (destructuring-bind (ln h w) (array-dimensions data)
+		(progn
+					;(incf l 2)
+		  (when (<= ln l)
+		    (setf l 0)))
+		(when (< l ln)
+		  (polygon-mode :front-and-back :fill)
+		  (color 0 0 0)
+		  (dotimes (i w) 
+		    (let ((x (* s 2d0 (/ 1d0 w) (- i (/ w 2)))))
+		      (with-primitive :triangle-strip
+			(dotimes (j h)
+			  (let ((y (* s 2d0 (/ 1d0 h) (- j (/ h 2)))))
+			    (vertex x y (+ off (* sc (aref data l j i))))
+			    (vertex x y 0))))))
+		  (dotimes (j h) 
+		    (let ((y (* s 2d0 (/ 1d0 h) (- j (/ h 2)))))
+		      (with-primitive :triangle-strip
+			(dotimes (i w)
+			  (let ((x (* s 2d0 (/ 1d0 w) (- i (/ w 2)))))
+			    (vertex x y (+ off (* sc (aref data l j i))))
+			    (vertex x y 0))))))
+		  (color .8 .2 .2)
+		  (line-width 1.2)
+		  (dotimes (i w)
+		    (with-primitive :line-strip
+		      (dotimes (j h)
+			(let ((x (* s 2d0 (/ 1d0 w) (- i (/ w 2))))
+			      (y (* s 2d0 (/ 1d0 h) (- j (/ h 2)))))
+			  (vertex x y (+ off .01  (* sc (aref data l j i))))))))))))
 
-   (when *data*
-     (let ((data *data*)
-	   )
-       (declare (type (simple-array double-float 3) data))
-       (destructuring-bind (ln h w) (array-dimensions data)
-	 
-	 (color 1 1 1)
-	 (line-width 2.2)
-	 (enable :blend :line-smooth)
-	 (blend-func :src-alpha :one)
-	 (when (< l ln)
-	  (dotimes (i w)
-	    (with-primitive :line-strip
-	      (dotimes (j h)
-		(let ((x (* 2d0 (/ 1d0 w) (- i (/ w 2))))
-		      (y (* 2d0 (/ 1d0 h) (- j (/ h 2)))))
-		  (progn	     ;when (< (+ (* x x) (* y y)) 1d0)
-		    (vertex x y (+ .32 (* .1 (aref data l j i))))))))))
+	  (when *data*
+	    (let ((data *data*))
+	      (declare (type (simple-array double-float 3) data))
+	      (destructuring-bind (ln h w) (array-dimensions data)
+		(color 1 1 1)
+		(line-width 2.2)
+		(enable :blend :line-smooth)
+		(blend-func :src-alpha :one)
+		(when (< l ln)
+		  (dotimes (i w)
+		    (with-primitive :line-strip
+		      (dotimes (j h)
+			(let ((x (* s 2d0 (/ 1d0 w) (- i (/ w 2))))
+			      (y (* s 2d0 (/ 1d0 h) (- j (/ h 2)))))
+			  (progn     ;when (< (+ (* x x) (* y y)) 1d0)
+			    (vertex x y (+ off .013 (* sc (aref data l j i)))))))))))))))))
 
-	 )
-       #+nil
-       (gl:with-primitive :triangles
-	 (color 1 0 0) (vertex  1  0 0)
-	 (color 0 1 0) (vertex -1  1 0)
-	 (color 0 0 1) (vertex -1 -1 0)))))
-   )
 #+nil
 (defparameter *gl-display-thread* 
   (sb-thread:make-thread #'run-window :name "gl-display-thread"))
