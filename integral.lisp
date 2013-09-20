@@ -35,9 +35,9 @@
 #+nil
 (time
  (defparameter *data*
-   (let* ((w 40)
+   (let* ((w 10)
 	  (h 60)
-	  (ln 20)
+	  (ln 30)
 	  (a (make-array (list ln h w) :element-type 'double-float)))
      (dotimes (l ln)
        (dotimes (i w)
@@ -46,7 +46,7 @@
 		 (y (* 30 2d0 (/ 1d0 h) (- j (/ h 2)))))
 	     (setf (aref a l j i)
 		   (compute-integral-xy x y (* 1d0 l) 
-					:cplx t :trig :cosine))))))
+					:cplx nil :trig :sine))))))
      a)))
 (defparameter *data* nil)
 (defparameter *data-cos* nil)
@@ -54,11 +54,11 @@
 (cffi:defcfun jn :double (n :int) (x :double))
 #+nil
 (defparameter *data-cos*
-   (let* ((w 40)
-	  (h 60)
-	  (ln 20)
-	  (trig :cosine)
-	  (cplx t)
+   (let* ((w 160)
+	  (h 80)
+	  (ln 50)
+	  (trig :sine)
+	  (cplx nil)
 	  (a (make-array (list ln h w) :element-type 'double-float)))
      (dotimes (l ln)
        (dotimes (i w)
@@ -85,38 +85,38 @@
 			   (if (= (mod l 2) 1)
 			       0d0
 			       (* -2 pi (if (= l 0)
-					 -1d0
-					 (sin (* l phi))) (jn l r))))))))))
+					   -1d0
+					   (sin (* l phi)))
+				  (jn l r))))))))))
      a))
 
 
 
-(let ((l 5))
+(let ((l 2))
  (defun draw ()
    (declare (optimize (debug 3)))
    (progn
      (enable :depth-test)
      (clear :depth-buffer-bit))
    (rotate -40 1 1 0)
-      (sleep .4)
+   ;(sleep .2)
    ;;  (rotate -40 0 1 0)
-   ;;  (rotate (* 5 (glfw:get-time)) 0 0 1)
+					(rotate (* 5 (glfw:get-time)) 0 0 1)
    (rotate -25 0 0 1)
 
    (color 1 1 1)
    
-   (when *data*
-     (let ((data *data*)
-	   )
-       (declare (type (simple-array double-float 3) data))
-       (destructuring-bind (ln h w) (array-dimensions data)
-	 (progn
-	   (incf l)
+   (let ((data *data-cos*))
+	   (when data
+	    (destructuring-bind (ln h w) (array-dimensions data)
+	      (progn
+		(incf l 2)
 	   (when (<= ln l)
 	     (setf l 0)))
-	 (assert (< l ln))
-	 (color 0 0 0)
+	      (when (< l ln)
+			 (color 0 0 0)
 	 (polygon-mode :front-and-back :fill)
+	 (color .1 .1 .01 .4)
 	 (dotimes (i w) 
 	   (let ((x (* 2d0 (/ 1d0 w) (- i (/ w 2)))))
 	     (with-primitive :triangle-strip
@@ -131,28 +131,35 @@
 		 (let ((x (* 2d0 (/ 1d0 w) (- i (/ w 2)))))
 		   (vertex x y (+ .3 (* .1 (aref data l j i))))
 		   (vertex x y 0))))))
-	 (color 1 1 1)
-	 (line-width 1)
-	 
-	 
-	 (dotimes (i w)
-	   (with-primitive :line-strip
-	     (dotimes (j h)
-	       (let ((x (* 2d0 (/ 1d0 w) (- i (/ w 2))))
-		     (y (* 2d0 (/ 1d0 h) (- j (/ h 2)))))
-		 (progn ;  when (< (+ (* x x) (* y y)) 1d0)
-		  (vertex x y (+ .3 (* .1 (aref data l j i)))))))))
-	 (color 1 0 0)
-	 (let ((data *data-cos*))
-	   (when data
-	    (destructuring-bind (ln h w) (array-dimensions data)
-	      (when (< l ln)
+	 (color .8 .2 .2)
+	 (line-width 1.9)
 		(dotimes (i w)
 		  (with-primitive :line-strip
 		    (dotimes (j h)
 		      (let ((x (* 2d0 (/ 1d0 w) (- i (/ w 2))))
 			    (y (* 2d0 (/ 1d0 h) (- j (/ h 2)))))
-			(vertex x y (+ .31 (* .1 (aref data l j i)))))))))))))
+			(vertex x y (+ .31 (* .1 (aref data l j i))))))))))))
+
+   (when *data*
+     (let ((data *data*)
+	   )
+       (declare (type (simple-array double-float 3) data))
+       (destructuring-bind (ln h w) (array-dimensions data)
+	 
+	 (color 1 1 1)
+	 (line-width 2.2)
+	 (enable :blend :line-smooth)
+	 (blend-func :src-alpha :one)
+	 (when (< l ln)
+	  (dotimes (i w)
+	    (with-primitive :line-strip
+	      (dotimes (j h)
+		(let ((x (* 2d0 (/ 1d0 w) (- i (/ w 2))))
+		      (y (* 2d0 (/ 1d0 h) (- j (/ h 2)))))
+		  (progn	     ;when (< (+ (* x x) (* y y)) 1d0)
+		    (vertex x y (+ .32 (* .1 (aref data l j i))))))))))
+
+	 )
        (gl:with-primitive :triangles
 	 (color 1 0 0) (vertex  1  0 0)
 	 (color 0 1 0) (vertex -1  1 0)
