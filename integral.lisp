@@ -130,6 +130,7 @@
       (clear-color 0 0 0 1)
       (enable :depth-test)
       (clear :depth-buffer-bit))
+    (sleep (/ 32))
     (rotate -90 1 0 0)
     (rotate 40 1 0 0)
     (rotate (+ 80 (* 7 (sin (* 2 (glfw:get-time))))) 0 0 1)
@@ -145,12 +146,12 @@
 	    (when data
 	      (destructuring-bind (ln h w) (array-dimensions data)
 		(progn
-					;(incf l 2)
+		  ;		  (incf l 2)
 		  (when (<= ln l)
 		    (setf l 0)))
 		(when (< l ln)
 		  (polygon-mode :front-and-back :fill)
-		  (color 0 0 0)
+		  (color .1 .01 0 1)
 		  (dotimes (i w) 
 		    (let ((x (* s 2d0 (/ 1d0 w) (- i (/ w 2)))))
 		      (with-primitive :triangle-strip
@@ -172,16 +173,18 @@
 		      (dotimes (j h)
 			(let ((x (* s 2d0 (/ 1d0 w) (- i (/ w 2))))
 			      (y (* s 2d0 (/ 1d0 h) (- j (/ h 2)))))
-			  (vertex x y (+ off .01  (* sc (aref data l j i))))))))))))
+			  (vertex x y (+ off .0  (* sc (aref data l j i))))))))))))
 
 	  (when *data*
 	    (let ((data *data*))
 	      (declare (type (simple-array double-float 3) data))
 	      (destructuring-bind (ln h w) (array-dimensions data)
 		(color 1 1 1)
-		(line-width 2.2)
+		(line-width 1.2)
 		(enable :blend :line-smooth)
-		(blend-func :src-alpha :one)
+
+		(blend-func :src-alpha
+			    :one-minus-src-alpha)
 		(when (< l ln)
 		  (dotimes (i w)
 		    (with-primitive :line-strip
@@ -189,7 +192,7 @@
 			(let ((x (* s 2d0 (/ 1d0 w) (- i (/ w 2))))
 			      (y (* s 2d0 (/ 1d0 h) (- j (/ h 2)))))
 			  (progn     ;when (< (+ (* x x) (* y y)) 1d0)
-			    (vertex x y (+ off .013 (* sc (aref data l j i)))))))))))))))))
+			    (vertex x y (+ off .001 (* sc (aref data l j i)))))))))))))))))
 
 #+nil
 (defparameter *gl-display-thread* 
@@ -209,7 +212,7 @@
 	    (viewport 0 0 w h)
 	    (unwind-protect (glu:perspective 45 (/ w h) 0.1 50)
 	      (gl:matrix-mode  :modelview)))))
-   (glfw:do-window (:title "A Simple Example")
+   (glfw:do-window (:title "A Simple Example" :depthbits 24)
        ((glfw:set-key-callback #'keyfun)
 	(reset-perspective))
      (sleep (/ 30s0))
