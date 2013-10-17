@@ -1,10 +1,9 @@
 #+nil
 (progn
   (setf asdf:*central-registry*
-	'(*default-pathname-defaults*
-	  #P"/media/sda6/home/martin/quicklisp/quicklisp/"))
+	(union (list *default-pathname-defaults*)
+	       asdf:*central-registry*))
   (require :cl-fiber-prop))
-
 
 (in-package :cl-fiber-prop)
 
@@ -907,3 +906,5 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
     (multiple-value-bind (u q d)
         (SV-decomposition (copy matrix))
       (SV-solve u q d (gsll::create-rhs-vector dim)))))
+
+

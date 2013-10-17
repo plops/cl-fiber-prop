@@ -1,0 +1,292 @@
+\documentclass[DIV21]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{soul}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{footnote}
+\usepackage[math]{kurier}
+\usepackage[scaled]{beramono}
+\usepackage{microtype}
+\usepackage{lineno}
+\usepackage[refpage]{nomencl}
+\usepackage{wasysym} %diameter
+\usepackage{natbib}
+\usepackage[pdftex,a4paper=true,plainpages,bookmarksnumbered,pagebackref,% put after natbib
+pdftitle={Light propagation through bent multi-mode fibers},%
+pdfauthor={Martin Kielhorn},%
+pdfkeywords={optical fibers, mode coupling}, %
+pdfsubject={Technical Report}]{hyperref}
+\usepackage{siunitx}
+\usepackage{units}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{textcomp}
+\usepackage{subfigure}
+
+\makenomenclature
+
+\newcommand{\vect}[1]{\mathbf{#1}}
+\renewcommand{\r}{\vect r}
+\renewcommand{\a}{\vect a}
+\newcommand{\s}{\vect s}
+\newcommand{\vnu}{\mbox{\boldmath{$\nu$}}}
+\newcommand{\valpha}{\mbox{\boldmath{$\alpha$}}}
+\newcommand{\vbeta}{\mbox{\boldmath{$\beta$}}}
+\newcommand{\vmu}{\mbox{\boldmath{$\mu$}}}
+\newcommand{\vtau}{\mbox{\boldmath{$\tau$}}}
+\newcommand{\vrho}{\mbox{\boldmath{$\rho$}}}
+\newcommand{\vvarrho}{\mbox{\boldmath{$\varrho$}}}
+\newcommand{\supp}{\mathop{\mathrm{supp}}}
+\newcommand{\pois}{\mathop{\mathrm{pois}}}
+\newcommand{\step}{\mathop{\mathrm{step}}}
+\newcommand{\diag}{\mathop{\mathrm{diag}}}
+\def\a{\vect a}
+\def\b{\vect b}
+\def\k{\vect k}
+\def\d{\vect d}
+\def\drm{\textrm d}
+\def\e{\vect e}
+\def\E{\vect E}
+\def\f{\vect f}
+\def\H{\vect H}
+\def\h{\vect h}
+\def\c{\vect c}
+\def\x{\vect x}
+\def\y{\vect y}
+\def\z{\vect z}
+\def\q{\vect q}
+\def\vzeta{\vect \zeta}
+\def\p{\vect p}
+\def\P{\vect P}
+\def\l{\vect l}
+
+\newcommand{\nvect}[1]{\vect{\widehat{#1}}}
+%\renewcommand{\i}{\nvect i}
+\newcommand{\vi}{\nvect \i}
+\def\hc{\nvect c}
+\def\hs{\nvect s}
+\def\hd{\nvect d}
+\def\hx{\nvect x}
+\def\hy{\nvect y}
+
+\def\hz{\nvect z}
+\def\n{\widehat{\vect n}}
+\def\t{\nvect t}
+\def\m{\nvect m}
+\def\vrho{\boldsymbol\rho}
+\def\abs#1{\mathopen| #1 \mathclose|}
+\def\({\left(}
+\def\){\right)}
+
+\newcommand{\nco}{n_\textrm{co}}
+\newcommand{\rco}{r_\textrm{co}}
+\newcommand{\neff}{n_\textrm{eff}}
+\newcommand{\ncl}{n_\textrm{cl}}
+\newcommand{\lmax}{l_\textrm{max}}
+\newcommand{\mmax}{m_\textrm{max}}
+\newcommand{\umax}{u_\textrm{max}}
+\newcommand{\umin}{u_\textrm{min}}
+\newcommand{\Ainfty}{A_\infty}
+
+\renewcommand{\O}{\textsf{O}} % oxygen
+
+\begin{document}
+
+Ich fasse hier die Formeln aus 1973marcuse zusammen, die notwendig
+sind um Modenkopplung einer gekr\"ummten Faser zu berechnen.
+
+Die Feldverteilung in der Faser kann durch als eine Superposition von
+gef\"uhrten Moden, evaneszenten Stahlungsmoden und sich ausbreitenden
+Strahlungsmoden ausgedr\"uckt werden:
+
+\begin{align}
+\E(x,y,z) = \sum_l\(
+\underbrace{\sum_\mu c_{\mu l} \e_{\mu l}(x,y) e^{i\beta_\mu z}}_\textnormal{gef\"uhrt} +
+\underbrace{\int_0^{\rco k \ncl} c_l(Q) \e_l(x,y,Q) e^{i\beta(Q)z}\drm Q}_\textnormal{evaneszent} +
+\underbrace{\int_{\rco k \ncl}^\infty c_l(Q) \e_l(x,y,Q) e^{i\beta(Q)z}\drm Q}_\textnormal{ausstrahlend}
+\)
+\end{align}
+
+Hierbei indiziert $l$ die azimuthale Quantenzahl und $\beta_\mu$
+beschreibt die Ausbreitungskonstante der gef\"uhrten Mode mit $\mu$
+Maxima entlang des Radius. Der Parameter
+$Q=\rco\sqrt{\k^2\ncl^2-\beta^2}$ indiziert sowohl evaneszente (mit
+imagin\"aren $\beta(Q)$) und sich ausbreitende Strahlungsmoden (mit
+reellem $\beta(Q)$).
+
+Meineserachtens kann die Kopplung von gef\"uhrten Moden zu
+evaneszenten Strahlungsmoden bei der gebogenen Faser nicht einfach
+vernachl\"assigt werden. Marcuse hat die Kopplung mit evaneszenten
+Moden in 1973marcuse jedoch nicht diskutiert, deshalb kann ich daf\"ur
+erstmal keine Formeln angeben.
+
+Weiterhin unterscheidet Marcuse bei den sich ausbreitenden
+Strahlungsmoden zwischen solchen, die sich nahe der Faserachse
+ausbreiten ($\beta\approx \ncl k$) und denen, die unter gr\"osserem
+Winkel von der Faser abgestrahlt werden ($\beta<\ncl k$). F\"ur
+letztere vernachl\"assigt Marcuse den Einfluss der Fasergeometrie auf
+das elektromagnetische Feld, so dass er einfach mit zylindrischen
+Freistrahlmoden arbeiten kann. Ich vermute, dass f\"uhr unser Problem
+der gekr\"ummten Fasern die Verluste haupts\"achlich in
+Strahlungsmoden nahe der Faserachse gehen.
+
+F\"ur eine vollst\"andige Beschreibung m\"usste auch die Kopplung in
+r\"uckw\"arts laufenden Moden betrachtet werden. Aber auch hier
+vermute ich, dass die Verluste f\"ur gekr\"ummte Fasern
+vernachl\"assigbar sind.
+
+F\"ur diese Arbeit setzt sich das Feld also wie folgt zusammen:
+\begin{align}
+\E(x,y,z) = \sum_l\(
+\underbrace{\sum_\mu c_{\mu l} \e_{\mu l}(x,y) e^{i\beta_\mu z}}_\textnormal{gef\"uhrt} +
+\underbrace{\int_{\rco k \ncl}^{1.1 \rco k \ncl} c_l(Q) \e_l(x,y,Q) e^{i\beta(Q)z}\drm Q}_\textnormal{ausstrahlend, nah an Achse} +
+\underbrace{\int_{1.1 \rco k \ncl}^\infty c_l(Q) \e_l(x,y,Q) e^{i\beta(Q)z}\drm Q}_\textnormal{ausstrahlend, fern der Achse}
+\)
+\end{align}
+
+Die folgenden Differentialgleichungen beschreibt die Entwicklung der
+Energieverteilung in den einzelnen lokalen Moden entlang einer
+gest\"orten Faser:
+\begin{align}
+  \frac{\drm c_{(\mu,l_\mu)}}{\drm z} &= 
+  \sum_{l_\nu} \sum_\nu  K_{(\mu,l_\mu)(\nu,l_\nu)} c_{(\nu,l_\nu)} e^{i(\beta_\mu-\beta_{(\nu,l_\nu)})z} + 
+  \sum_{l_Q} \int_{\rco k \ncl}^\infty  K_{(\mu,l_\mu)(Q,l_Q)} c_{(Q,l_Q)} e^{i(\beta_\mu-\beta_{l_Q}(Q))z} \drm Q
+\end{align}
+Die Kopplung zwischen zwei Moden mit Indizes $(\mu,l_\mu)$ und
+$(\nu,l_\nu)$ wird durch ein \"Uberlappintegral
+$K_{(\mu,l_\mu)(\nu,l_\nu)}$ zwischen den Modenfeldern bestimmt. 
+
+An dieser Stelle ist mir nicht klar, wie ich mit den kontinuierlichen
+Strahlungsmoden umgehen muss. Im allgemeinen Fall ergibt sich ein
+Integro-Differentialgleichungssystem, aber vielleicht kann man
+numerisch leicht implementieren, dass alle Energie die in
+Strahlungsmoden gekoppelt wurde endg\"ultig verloren ist.
+
+
+Die St\"orung, die zur gekr\"ummten Faser f\"uhrt ist gem\"ass
+Marcuses Notation:
+\begin{align}
+  r(x,y,z)&=a-f(z)\cos(\phi)\\
+  f''(z) &= 1/R
+\end{align}
+Wobei der Kr\"ummungsradius $R$ die Biegung der Faserachse
+beschreibt. Die azimuthale Abhaenigkeit $r(x,y,z)\sim \cos(m\phi)$ mit
+$m=1$ limitiert die Wechselwirkung auf gef\"uhrte Moden mit
+$l_\nu=l_\mu\pm 1$, bzw.\ $l_Q=l_\mu\pm 1$ f\"ur die Kopplung von
+gef\"uhrten Moden in sich ausbreitende Strahlungsmoden.
+
+Die Summen \"uber die azimuthalen Quantenzahlen in den
+Differentialgleichungen beschr\"anken sich also auf nur zwei Terme:
+\begin{align}
+  \frac{\drm c_{(\mu,l_\mu)}}{\drm z} &= 
+  \sum_{l_\nu\in\{l_\mu-1,l_\mu+1\}} \sum_\nu  K_{(\mu,l_\mu)(\nu,l_\nu)} c_{(\nu,l_\nu)} e^{i(\beta_\mu-\beta_{(\nu,l_\nu)})z} + 
+  \sum_{l_Q\in\{l_\mu-1,l_\mu+1\}} \int_{\rco k \ncl}^\infty  K_{(\mu,l_\mu)(Q,l_Q)} c_{(Q,l_Q)} e^{i(\beta_\mu-\beta_{l_Q}(Q))z} \drm Q
+\end{align}
+
+Marcuse separiert die Kopplungskonstante $K$ in das \"Uberlappintegral
+$\bar K$ und die Funktion $f(z)$, die die St\"orungsgeometrie
+beschreibt:
+\begin{align}
+  K_{\mu \nu} &= \bar K_{\mu \nu} f(z) 
+\end{align}
+Nur die Fourierkomponente der St\"orung mit der Frequenz
+$\beta_\nu-\beta_\mu$ vermittelt eine Kopplung zwischen den
+Moden. Damit l\"asst sich die Kopplungskonstante f\"ur eine gebogene
+Faser mit Kr\"ummungsradius $R$ der Faserachse ausdr\"ucken als:
+\begin{align}
+  K_{\mu \nu} &=  -\frac{1}{(\beta_\nu -\beta_\mu)^2} \frac{1}{R} \bar K_{\mu \nu} 
+\end{align}
+
+Marcuse hat das \"Uberlappintegral $\bar K$ analytisch
+ausgerechnet. Es gibt folgende F\"alle:
+
+
+
+Kopplung zwischen zwei gef\"uhrten Moden:
+\begin{align}
+  \bar K_{\mu \nu} &= \frac{e_{\mu\nu m}}{\sqrt{e_\mu e_\nu}}
+  \frac{u_\nu u_\mu J_\nu(u_\nu) J_\mu(u_\mu)}
+       {2 i \rco^3 n k \sqrt{
+           |J_{\nu-1}(u_\nu)J_{\nu+1}(u_\nu)
+           J_{\mu-1}(u_\mu)J_{\mu+1}(u_\mu)|}}
+\end{align}
+Der Faktor $e_{\mu\nu m}$ verschwindet ausser wenn $\mu=\nu\pm m$.
+
+Kopplung zwischen gef\"uhrter Mode $\nu$ und sich nahe der Faserachse
+ausbreitende Strahlungsmode $\mu$ mit $\beta\approx \ncl k$:
+\begin{align}
+  \bar K_{\mu \nu} &= \frac{e_{\mu\nu m}}{\sqrt{e_\mu e_\nu}}
+  \frac{\sqrt{\frac{\nco}{\ncl}-1}\ u_\nu\sqrt{\color{red}Q}\  J_\nu(u_\nu) {\color{red}J_\mu(u_\mu)}}
+       {i \pi \rco^{5/2} \sqrt{|J_{\nu-1}(u_\nu)J_{\nu+1}(u_\nu)|}\ 
+         {\color{red}|u_\mu J_{\mu-1}(u_\mu)H_{\mu}^{(1)}(Q)-QJ_\mu(u_\mu)H_{\mu-1}^{(1)}(Q)|}}
+\end{align}
+Hier habe ich die Terme farblich hervorgehoben \"uber die sich das
+Integral der kontinuierlichen Ausbreitungskonstante erstrecken
+muss. Dieses Integral muss f\"ur alle betrachteten Moden zur
+Bestimmung der \"Uberlappkonstante $\bar K$ einmalig numerisch
+berechnet werden. Mit diesen Resultaten k\"onnen dann Simulationen
+f\"ur verschiedene Biegeradien ohne nochmalige Berechnung des
+Integrals erfolgen.
+
+Kopplung zwischen gef\"uhrter Mode $\nu$ und sich von der Faserachse
+entfernende Strahlungsmode $\mu$:
+\begin{align}
+  \bar K_{\mu \nu} &= \frac{e_{\mu\nu m}}{\sqrt{e_\mu e_\nu}}
+  \frac{\sqrt{n\(\frac{\nco}{\ncl}-1\)k\color{red}{\beta Q}}\ u_\nu  J_\nu(u_\nu) \color{red}{J_\mu(Q)}}
+       {i \pi \sqrt{2 \rco ({\color{red}\beta}^2+n^2k^2)|J_{\nu-1}(u_\nu)J_{\nu+1}(u_\nu)|}}
+\end{align}
+In der obigen Formel gilt $n\approx\ncl$.
+
+Obige Ausdr\"ucke enthalten die folgenden Gr\"ossen:
+\begin{align}
+  e_\nu &= \begin{cases} 2 & \nu=0 \\ 1 & \nu\not=0 \end{cases}
+\end{align}
+
+Falls nicht anders spezifiziert verschwindet $e_{\mu\nu m}$.  Falls
+die Energie abgebende Mode die azimuthale Abh\"angigkeit $\cos\nu\phi$
+aufweist und die Energie aufnehmende Mode $\cos\mu\phi$:
+\begin{align}
+  e_{\mu\nu (m=1)} &= \begin{cases} 
+    2 & \nu = 0, \mu = 1\ \textnormal{or}\ \nu = 1, \mu = 0  \\
+    1 & 0<\mu = \nu \pm 1\ \textnormal{or}\ 0<\mu=1-\nu 
+  \end{cases}
+\end{align}
+Energie abgebende Mode:  $\sin\nu\phi$; Energie aufnehmende Mode: $\sin\mu\phi$
+\begin{align}
+  e_{\mu\nu (m=1)} &= \begin{cases} 
+    0 & \nu = 0\ \textnormal{or}\ \mu=0 \\ 
+    +1 & 0<\mu = \nu \pm 1\\
+    -1 & 0<\mu=1-\nu 
+  \end{cases}
+\end{align}
+Energie abgebende Mode:  $\cos\nu\phi$; Energie aufnehmende Mode: $\sin\mu\phi$
+\begin{align}
+  e_{\mu\nu (m=1)} &= \begin{cases} 
+    0 &  \mu=0 \\ 
+    2 & \nu=0,\ \mu=1\\
+    1 & \mu=\nu+1\\
+    -1 & 0<\mu = \nu - 1\\
+    1 & 0<\mu=1-\nu \\ 
+  \end{cases}
+\end{align}
+
+
+
+Ich habe die griechischen Buchstaben aus Marcuse in Faserparameter aus
+Snyder/Love umgewandelt:
+\begin{align}
+  \kappa &= \sqrt{\nco^2 k^2-\beta_\nu^2} = U/\rco \\
+  \gamma &= \sqrt{\beta^2-\ncl^2 k^2} = W/\rco \\
+  \rho &= \sqrt{\ncl^2 k^2-\beta^2} = i\gamma = Q/\rco  \\
+  \sigma &= \sqrt{\nco^2 k^2-\beta^2} = U/\rco\quad \textnormal{Strahlungsmode} 
+\end{align}
+
+
+\end{document}
