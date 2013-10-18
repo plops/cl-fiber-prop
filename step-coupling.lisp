@@ -77,6 +77,8 @@
 	     (format t "~4f" (* 100 val)))))
      (terpri))))
 
+
+
 (defparameter *terms*
   (let* ((res nil)
 	 (u-lin (step-fiber-eigenvalues-linear *u-modes*))
@@ -92,12 +94,20 @@
     (reverse res)))
 
 (defun fun (z c)
-  (flet ((ev (index-mu) 
+  (flet ((ev-real (index-mu) 
 	   (loop for (j i k delb) in *terms* and index from 0 sum
-		(if (= index index-mu) (complex 0d0)
-		    (* k (aref c index) (/ (complex 0d0 1d0)) (exp (complex 0d0 (* z delb))))))))
+		(if (= index index-mu) 
+		    0d0
+		    (* k (aref c (* 2 index)) (sin (* z delb))))))
+	 (ev-imag (index-mu) 
+	   (loop for (j i k delb) in *terms* and index from 0 sum
+		(if (= index index-mu) 
+		    0d0
+		    (* k (aref c (+ 1 (* 2 index))) (- (cos (* z delb))))))))
     (macrolet ((frob ()
-		 `(values ,@(loop for index-mu below (length *terms*) collect (ev index-mu)))))
+		 `(values ,@(loop for index-mu below (* 2 (length *terms*)) collect (if (evenp index-mu) 
+										       (ev-real index-mu)
+										       (ev-imag index-mu))))))
       (frob))))
 
 
