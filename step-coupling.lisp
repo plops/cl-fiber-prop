@@ -128,37 +128,100 @@
   (let ((y0 (grid:make-foreign-array 'double-float :dimensions (* 2 w)))
 	(time (grid:make-foreign-array 'double-float :dimensions 1))
 	(step-size (grid:make-foreign-array 'double-float :dimensions 1))
-	(ctl (gsll:make-standard-control 1d-17 1d-14 1d0 0d0))
-	(stepper (gsll:make-ode-stepper gsll:+step-rk2+ (* w 2) #'fun :scalarsp nil))
+	(ctl (gsll:make-standard-control 1d-1 1d-16 1d0 0d0))
+	(stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ (* w 2) #'fun nil nil))
 	(evo (gsll:make-ode-evolution (* 2 w))))  
     (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 0d0))
     (setf (grid:aref y0 0) 1d0
 	  (grid:aref time 0) 0d0
-	  (grid:aref step-size 0) 1d0)
-    (gsll:apply-evolution evo time y0 step-size ctl stepper 100d0)
-    (format t "~a~%" (loop for i below 3 collect 
-			  (list i (abs (complex (grid:aref y0 (* 2 i)) (grid:aref y0 (+ 1 (* 2 i))))))))))
+	  (grid:aref step-size 0) 1d-7)
+    (loop while (and (< (grid:aref time 0) 2d0)
+		     (< (abs (complex (grid:aref y0 (* 2 1)) 
+				      (grid:aref y0 (+ 1 (* 2 1))))) 1d0)) do
+	 (gsll:apply-evolution evo time y0 step-size ctl stepper 2d0)
+	 (format t "~20,12f ~6,3g ~{~18,13f ~}~%" 
+		 (grid:aref time 0)
+		 (grid:aref step-size 0)
+		 (loop for i below 3 collect 
+		      (abs (complex (grid:aref y0 (* 2 i)) 
+				    (grid:aref y0 (+ 1 (* 2 i))))))))))
+
+#+nil
+(let ((eps 1d-3)) ;; check that jacobian is calculated correctly
+ (flet ((vanderpol (z y f)
+	  (let ((y0 (grid:aref y 0))
+		(y1 (grid:aref y 1)))
+	    (setf (grid:aref f 0) y1
+		  (grid:aref f 1) (* (/ eps) 
+				     (- (* (+ 1 (- (expt y0 2))) y1)
+					y0))))
+	  gsll::+success+)
+	(vanderpol-jac (z y dfdy dfdt)
+	  (let ((y0 (grid:aref y 0))
+		(y1 (grid:aref y 1)))
+	    (setf (grid:aref dfdt 0) 0d0
+		  (grid:aref dfdt 1) 0d0
+		  (grid:aref dfdy 0 0) 0d0 ;; df0/dy0
+		  (grid:aref dfdy 0 1) 1d0 ;; df0/dy1
+		  (grid:aref dfdy 1 0) (* -1 (/ eps) (+ 1 (* 2 y0 y1))) ;; df1/dy0 
+		  (grid:aref dfdy 1 1) (* (/ eps) (- 1 (* y0 y0))) ;; df1/dy1
+		  ))
+	  gsll::+success+))
+   (let ((y0  (grid:make-foreign-array 'double-float :dimensions 2))
+	 (y1  (grid:make-foreign-array 'double-float :dimensions 2))
+	 (f0  (grid:make-foreign-array 'double-float :dimensions 2))
+	 (f1  (grid:make-foreign-array 'double-float :dimensions 2))
+	 (dfdy (make-array (list 2 2) :element-type 'double-float))
+	 (jdfdy (grid:make-foreign-array 'double-float :dimensions '(2 2) :initial-element 0d0))
+	 (jdfdt (grid:make-foreign-array 'double-float :dimensions 2))
+	 (d 1d-8)
+	 (z 1d0))
+     (dotimes (i 2)
+       (setf (grid:aref y0 i) (random 10d0)))
+     (vanderpol-jac z y0 jdfdy jdfdt)
+     (loop for j below 2 do
+	  (dotimes (i 2)
+	    (setf (grid:aref y1 i)  (grid:aref y0 i)))
+	  (setf (grid:aref y1 j)  (+ d (grid:aref y0 j))) ;; derivative with respect to y_j
+	  (vanderpol z y0 f0)
+	  (vanderpol z y1 f1)
+	  (dotimes (k 2)
+	    (setf (aref dfdy k j) (* (/ d) (- (grid:aref f1 k) (grid:aref f0 k))))))
+     (loop for j below 2 maximize (loop for i below 2 maximize (abs (- (aref dfdy j i) (grid:aref jdfdy j i))))))))
+
 
 
 #+nil
-(flet ((vanderpol (z y yy)
-	   (let ((eps 1e-3)
-		 (y0 (grid:aref y 0))
-		 (y1 (grid:aref y 1)))
-	    (setf (grid:aref yy 0) y1
-		  (grid:aref yy 1) (* (/ eps) 
-				      (- (* (+ 1 (- (expt y0 2))) y1)
-					 y0))))))
+(let ((eps 1e-3))
+ (flet ((vanderpol (z y f)
+	  (let ((y0 (grid:aref y 0))
+		(y1 (grid:aref y 1)))
+	    (setf (grid:aref f 0) y1
+		  (grid:aref f 1) (* (/ eps) 
+				     (- (* (+ 1 (- (expt y0 2))) y1)
+					y0))))
+	  gsll::+success+)
+	(vanderpol-jac (z y dfdy dfdt)
+	  (let ((y0 (grid:aref y 0))
+		(y1 (grid:aref y 1)))
+	    (setf (grid:aref dfdt 0) 0d0
+		  (grid:aref dfdt 1) 0d0
+		  (grid:aref dfdy 0 0) 0d0 ;; df0/dy0
+		  (grid:aref dfdy 0 1) 1d0 ;; df0/dy1
+		  (grid:aref dfdy 1 0) (* -1 (/ eps) (+ 1 (* 2 y0 y1))) ;; df1/dy0 x
+		  (grid:aref dfdy 1 1) (* (/ eps) (- 1 (* y0 y0))) ;; df1/dy1
+		  ))
+	  gsll::+success+))
    (let ((y0 (grid:make-foreign-array 'double-float :dimensions 2))
 	 (time (grid:make-foreign-array 'double-float :dimensions 1))
 	 (step-size (grid:make-foreign-array 'double-float :dimensions 1))
-	 (ctl (gsll:make-standard-control 1d-1 1d-2 1d0 0d0))
-	 (stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ 2 #'vanderpol :scalarsp nil))
+	 (ctl (gsll:make-standard-control 1d-14 1d-30 1d0 0d0))
+	 (stepper (gsll:make-ode-stepper gsll:+step-bsimp+ 2 #'vanderpol #'vanderpol-jac nil))
 	 (evo (gsll:make-ode-evolution 2)))  
      (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 0d0))
      (setf (grid:aref y0 0) 2d0
 	   (grid:aref time 0) 0d0
-	   (grid:aref step-size 0) 1e-2)
+	   (grid:aref step-size 0) 1e-9)
      (loop while (< (grid:aref time 0) 2d0) do
 	  (gsll:apply-evolution evo time y0 step-size ctl stepper 2d0)
-	  (format t "~a~%" (list (grid:aref time 0) (grid:aref y0 0))))))
+	  (format t "~{~12,8f ~}~%" (list (grid:aref time 0)  (grid:aref y0 0) (grid:aref step-size 0)))))))
