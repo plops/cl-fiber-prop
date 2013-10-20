@@ -365,7 +365,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
       (bessel-k-scaled-interp-init :start (* .9 wmin) :end (* 1.1 (sqrt 2) scale v) :n 2100 :lmax (+ 1 azimuthal-mode-count))
       (let ((start (get-universal-time)))
 	(loop for k in (mapcar #'first ;; sort modes by u starting with ground mode
-			       (sort (loop for j across (step-fiber-eigenvalues-linear *bla-ev*) 
+			       (sort (loop for j across (step-fiber-eigenvalues-linear u-modes) 
 					and i from 0 collect
 					  (list i j)) #'< :key #'second)) 
 	   ;k below (number-of-modes u-modes)
