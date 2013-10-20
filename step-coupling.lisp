@@ -85,16 +85,25 @@
      (terpri))))
 
 (defun coupled-mode-equations (z c dcdz)
-  ;;  (format t "hallo~%")  (format t "~A~%" (list z (grid:aref c 0) (grid:aref cc 0)))
   (declare (type double-float z)
 	   (type grid:vector-double-float c dcdz))
   (let ((n (grid:dim0 c)))
+					;(x+iy) (w+iz) = (xw-yz)+i (xz+yw)
+					; w = sin... z= -cos...
+					; x = c(2nu) y=c(2nu+1)
+
     (labels ((ev-real (mu) 
 	     (loop for nu below (floor n 2) sum 
-		  (* (aref *k-mu-nu* nu mu) (grid:aref c (* 2 nu)) (sin (* z (- (aref *b-lin* mu) (aref *b-lin* nu)))))))
+		  (let ((arg (* z (- (aref *b-lin* mu) (aref *b-lin* nu)))))
+		    (* (aref *k-mu-nu* nu mu) (- (* (grid:aref c (* 2 nu)) (sin arg))
+					     (* (grid:aref c (+ (* 2 nu) 1)) (- (cos arg))))))))
 	   (ev-imag (mu)
 	     (loop for nu below (floor n 2) sum 
-		  (* (aref *k-mu-nu* nu mu) (grid:aref c (+ (* 2 nu) 1)) (- (cos (* z (- (aref *b-lin* mu) (aref *b-lin* nu))))))))
+		  (let ((arg (* z (- (aref *b-lin* mu) (aref *b-lin* nu)))))
+		    (* (aref *k-mu-nu* nu mu) (+ (* (grid:aref c (+ (* 2 nu) 0))
+						(- (cos arg)))
+					     (* (grid:aref c (+ (* 2 nu) 1))
+						(sin arg)))))))
 	     (ev (mu)
 	       (if (evenp mu) 
 		   (ev-real (floor mu 2))
@@ -102,7 +111,6 @@
       (dotimes (mu n)
 	(setf (grid:aref dcdz mu) (ev mu)))))
   gsll::+success+)
-
 
 (defun coupled-mode-jacobian (z c dfdc dfdz)
   (declare (type double-float z)
@@ -205,10 +213,10 @@
 	   (time (grid:make-foreign-array 'double-float :dimensions 1))
 	   (step-size (grid:make-foreign-array 'double-float :dimensions 1))
 	   (ctl (gsll:make-standard-control 1d-12 1d-12 1d0 0d0))
-	   (stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ (* n 2) #'coupled-mode-equations-optimized nil nil))
+	   (stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ (* n 2) #'coupled-mode-equations nil nil))
 	   (evo (gsll:make-ode-evolution (* 2 n)))
 	   (max-time 3d0))  
-       (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 0d0))
+       (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 1d0))
        (setf (grid:aref y0 1) 1d0
 	     (grid:aref time 0) 0d0
 	     (grid:aref step-size 0) 1d-2)
@@ -222,7 +230,9 @@
 		      (grid:aref step-size 0)
 		      (loop for i below n collect 
 			   (expt (abs (complex (grid:aref y0 (* 2 i)) 
-					       (grid:aref y0 (+ 1 (* 2 i))))) 2)))))
+						     (grid:aref y0 (+ 1 (* 2 i))))) 2)
+			   #+nil (phase (complex (grid:aref y0 (* 2 i)) 
+					   (grid:aref y0 (+ 1 (* 2 i)))))))))
      
        ))))
 
