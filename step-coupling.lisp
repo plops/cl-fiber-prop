@@ -208,7 +208,7 @@
       (nco 1.43d0)
       (sc 3.3)) 
   (defparameter *u-modes* (step-fiber-eigenvalues v))
-  (defparameter *k-mu-nu* (k-mu-nu *u-modes* :v v :wavelength wavelen :nco nco :rco rco :bend-radius 1.2d0))
+  (defparameter *k-mu-nu* (k-mu-nu *u-modes* :v v :wavelength wavelen :nco nco :rco rco :bend-radius 4d0))
   (defparameter *b-lin* (step-fiber-betas-linear (step-fiber-eigenvalues-linear *u-modes*) v :lambd wavelen))
   (declaim (type (simple-array double-float 1) *b-lin*)
 	   (type (simple-array double-float 2) *k-mu-nu*) )
@@ -225,13 +225,13 @@
      
      (progn ;; create gnuplot file
        (with-open-file (s "bend.gp" :direction :output :if-exists :supersede :if-does-not-exist :create)
-	 (format s "plot ")
+	 (format s "set output \"bend.ps\"; set term posts;plot ")
 	 (dotimes (i n)
 	   (format s "\"bend6.dat\" u 1:~d w l lw 2 title \"~d\", " (+ 3 i) i))
 	 (format s "\"bend6.dat\" u 1:(")
 	 (dotimes (i n)
 	   (format s "$~d~c" (+ 3 i) (if (= i (- n 1)) #\Space #\+)))
-	 (format s ") w l lw 3~%pause -1~%"))
+	 (format s ") w l lw 3~% #pause -1~%"))
        #+nil (sb-ext:run-program "/usr/bin/gnuplot" '("bend.gp")))
 
 
