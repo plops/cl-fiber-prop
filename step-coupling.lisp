@@ -8,7 +8,7 @@
 (in-package :cl-fiber-prop)
 
 
-(defun k-mu-nu (u-modes &key (v 10d0) (wavelength .633d-3) (nco 1.43d0) (rco 12d-3) (bend-radius 1d0))
+(defun k-mu-nu (u-modes &key (v 10d0) (wavelength .633d-3) (nco 1.43d0) (rco 12d-3) (bend-radius 1.5d0))
  (let* ((k (/ (* 2 pi) wavelength))
 	(ncl (sqrt (- (expt nco 2)
 		      (expt (/ V (* k rco)) 2))))
@@ -83,20 +83,21 @@
 	     (format t "~4f" (* 100 val)))))
      (terpri))))
 
-
 (defun coupled-mode-equations (z c dcdz)
   ;;  (format t "hallo~%")  (format t "~A~%" (list z (grid:aref c 0) (grid:aref cc 0)))
   (let ((n (grid:dim0 c)))
-    (flet ((ev-real (mu) 
+    (labels ((ev-real (mu) 
 	     (loop for nu below (floor n 2) sum 
 		  (* (aref *k-mu-nu* nu mu) (grid:aref c (* 2 nu)) (sin (* z (- (aref *b-lin* mu) (aref *b-lin* nu)))))))
 	   (ev-imag (mu)
 	     (loop for nu below (floor n 2) sum 
-		  (* (aref *k-mu-nu* nu mu) (grid:aref c (+ (* 2 nu) 1)) (- (cos (* z (- (aref *b-lin* mu) (aref *b-lin* nu)))))))))
+		  (* (aref *k-mu-nu* nu mu) (grid:aref c (+ (* 2 nu) 1)) (- (cos (* z (- (aref *b-lin* mu) (aref *b-lin* nu))))))))
+	     (ev (mu)
+	       (if (evenp mu) 
+		   (ev-real (floor mu 2))
+		   (ev-imag (floor mu 2)))))
       (dotimes (mu n)
-	(setf (grid:aref dcdz mu) (if (evenp mu) 
-				     (ev-real (floor mu 2))
-				     (ev-imag (floor mu 2)))))))
+	(setf (grid:aref dcdz mu) (ev mu)))))
   gsll::+success+)
 
 
@@ -138,29 +139,36 @@
    (gsll:make-ode-evolution (* 2 w))))
 
 #+nil
-(destructuring-bind (n) (array-dimensions *b-lin*)
-  (let ((y0 (grid:make-foreign-array 'double-float :dimensions (* 2 n)))
-	(time (grid:make-foreign-array 'double-float :dimensions 1))
-	(step-size (grid:make-foreign-array 'double-float :dimensions 1))
-	(ctl (gsll:make-standard-control 1d-8 1d-8 1d0 0d0))
-	(stepper (gsll:make-ode-stepper gsll:+step-bsimp+ (* n 2) #'coupled-mode-equations #'coupled-mode-jacobian nil))
-	(evo (gsll:make-ode-evolution (* 2 n)))
-	(max-time 20d0))  
-    (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 0d0))
-    (setf (grid:aref y0 0) 1d0
-	  (grid:aref time 0) 0d0
-	  (grid:aref step-size 0) 1d-2)
-    (terpri)
-    (loop while (and (< (grid:aref time 0) max-time)
-		     (< (abs (complex (grid:aref y0 (* 2 1)) 
-				      (grid:aref y0 (+ 1 (* 2 1))))) 1d0)) do
-	 (gsll:apply-evolution evo time y0 step-size ctl stepper max-time)
-	 (format t "~20,12f ~8,3g ~{~18,13f ~}~%" 
-		 (grid:aref time 0)
-		 (grid:aref step-size 0)
-		 (loop for i below 7 collect 
-		      (abs (complex (grid:aref y0 (* 2 i)) 
-				    (grid:aref y0 (+ 1 (* 2 i))))))))))
+(time
+ (destructuring-bind (n) (array-dimensions *b-lin*)
+   (let ((y0 (grid:make-foreign-array 'double-float :dimensions (* 2 n)))
+	 (time (grid:make-foreign-array 'double-float :dimensions 1))
+	 (step-size (grid:make-foreign-array 'double-float :dimensions 1))
+	 (ctl (gsll:make-standard-control 1d-8 1d-8 1d0 0d0))
+	 (stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ (* n 2) #'coupled-mode-equations #'coupled-mode-jacobian nil))
+	 (evo (gsll:make-ode-evolution (* 2 n)))
+	 (max-time 20d0))  
+     (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 0d0))
+     (setf (grid:aref y0 0) 1d0
+	   (grid:aref time 0) 0d0
+	   (grid:aref step-size 0) 1d-2)
+     (terpri)
+     (with-open-file (f "bend6.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
+      (loop while (and (< (grid:aref time 0) max-time)
+		       (< (abs (complex (grid:aref y0 (* 2 1)) 
+					(grid:aref y0 (+ 1 (* 2 1))))) 1d0)) do
+	   (gsll:apply-evolution evo time y0 step-size ctl stepper max-time)
+	   (format f "~20,12f ~8,3g ~{~18,13f ~}~%" 
+		   (grid:aref time 0)
+		   (grid:aref step-size 0)
+		   (loop for i below 25 collect 
+			(expt (abs (complex (grid:aref y0 (* 2 i)) 
+					    (grid:aref y0 (+ 1 (* 2 i))))) 2))))))))
+
+#+nil
+(progn (terpri)
+ (dotimes (i 25)
+   (format t "\"bend5.dat\" u 1:~d w l, " (+ 3 i))))
 
 #+nil
 (let ((eps 1d-3)) ;; check that jacobian is calculated correctly
