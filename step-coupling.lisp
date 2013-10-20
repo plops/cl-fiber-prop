@@ -9,82 +9,85 @@
 
 
 (defun k-mu-nu (u-modes &key (v 10d0) (wavelength .633d-3) (nco 1.43d0) (rco 12d-3) (bend-radius 1.5d0))
- (let* ((k (/ (* 2 pi) wavelength))
-	(ncl (sqrt (- (expt nco 2)
-		      (expt (/ V (* k rco)) 2))))
-	(u-lin (step-fiber-eigenvalues-linear u-modes))
-	(b-lin (step-fiber-betas-linear u-lin v :lambd wavelength :nco nco :bigdelta (bigdelta nco ncl)))
-	(n (number-of-modes u-modes))
-	(kbar (make-array (list n n) :element-type 'double-float)))
-   (loop for j below n do		; in document nu 
-	(destructuring-bind (lj mj) (fiber-linear-to-lm-index j u-modes)
-	  (loop for i below n do	; in document mu receiving mode
-	       (destructuring-bind (li mi) (fiber-linear-to-lm-index i u-modes)
-		 (let* ((ali (abs li))
-			(alj (abs lj))
-			(e-mu-nu-m 0d0)
-			(val (cond
-			    ((and (<= 0 li) (<= 0 lj)) ;; both even
-			     (cond ((or (and (= lj 0) (= li 1))
-					(and (= lj 1) (= li 0))) 2d0)
-				   ((or (and (< 0 li) (or (= li (+ lj 1))
-							  (= li (- lj 1))))
-					(and (< 0 li) (= li (- 1 lj)))) 1d0)))
-			    ((and (<= li 0) (<= lj 0)) ;; both odd
-			     (cond ((or (= li 0) (= lj 0)) 0d0)
-				   ((and (< 0 ali) (or (= ali (+ alj 1))
-						       (= ali (- alj 1)))) 1d0)
-				   ((and (< 0 ali) (= ali (- 1 alj))) -1d0)))
-			    ((and (<= li 0) (<= 0 lj)) ;; receiving odd, decaying even
-			     (cond ((= ali 0) 0d0)
-				   ((and (= lj 0) (= ali 1)) 2d0)
-				   ((= ali (+ 1 alj)) 1d0)
-				   ((and (< 0 ali) (= ali (- alj 1))) -1d0)
-				   ((and (< 0 ali) (= ali (- 1 alj))) 1d0))))))
-		   (when val (let ((ui (aref u-lin i))
-				   (uj (aref u-lin j))
-				   (e-mu (if (= ali 0) 2d0 1d0))
-				   (e-nu (if (= alj 0) 2d0 1d0))
-				   (bi (aref b-lin i))
-				   (bj (aref b-lin j)))
-			       (setf e-mu-nu-m val)
-			       (setf (aref kbar j i) #+nil (cond ((= ali (+ 1 alj)) 1d0)
-								 ((= ali (- alj 1)) 2d0)
-								 (t 0d0)) 
-				     (*
-				      (* (-  (/ (expt (- bj bi) 2)))
-					 (/ bend-radius)
-					 e-mu-nu-m uj ui
-					 (gsl:cylindrical-bessel-j alj uj)
-					 (gsl:cylindrical-bessel-j ali ui)
-					 (/ (sqrt (* e-mu e-nu)))
-					 (/ (* 2 ncl k (expt rco 3)))
-					 (/ (sqrt (abs (* (gsl:cylindrical-bessel-j (- alj 1) uj)
-							  (gsl:cylindrical-bessel-j (+ alj 1) uj)
-							  (gsl:cylindrical-bessel-j (- ali 1) ui)
-							  (gsl:cylindrical-bessel-j (+ ali 1) ui))))))))))
-		   )))))
-   kbar))
+   (let* ((k (/ (* 2 pi) wavelength))
+	  (ncl (sqrt (- (expt nco 2)
+			(expt (/ V (* k rco)) 2))))
+	  (u-lin (step-fiber-eigenvalues-linear u-modes))
+	  (b-lin (step-fiber-betas-linear u-lin v :lambd wavelength :nco nco :bigdelta (bigdelta nco ncl)))
+	  (n (number-of-modes u-modes))
+	  (kbar (make-array (list n n) :element-type 'double-float)))
+     (format t "nco= ~f ncl=~f~%" nco ncl)
+     (loop for j below n do		; in document nu spurious mode
+	  (destructuring-bind (lj mj) (fiber-linear-to-lm-index j u-modes)
+	    (loop for i below n do	; in document mu incident mode
+		 (destructuring-bind (li mi) (fiber-linear-to-lm-index i u-modes)
+		   (let* ((ali (abs li))
+			  (alj (abs lj))
+			  (e-mu-nu-m 0d0)
+			  (val (cond
+				 ((and (<= 0 li) (<= 0 lj)) ;; both even
+				  (cond ((or (and (= lj 0) (= li 1))
+					     (and (= lj 1) (= li 0))) 2d0)
+					((or (and (< 0 li) (or (= li (+ lj 1))
+							       (= li (- lj 1))))
+					     (and (< 0 li) (= li (- 1 lj)))) 1d0)))
+				 ((and (<= li 0) (<= lj 0)) ;; both odd
+				  (cond ((or (= li 0) (= lj 0)) 0d0)
+					((and (< 0 ali) (or (= ali (+ alj 1))
+							    (= ali (- alj 1)))) 1d0)
+					((and (< 0 ali) (= ali (- 1 alj))) -1d0))))))
+		     (when val (let ((ui (aref u-lin i))
+				     (uj (aref u-lin j))
+				     (e-mu (if (= ali 0) 2d0 1d0))
+				     (e-nu (if (= alj 0) 2d0 1d0))
+				     (bi (aref b-lin i))
+				     (bj (aref b-lin j)))
+				 (setf e-mu-nu-m val)
+				 (setf (aref kbar j i) #+nil (cond ((= ali (+ 1 alj)) 1d0)
+								   ((= ali (- alj 1)) 2d0)
+								   (t 0d0)) 
+				       (*
+					(* (-  (/ (expt (- bj bi) 2)))
+					   (/ bend-radius)
+					   e-mu-nu-m uj ui
+					   (gsl:cylindrical-bessel-j alj uj)
+					   (gsl:cylindrical-bessel-j ali ui)
+					   (/ (sqrt (* e-mu e-nu)))
+					   (/ (* 2 ncl k (expt rco 3)))
+					   (/ (sqrt (abs (* (gsl:cylindrical-bessel-j (- alj 1) uj)
+							    (gsl:cylindrical-bessel-j (+ alj 1) uj)
+							    (gsl:cylindrical-bessel-j (- ali 1) ui)
+							    (gsl:cylindrical-bessel-j (+ ali 1) ui))))))))))
+		     )))))
+     kbar))
 
-(defparameter *u-modes* (step-fiber-eigenvalues 10d0))
 
-(defparameter *k-mu-nu* (k-mu-nu *u-modes*))
+(defvar *u-modes* nil)
+(defvar *k-mu-nu* (make-array '(1 1) :element-type 'double-float))
+(defvar *b-lin* (make-array 1 :element-type 'double-float))
 
-(let ((v 10d0))
- (defparameter *b-lin* (step-fiber-betas-linear (step-fiber-eigenvalues-linear *u-modes*) v :lambd .633e-3)))
+(let ((v 5d0)
+      (wavelen .633d-3)) 
+  (defparameter *u-modes* (step-fiber-eigenvalues v))
+  (defparameter *k-mu-nu* (k-mu-nu *u-modes* :v v :wavelength wavelen :nco 1.43d0 :rco 7d-3 :bend-radius 1.5d0))
+  (defparameter *b-lin* (step-fiber-betas-linear (step-fiber-eigenvalues-linear *u-modes*) v :lambd wavelen))
+  (declaim (type (simple-array double-float 1) *b-lin*)
+	   (type (simple-array double-float 2) *k-mu-nu*) ))
 
 (progn (terpri)
  (destructuring-bind (h w) (array-dimensions *k-mu-nu*)
    (dotimes (j h)
      (dotimes (i w)
-       (let ((val (aref *bla* j i)))
+       (let ((val (aref *k-mu-nu* j i)))
 	 (if (= val 0d0)
-	     (format t " -- ")
-	     (format t "~4f" (* 100 val)))))
+	     (format t "  ------")
+	     (format t "~8,2f" val))))
      (terpri))))
 
 (defun coupled-mode-equations (z c dcdz)
   ;;  (format t "hallo~%")  (format t "~A~%" (list z (grid:aref c 0) (grid:aref cc 0)))
+  (declare (type double-float z)
+	   (type grid:vector-double-float c dcdz))
   (let ((n (grid:dim0 c)))
     (labels ((ev-real (mu) 
 	     (loop for nu below (floor n 2) sum 
@@ -102,6 +105,9 @@
 
 
 (defun coupled-mode-jacobian (z c dfdc dfdz)
+  (declare (type double-float z)
+	   (type grid:vector-double-float c dfdz)
+	   (type grid:matrix-double-float dfdc))
   (let ((n (grid:dim0 c)))
     (flet ((ev-real (mu) 
 	     (loop for nu below (floor n 2) sum 
@@ -134,41 +140,59 @@
   (destructuring-bind (h w) (array-dimensions *bla*)
     (gsll:make-ode-stepper gsll:+step-rk2+ (* w 2) #'fun :scalarsp nil)))
 
+#+nil
 (defparameter *evo*
  (destructuring-bind (h w) (array-dimensions *bla*)
    (gsll:make-ode-evolution (* 2 w))))
 
 #+nil
 (time
- (destructuring-bind (n) (array-dimensions *b-lin*)
-   (let ((y0 (grid:make-foreign-array 'double-float :dimensions (* 2 n)))
-	 (time (grid:make-foreign-array 'double-float :dimensions 1))
-	 (step-size (grid:make-foreign-array 'double-float :dimensions 1))
-	 (ctl (gsll:make-standard-control 1d-8 1d-8 1d0 0d0))
-	 (stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ (* n 2) #'coupled-mode-equations #'coupled-mode-jacobian nil))
-	 (evo (gsll:make-ode-evolution (* 2 n)))
-	 (max-time 20d0))  
-     (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 0d0))
-     (setf (grid:aref y0 0) 1d0
-	   (grid:aref time 0) 0d0
-	   (grid:aref step-size 0) 1d-2)
-     (terpri)
-     (with-open-file (f "bend6.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-      (loop while (and (< (grid:aref time 0) max-time)
-		       (< (abs (complex (grid:aref y0 (* 2 1)) 
-					(grid:aref y0 (+ 1 (* 2 1))))) 1d0)) do
-	   (gsll:apply-evolution evo time y0 step-size ctl stepper max-time)
-	   (format f "~20,12f ~8,3g ~{~18,13f ~}~%" 
-		   (grid:aref time 0)
-		   (grid:aref step-size 0)
-		   (loop for i below 25 collect 
-			(expt (abs (complex (grid:aref y0 (* 2 i)) 
-					    (grid:aref y0 (+ 1 (* 2 i))))) 2))))))))
+ (progn
+   (let ((v 30d0)
+	 (wavelen .633d-3)) 
+     (defparameter *u-modes* (step-fiber-eigenvalues v))
+     (defparameter *k-mu-nu* (k-mu-nu *u-modes* :v v :wavelength wavelen :nco 1.43d0 :rco 120d-3 :bend-radius 1.5d0))
+     (defparameter *b-lin* (step-fiber-betas-linear (step-fiber-eigenvalues-linear *u-modes*) v :lambd wavelen))
+     (declaim (type (simple-array double-float 1) *b-lin*)
+	      (type (simple-array double-float 2) *k-mu-nu*) ))
+   (destructuring-bind (n) (array-dimensions *b-lin*)
+     (let ((y0 (grid:make-foreign-array 'double-float :dimensions (* 2 n)))
+	  (time (grid:make-foreign-array 'double-float :dimensions 1))
+	  (step-size (grid:make-foreign-array 'double-float :dimensions 1))
+	  (ctl (gsll:make-standard-control 1d-12 1d-12 1d0 0d0))
+	  (stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ (* n 2) #'coupled-mode-equations nil nil))
+	  (evo (gsll:make-ode-evolution (* 2 n)))
+	  (max-time 7d0))  
+      (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 0d0))
+      (setf (grid:aref y0 0) 1d0
+	    (grid:aref time 0) 0d0
+	    (grid:aref step-size 0) 1d-2)
+      (format t "there are ~d modes~%" n)
+      (terpri)
+      (with-open-file (f "bend6.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
+	(loop while (and (< (grid:aref time 0) max-time)
+			 (< (abs (complex (grid:aref y0 (* 2 1)) 
+					  (grid:aref y0 (+ 1 (* 2 1))))) 1d0)) do
+	     (gsll:apply-evolution evo time y0 step-size ctl stepper max-time)
+	     (format f "~20,12f ~8,3g ~{~18,13f ~}~%" 
+		     (grid:aref time 0)
+		     (grid:aref step-size 0)
+		     (loop for i below n collect 
+			  (expt (abs (complex (grid:aref y0 (* 2 i)) 
+					      (grid:aref y0 (+ 1 (* 2 i))))) 2)))))
+     
+      (progn ;; create gnuplot file
+	(with-open-file (s "bend.gp" :direction :output :if-exists :supersede :if-does-not-exist :create)
+	  (format s "plot ")
+	  (dotimes (i n)
+	    (format s "\"bend6.dat\" u 1:~d w l lw 2 title \"~d\", " (+ 3 i) i))
+	  (format s "\"bend6.dat\" u 1:(")
+	  (dotimes (i n)
+	    (format s "$~d~c" (+ 3 i) (if (= i (- n 1)) #\Space #\+)))
+	  (format s ") w l lw 3~%pause -1~%"))
+	#+nil (sb-ext:run-program "/usr/bin/gnuplot" '("bend.gp")))))))
 
-#+nil
-(progn (terpri)
- (dotimes (i 25)
-   (format t "\"bend5.dat\" u 1:~d w l, " (+ 3 i))))
+
 
 #+nil
 (let ((eps 1d-3)) ;; check that jacobian is calculated correctly
