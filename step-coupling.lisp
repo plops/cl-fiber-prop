@@ -118,7 +118,7 @@
 	   (type grid:matrix-double-float dfdc))
   (let ((n (grid:dim0 c)))
     (flet ((ev-real (mu) 
-	     (loop for nu below (floor n 2) sum 
+	     (loop for nu below (floor n 2) sum ;; needs work! fix complex multiplication
 		  (* (aref *k-mu-nu* nu mu) (grid:aref c (* 2 nu)) -1 (- (aref *b-lin* mu) (aref *b-lin* nu)) (cos (* z (aref *b-lin* nu))))))
 	   (ev-imag (mu)
 	     (loop for nu below (floor n 2) sum 
@@ -161,18 +161,37 @@
        `(defun coupled-mode-equations-optimized (z c dcdz)
 	  (declare (type double-float z)
 		   (type grid:vector-double-float c dcdz))
+	  #+nil
+	  ((ev-real (mu) 
+	     (loop for nu below (floor n 2) sum 
+		  (let ((arg (* z (- (aref *b-lin* mu) (aref *b-lin* nu)))))
+		    (* (aref *k-mu-nu* nu mu) (- (* (grid:aref c (* 2 nu)) (sin arg))
+					     (* (grid:aref c (+ (* 2 nu) 1)) (- (cos arg))))))))
+	   (ev-imag (mu)
+	     (loop for nu below (floor n 2) sum 
+		  (let ((arg (* z (- (aref *b-lin* mu) (aref *b-lin* nu)))))
+		    (* (aref *k-mu-nu* nu mu) (+ (* (grid:aref c (+ (* 2 nu) 0))
+						(- (cos arg)))
+					     (* (grid:aref c (+ (* 2 nu) 1))
+						(sin arg))))))))
 	  (flet (,@(loop for mu from 0 below nmodes collect
 			`(,(elt real-funs mu) () (declare (values double-float &optional))
 			   (+ ,@(remove-if #'null (loop for nu below nmodes collect
-				      (let ((k (aref *k-mu-nu* nu mu)))
+				      (let ((k (aref *k-mu-nu* nu mu))
+					    (arg (- (aref *b-lin* mu) (aref *b-lin* nu))))
 					(unless (< (abs k) 1d-15)
-					  `(* ,k (grid:aref c ,(* 2 nu)) (sin (* ,(- (aref *b-lin* mu) (aref *b-lin* nu)) z))))))))))
+					  `(* ,k  (- (* (grid:aref c ,(* 2 nu)) (sin (* ,arg z)))
+						     (* (grid:aref c ,(1+ (* 2 nu))) (- (cos (* ,arg z)))))))))))))
 		 ,@(loop for mu from 0 below nmodes collect
 			`(,(elt imag-funs mu) () (declare (values double-float &optional))
 			   (+ ,@(remove-if #'null (loop for nu below nmodes  collect
-							(let ((k (aref *k-mu-nu* nu mu)))
+							(let ((k (aref *k-mu-nu* nu mu))
+							      (arg (- (aref *b-lin* mu) (aref *b-lin* nu))))
 							  (unless (< (abs k) 1d-15)
-							    `(* ,k (grid:aref c ,(+ 1 (* 2 nu))) -1 (cos (* ,(- (aref *b-lin* mu) (aref *b-lin* nu)) z)))))))))))
+							    `(* ,k (+ (* (grid:aref c ,(+ (* 2 nu) 0))
+									 (- (cos (* ,arg z))))
+								      (* (grid:aref c ,(+ (* 2 nu) 1))
+									 (sin (* ,arg z)))))))))))))
 	    ,@(loop for mu below n collect 
 		   `(setf (grid:aref dcdz ,mu) ,(if (evenp mu) 
 						   `(,(elt real-funs (floor mu 2)))
@@ -183,10 +202,10 @@
 (def-coupled-mode-equations-optimized)
 
 #+nil
-(let ((v 8d0)
+(let ((v 12d0)
       (wavelen .633d-3)) 
   (defparameter *u-modes* (step-fiber-eigenvalues v))
-  (defparameter *k-mu-nu* (k-mu-nu *u-modes* :v v :wavelength wavelen :nco 1.43d0 :rco 12d-3 :bend-radius 1.7d0))
+  (defparameter *k-mu-nu* (k-mu-nu *u-modes* :v v :wavelength wavelen :nco 1.43d0 :rco 50d-3 :bend-radius 1.2d0))
   (defparameter *b-lin* (step-fiber-betas-linear (step-fiber-eigenvalues-linear *u-modes*) v :lambd wavelen))
   (declaim (type (simple-array double-float 1) *b-lin*)
 	   (type (simple-array double-float 2) *k-mu-nu*) ))
@@ -212,12 +231,12 @@
      (let ((y0 (grid:make-foreign-array 'double-float :dimensions (* 2 n)))
 	   (time (grid:make-foreign-array 'double-float :dimensions 1))
 	   (step-size (grid:make-foreign-array 'double-float :dimensions 1))
-	   (ctl (gsll:make-standard-control 1d-12 1d-12 1d0 0d0))
-	   (stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ (* n 2) #'coupled-mode-equations nil nil))
+	   (ctl (gsll:make-standard-control 1d-5 1d-5 1d0 0d0))
+	   (stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ (* n 2) #'coupled-mode-equations-optimized nil nil))
 	   (evo (gsll:make-ode-evolution (* 2 n)))
-	   (max-time 3d0))  
-       (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 1d0))
-       (setf (grid:aref y0 1) 1d0
+	   (max-time 70d0))  
+       (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 0d0))
+       (setf (grid:aref y0 0) 1d0
 	     (grid:aref time 0) 0d0
 	     (grid:aref step-size 0) 1d-2)
        (format t "there are ~d modes~%" n)
