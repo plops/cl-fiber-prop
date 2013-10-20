@@ -66,10 +66,10 @@
 (defvar *k-mu-nu* (make-array '(1 1) :element-type 'double-float))
 (defvar *b-lin* (make-array 1 :element-type 'double-float))
 
-(let ((v 5d0)
+(let ((v 6d0)
       (wavelen .633d-3)) 
   (defparameter *u-modes* (step-fiber-eigenvalues v))
-  (defparameter *k-mu-nu* (k-mu-nu *u-modes* :v v :wavelength wavelen :nco 1.43d0 :rco 7d-3 :bend-radius 1.5d0))
+  (defparameter *k-mu-nu* (k-mu-nu *u-modes* :v v :wavelength wavelen :nco 1.43d0 :rco 20d-3 :bend-radius 1.4d0))
   (defparameter *b-lin* (step-fiber-betas-linear (step-fiber-eigenvalues-linear *u-modes*) v :lambd wavelen))
   (declaim (type (simple-array double-float 1) *b-lin*)
 	   (type (simple-array double-float 2) *k-mu-nu*) ))
@@ -145,52 +145,98 @@
  (destructuring-bind (h w) (array-dimensions *bla*)
    (gsll:make-ode-evolution (* 2 w))))
 
+(defmacro def-coupled-mode-equations-optimized ()
+  (let* ((nmodes (length *b-lin*))
+	 (n (* 2 nmodes))
+	 (real-funs (loop for mu below nmodes collect (intern (format nil "EV-REAL-~3,'0d" mu))))
+	 (imag-funs (loop for mu below nmodes collect (intern (format nil "EV-IMAG-~3,'0d" mu)))))
+       `(defun coupled-mode-equations-optimized (z c dcdz)
+	  (declare (type double-float z)
+		   (type grid:vector-double-float c dcdz))
+	  (flet (,@(loop for mu from 0 below nmodes collect
+			`(,(elt real-funs mu) () (declare (values double-float &optional))
+			   (+ ,@(remove-if #'null (loop for nu below nmodes collect
+				      (let ((k (aref *k-mu-nu* nu mu)))
+					(unless (< (abs k) 1d-15)
+					  `(* ,k (grid:aref c ,(* 2 nu)) (sin (* ,(- (aref *b-lin* mu) (aref *b-lin* nu)) z))))))))))
+		 ,@(loop for mu from 0 below nmodes collect
+			`(,(elt imag-funs mu) () (declare (values double-float &optional))
+			   (+ ,@(remove-if #'null (loop for nu below nmodes  collect
+							(let ((k (aref *k-mu-nu* nu mu)))
+							  (unless (< (abs k) 1d-15)
+							    `(* ,k (grid:aref c ,(+ 1 (* 2 nu))) -1 (cos (* ,(- (aref *b-lin* mu) (aref *b-lin* nu)) z)))))))))))
+	    ,@(loop for mu below n collect 
+		   `(setf (grid:aref dcdz ,mu) ,(if (evenp mu) 
+						   `(,(elt real-funs (floor mu 2)))
+						   `(,(elt imag-funs (floor mu 2)))))))
+	  gsll::+success+)))
+
+#+nil
+(def-coupled-mode-equations-optimized)
+
+#+nil
+(let ((v 15d0)
+      (wavelen .633d-3)) 
+  (defparameter *u-modes* (step-fiber-eigenvalues v))
+  (defparameter *k-mu-nu* (k-mu-nu *u-modes* :v v :wavelength wavelen :nco 1.43d0 :rco 20d-3 :bend-radius 1.4d0))
+  (defparameter *b-lin* (step-fiber-betas-linear (step-fiber-eigenvalues-linear *u-modes*) v :lambd wavelen))
+  (declaim (type (simple-array double-float 1) *b-lin*)
+	   (type (simple-array double-float 2) *k-mu-nu*) ))
+
 #+nil
 (time
  (progn
-   (let ((v 30d0)
+   (let ((v 15d0)
 	 (wavelen .633d-3)) 
      (defparameter *u-modes* (step-fiber-eigenvalues v))
-     (defparameter *k-mu-nu* (k-mu-nu *u-modes* :v v :wavelength wavelen :nco 1.43d0 :rco 120d-3 :bend-radius 1.5d0))
+     (defparameter *k-mu-nu* (k-mu-nu *u-modes* :v v :wavelength wavelen :nco 1.43d0 :rco 20d-3 :bend-radius 1.4d0))
      (defparameter *b-lin* (step-fiber-betas-linear (step-fiber-eigenvalues-linear *u-modes*) v :lambd wavelen))
      (declaim (type (simple-array double-float 1) *b-lin*)
 	      (type (simple-array double-float 2) *k-mu-nu*) ))
+
+   
+
+
    (destructuring-bind (n) (array-dimensions *b-lin*)
-     (let ((y0 (grid:make-foreign-array 'double-float :dimensions (* 2 n)))
-	  (time (grid:make-foreign-array 'double-float :dimensions 1))
-	  (step-size (grid:make-foreign-array 'double-float :dimensions 1))
-	  (ctl (gsll:make-standard-control 1d-12 1d-12 1d0 0d0))
-	  (stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ (* n 2) #'coupled-mode-equations nil nil))
-	  (evo (gsll:make-ode-evolution (* 2 n)))
-	  (max-time 7d0))  
-      (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 0d0))
-      (setf (grid:aref y0 0) 1d0
-	    (grid:aref time 0) 0d0
-	    (grid:aref step-size 0) 1d-2)
-      (format t "there are ~d modes~%" n)
-      (terpri)
-      (with-open-file (f "bend6.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-	(loop while (and (< (grid:aref time 0) max-time)
-			 (< (abs (complex (grid:aref y0 (* 2 1)) 
-					  (grid:aref y0 (+ 1 (* 2 1))))) 1d0)) do
-	     (gsll:apply-evolution evo time y0 step-size ctl stepper max-time)
-	     (format f "~20,12f ~8,3g ~{~18,13f ~}~%" 
-		     (grid:aref time 0)
-		     (grid:aref step-size 0)
-		     (loop for i below n collect 
-			  (expt (abs (complex (grid:aref y0 (* 2 i)) 
-					      (grid:aref y0 (+ 1 (* 2 i))))) 2)))))
      
-      (progn ;; create gnuplot file
-	(with-open-file (s "bend.gp" :direction :output :if-exists :supersede :if-does-not-exist :create)
-	  (format s "plot ")
-	  (dotimes (i n)
-	    (format s "\"bend6.dat\" u 1:~d w l lw 2 title \"~d\", " (+ 3 i) i))
-	  (format s "\"bend6.dat\" u 1:(")
-	  (dotimes (i n)
-	    (format s "$~d~c" (+ 3 i) (if (= i (- n 1)) #\Space #\+)))
-	  (format s ") w l lw 3~%pause -1~%"))
-	#+nil (sb-ext:run-program "/usr/bin/gnuplot" '("bend.gp")))))))
+     (progn ;; create gnuplot file
+       (with-open-file (s "bend.gp" :direction :output :if-exists :supersede :if-does-not-exist :create)
+	 (format s "plot ")
+	 (dotimes (i n)
+	   (format s "\"bend6.dat\" u 1:~d w l lw 2 title \"~d\", " (+ 3 i) i))
+	 (format s "\"bend6.dat\" u 1:(")
+	 (dotimes (i n)
+	   (format s "$~d~c" (+ 3 i) (if (= i (- n 1)) #\Space #\+)))
+	 (format s ") w l lw 3~%pause -1~%"))
+       #+nil (sb-ext:run-program "/usr/bin/gnuplot" '("bend.gp")))
+
+
+     (let ((y0 (grid:make-foreign-array 'double-float :dimensions (* 2 n)))
+	   (time (grid:make-foreign-array 'double-float :dimensions 1))
+	   (step-size (grid:make-foreign-array 'double-float :dimensions 1))
+	   (ctl (gsll:make-standard-control 1d-5 1d-5 1d0 0d0))
+	   (stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ (* n 2) #'coupled-mode-equations-optimized nil nil))
+	   (evo (gsll:make-ode-evolution (* 2 n)))
+	   (max-time 7d0))  
+       (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 0d0))
+       (setf (grid:aref y0 0) 1d0
+	     (grid:aref time 0) 0d0
+	     (grid:aref step-size 0) 1d-2)
+       (format t "there are ~d modes~%" n)
+       (terpri)
+       (with-open-file (f "bend6.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
+	 (loop while (and (< (grid:aref time 0) max-time)
+			  (< (abs (complex (grid:aref y0 (* 2 1)) 
+					   (grid:aref y0 (+ 1 (* 2 1))))) 1d0)) do
+	      (gsll:apply-evolution evo time y0 step-size ctl stepper max-time)
+	      (format f "~20,12f ~8,3g ~{~18,13f ~}~%" 
+		      (grid:aref time 0)
+		      (grid:aref step-size 0)
+		      (loop for i below n collect 
+			   (expt (abs (complex (grid:aref y0 (* 2 i)) 
+					       (grid:aref y0 (+ 1 (* 2 i))))) 2)))))
+     
+       ))))
 
 
 
