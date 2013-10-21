@@ -11,10 +11,12 @@
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{footnote}
-\usepackage[math]{kurier}
-\usepackage[scaled]{beramono}
-\usepackage{microtype}
-\usepackage{lineno}
+%\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+%\usepackage[math]{kurier}
+%\usepackage[scaled]{beramono}
+%\usepackage{microtype}
+%\usepackage{lineno}
 \usepackage[refpage]{nomencl}
 \usepackage{wasysym} %diameter
 \usepackage{natbib}
@@ -185,6 +187,7 @@ gef\"uhrten Moden in sich ausbreitende Strahlungsmoden.
 Die Summen \"uber die azimuthalen Quantenzahlen in den
 Differentialgleichungen beschr\"anken sich also auf nur zwei Terme:
 \begin{align}
+  \label{eq:coupled-modes}
   \frac{\drm c_{(\mu,l_\mu)}}{\drm z} &= 
   \sum_{l_\nu\in\{l_\mu-1,l_\mu+1\}} \sum_\nu  K_{(\mu,l_\mu)(\nu,l_\nu)} c_{(\nu,l_\nu)} e^{i(\beta_\mu-\beta_{(\nu,l_\nu)})z} + 
   \sum_{l_Q\in\{l_\mu-1,l_\mu+1\}} \int_{\rco k \ncl}^\infty  K_{(\mu,l_\mu)(Q,l_Q)} c_{(Q,l_Q)} e^{i(\beta_\mu-\beta_{l_Q}(Q))z} \drm Q
@@ -250,15 +253,15 @@ Obige Ausdr\"ucke enthalten die folgenden Gr\"ossen:
 \end{align}
 
 Falls nicht anders spezifiziert verschwindet $e_{\mu\nu m}$.  Falls
-die Energie abgebende Mode die azimuthale Abh\"angigkeit $\cos\nu\phi$
-aufweist und die Energie aufnehmende Mode $\cos\mu\phi$:
+die einfallende Mode die azimuthale Abh\"angigkeit $\cos\nu\phi$
+aufweist und die St\"orungsmode $\cos\mu\phi$:
 \begin{align}
   e_{\mu\nu (m=1)} &= \begin{cases} 
     2 & \nu = 0, \mu = 1\ \textnormal{or}\ \nu = 1, \mu = 0  \\
     1 & 0<\mu = \nu \pm 1\ \textnormal{or}\ 0<\mu=1-\nu 
   \end{cases}
 \end{align}
-Energie abgebende Mode:  $\sin\nu\phi$; Energie aufnehmende Mode: $\sin\mu\phi$
+Einfallende Mode:  $\sin\nu\phi$; St\"orungsmode: $\sin\mu\phi$
 \begin{align}
   e_{\mu\nu (m=1)} &= \begin{cases} 
     0 & \nu = 0\ \textnormal{or}\ \mu=0 \\ 
@@ -266,15 +269,9 @@ Energie abgebende Mode:  $\sin\nu\phi$; Energie aufnehmende Mode: $\sin\mu\phi$
     -1 & 0<\mu=1-\nu 
   \end{cases}
 \end{align}
-Energie abgebende Mode:  $\cos\nu\phi$; Energie aufnehmende Mode: $\sin\mu\phi$
+Einfallende Mode:  $\cos\nu\phi$; St\"orungsmode: $\sin\mu\phi$
 \begin{align}
-  e_{\mu\nu (m=1)} &= \begin{cases} 
-    0 &  \mu=0 \\ 
-    2 & \nu=0,\ \mu=1\\
-    1 & \mu=\nu+1\\
-    -1 & 0<\mu = \nu - 1\\
-    1 & 0<\mu=1-\nu \\ 
-  \end{cases}
+  e_{\mu\nu (m=1)} &= 0
 \end{align}
 
 
@@ -288,5 +285,20 @@ Snyder/Love umgewandelt:
   \sigma &= \sqrt{\nco^2 k^2-\beta^2} = U/\rco\quad \textnormal{Strahlungsmode} 
 \end{align}
 
+Die Integrale \"uber die Strahlungsmoden in Gleichung
+(\ref{eq:coupled-modes}) m\"ussen meineserachtens diskretisiert
+werden, so dass verh\"altnism\"a\ss ig viele zus\"atzliche Eintr\"age
+zu den Kopplungsgleichungen hinzukommen.
+
+In 2009Huang wird eine bessere Methode vorgestellt, um die Kopplung zu
+den Strahlungsmoden zu berechnen. Sie modifizieren die Geometrie der
+Faser. Anstelle einer unendlich ausgedehnten Region, f\"uhren sie in
+einem gewissen Abstand im Cladding einen 'perfectly matched layer'
+ein, gefolgt von einer perfekt reflektierenden Oberfl\"ache ein. Damit
+weist das Problem keine Strahlungsmoden mit kontinuierlichen
+$\beta-$Spektrum mehr auf, sondern besitzt eine endliche diskrete
+Anzahl von Moden mit komplexzahligen $\beta$. Sie zeigen, dass diese
+diskreten Strahlungsmoden einfach mit in die Kopplungsgleichung
+(\ref{eq:coupled-modes}) eingef\"ugt werden k\"onnen.
 
 \end{document}

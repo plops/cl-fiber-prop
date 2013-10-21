@@ -294,7 +294,7 @@
       (write-pgm (format nil "bla-~5,'0d.pgm" i)
 		 (convert-ub8  (.abs2 (superimpose-fields (elt *c-result* i))) :scale 1d0 ;:offset -.2d0
 			       ))))
-
+;; /media/sda6/usr/bin/ffmpeg -i bla-%05d.pgm  -qscale .1 ../o.mp4
 
 #+nil
 (let ((eps 1d-3)) ;; check that jacobian is calculated correctly
