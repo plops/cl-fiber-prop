@@ -139,20 +139,6 @@
 	      (grid:aref dfdc (+ 1 (* 2 mu)) (+ 1 (* 2 nu))) (* (aref *k-mu-nu* nu mu) (- (cos (* z (- (aref *b-lin* mu) (aref *b-lin* nu))))))))))
   gsll::+success+)
 
-(grid:dim0 (grid:make-foreign-array 'double-float :dimensions '(3 2)))
-
-(defparameter *c* (gsll:make-standard-control 1d-6 1d-3 1d0 1d0))
-
-#+nil
-(defparameter *s*
-  (destructuring-bind (h w) (array-dimensions *bla*)
-    (gsll:make-ode-stepper gsll:+step-rk2+ (* w 2) #'fun :scalarsp nil)))
-
-#+nil
-(defparameter *evo*
- (destructuring-bind (h w) (array-dimensions *bla*)
-   (gsll:make-ode-evolution (* 2 w))))
-
 (defmacro def-coupled-mode-equations-optimized ()
   (let* ((nmodes (length *b-lin*))
 	 (n (* 2 nmodes))
@@ -267,15 +253,17 @@
 						   (grid:aref y0 (+ 1 (* 2 i)))))))))
 	 (defparameter *c-result* (reverse c-result)))))))
 
+(defvar *fields* nil)
 (defun superimpose-fields (c)
   (declare (values (simple-array (complex double-float) 2) &optional)
 	   (type (simple-array (complex double-float) 1) c))
   (destructuring-bind (n h w) (array-dimensions *fields*)
     (let ((a (make-array (list h w) :element-type '(complex double-float) :initial-element (complex 0d0))))
-      (dotimes (mode n)
-	(dotimes (j h)
-	  (dotimes (i w)
-	    (incf (aref a j i) (* (aref c mode) (aref *fields* mode j i))))))
+      (when *fields*
+       (dotimes (mode n)
+	 (dotimes (j h)
+	   (dotimes (i w)
+	     (incf (aref a j i) (* (aref c mode) (aref *fields* mode j i)))))))
       a)))
 
 (defun .abs2 (c)
