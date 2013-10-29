@@ -1,6 +1,6 @@
 (in-package :cl-fiber-prop)
 
-(defun convert-ub8 (a &key (scale 1d0 scale-p) (invert nil) (offset 0d0) (debug nil))
+(defun convert-ub8 (a &key (scale 1d0 scale-p) (invert nil) (offset 0d0) (debug nil) max min)
   (declare (type (array double-float 2) a)
 	   (type double-float scale)
 	   (optimize (speed 3))
@@ -11,7 +11,7 @@
 	(offset2 offset))
     (declare (type double-float scale2 offset2)
 	     (type (simple-array (unsigned-byte 8) 2) b))
-    (unless scale-p
+    (unless (or scale-p (and max min))
       (let ((ma (reduce #'max (sb-ext:array-storage-vector a)))
 	    (mi (reduce #'min (sb-ext:array-storage-vector a))))
 	(setf scale2 (if (= ma mi)
@@ -20,6 +20,11 @@
 	      offset2 mi)
 	(when debug
 	 (break "~a" (list 'scale scale2 'offset offset2 'max ma)))))
+    (when (and max min)
+      (setf scale2 (if (= max min)
+			 1d0
+			 (/ (- max min)))
+	      offset2 min))
     (destructuring-bind (h w) (array-dimensions a)
       (declare (type fixnum h w))
       (if invert

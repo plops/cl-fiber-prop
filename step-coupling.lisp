@@ -199,7 +199,7 @@
   (declaim (type (simple-array double-float 1) *b-lin*)
 	   (type (simple-array double-float 2) *k-mu-nu*) )
   (defparameter *fields* (step-fiber-fields *u-modes* v :scale sc :rco rco :nco nco
-					    :n (* 6 (step-fiber-minimal-sampling *u-modes* v :scale sc)))))
+					    :n (* 4 (step-fiber-minimal-sampling *u-modes* v :scale sc)))))
 
 #+nil
 (destructuring-bind (z h w) (array-dimensions *fields*)
@@ -211,10 +211,12 @@
 		  )
 	     (dotimes (i w)
 	       (dotimes (j h)
-		 (setf (aref a j i) (complex (* (expt -1 (+ i j)) (aref *fields* k j i))))))
+		 (setf (aref a j i) (complex (* #+nil (expt -1 (+ i j)) (aref *fields* k j i))))))
 	     (fft::ft a))))
       (write-pgm (format nil "o-~3,'0d.pgm" k)
-		 (convert-ub8 (convert-df b :fun #'(lambda (x) (expt (abs x) .2))))))))
+		 (convert-ub8 (convert-df b :fun #'phase 
+					  #+nil #'(lambda (x) (expt (abs x) .3)))
+			      :max (* pi) :min (- pi))))))
 
 #+nil
 
