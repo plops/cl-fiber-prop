@@ -201,7 +201,17 @@
   (defparameter *fields* (step-fiber-fields *u-modes* v :scale sc :rco rco :nco nco
 					    :n (* 6 (step-fiber-minimal-sampling *u-modes* v :scale sc)))))
 
-
+#+nil
+(defparameter *bla*
+ (destructuring-bind (z h w) (array-dimensions *fields*)
+   (let* ((a1 (make-array (* h w) :element-type '(complex double-float)))
+	  (a (make-array (list h w) :element-type '(complex double-float)
+			 :displaced-to a1))
+	  )
+     (dotimes (i w)
+       (dotimes (j h)
+	 (setf (aref a j i) (complex (aref *fields* 12 j i)))))
+     (fft::ft a))))
 
 #+nil
 (time
