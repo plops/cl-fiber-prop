@@ -1,7 +1,7 @@
 (in-package :cl-fiber-prop)
 
 (defun convert-ub8 (a &key (scale 1d0 scale-p) (invert nil) (offset 0d0) (debug nil))
-  (declare (type (simple-array double-float 2) a)
+  (declare (type (array double-float 2) a)
 	   (type double-float scale)
 	   (optimize (speed 3))
 	   (values (simple-array (unsigned-byte 8) 2) &optional))
@@ -32,7 +32,7 @@
     b))
 
 (defun convert-df (a &key (fun #'abs))
-  (declare (type (simple-array (complex double-float) 2) a)
+  (declare (type (array (complex double-float) 2) a)
 	   (values (simple-array double-float 2) &optional))
   (let ((b (make-array (array-dimensions a)
 		       :element-type 'double-float)))

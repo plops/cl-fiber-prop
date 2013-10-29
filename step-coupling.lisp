@@ -202,16 +202,22 @@
 					    :n (* 6 (step-fiber-minimal-sampling *u-modes* v :scale sc)))))
 
 #+nil
-(defparameter *bla*
- (destructuring-bind (z h w) (array-dimensions *fields*)
-   (let* ((a1 (make-array (* h w) :element-type '(complex double-float)))
-	  (a (make-array (list h w) :element-type '(complex double-float)
-			 :displaced-to a1))
-	  )
-     (dotimes (i w)
-       (dotimes (j h)
-	 (setf (aref a j i) (complex (aref *fields* 12 j i)))))
-     (fft::ft a))))
+(destructuring-bind (z h w) (array-dimensions *fields*)
+  (dotimes (k z)
+    (let ((b 
+	   (let* ((a1 (make-array (* h w) :element-type '(complex double-float)))
+		  (a (make-array (list h w) :element-type '(complex double-float)
+				 :displaced-to a1))
+		  )
+	     (dotimes (i w)
+	       (dotimes (j h)
+		 (setf (aref a j i) (complex (* (expt -1 (+ i j)) (aref *fields* k j i))))))
+	     (fft::ft a))))
+      (write-pgm (format nil "o-~3,'0d.pgm" k)
+		 (convert-ub8 (convert-df b :fun #'(lambda (x) (expt (abs x) .2))))))))
+
+#+nil
+
 
 #+nil
 (time
