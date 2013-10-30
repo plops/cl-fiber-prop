@@ -215,7 +215,9 @@
 	     (fft::ft a))))
 
       (write-pgm (format nil "o-~3,'0d.pgm" k)
-		 
+		 (convert-ub8 (convert-df b :fun #'(lambda (x) (log (+ 1 (abs x)))))
+			      :min 0d0 :max 4d0)
+		 #+nil
 		 (convert-ub8 (let ((dy (convert-df (./ (dy b) b) :fun #'(lambda (x) (abs (imagpart x)))
 					  ))
 				    (dx (convert-df (./ (dx b) b) :fun #'(lambda (x) (abs (imagpart x)))
@@ -300,47 +302,65 @@
      
      (progn ;; create gnuplot file
        (with-open-file (s "bend.gp" :direction :output :if-exists :supersede :if-does-not-exist :create)
-	 (format s "set output \"bend.ps\"; set term posts;plot ")
+	#+nil	 (format s "set output \"bend.ps\"; set term posts;plot ")
+	 (format s "plot ")
 	 (dotimes (i n)
 	   (format s "\"bend6.dat\" u 1:~d w l lw 2 title \"~d\", " (+ 3 i) i))
 	 (format s "\"bend6.dat\" u 1:(")
 	 (dotimes (i n)
 	   (format s "$~d~c" (+ 3 i) (if (= i (- n 1)) #\Space #\+)))
-	 (format s ") w l lw 3~% #pause -1~%"))
+	 (format s ") w l lw 3~% pause -1~%"))
        #+nil (sb-ext:run-program "/usr/bin/gnuplot" '("bend.gp")))
 
 
-     (let ((y0 (grid:make-foreign-array 'double-float :dimensions (* 2 n)))
-	   (time (grid:make-foreign-array 'double-float :dimensions 1))
-	   (step-size (grid:make-foreign-array 'double-float :dimensions 1))
-	   (ctl (gsll:make-standard-control 1d-5 1d-5 1d0 0d0))
-	   (stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ (* n 2) #'coupled-mode-equations-optimized nil nil))
-	   (evo (gsll:make-ode-evolution (* 2 n)))
-	   (max-time 1d0))  
-       (loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 0d0))
-       (setf (grid:aref y0 0) 1d0
-	     (grid:aref time 0) 0d0
-	     (grid:aref step-size 0) 1d-2)
-       (format t "there are ~d modes~%" n)
-       (terpri)
-       (let ((c-result nil))
-	 (with-open-file (f "bend6.dat" :direction :output :if-exists :supersede :if-does-not-exist :create)
-	   (loop while (< (grid:aref time 0) max-time) do
-		(gsll:apply-evolution evo time y0 step-size ctl stepper max-time)
-		(let ((l (loop for i below n collect (complex (grid:aref y0 (* 2 i)) 
-							      (grid:aref y0 (+ 1 (* 2 i)))))))
-		  (push (make-array (length l) :element-type '(complex double-float) :initial-contents l)
-			c-result))
-		(format f "~20,12f ~8,3g ~{~18,13f ~}~%" 
-			(grid:aref time 0)
-			(grid:aref step-size 0)
+     (loop for k from 0 below n do
+      (let ((y0 (grid:make-foreign-array 'double-float :dimensions (* 2 n)))
+	    (time (grid:make-foreign-array 'double-float :dimensions 1))
+	    (step-size (grid:make-foreign-array 'double-float :dimensions 1))
+	    (ctl (gsll:make-standard-control 1d-5 1d-5 1d0 0d0))
+	    (stepper (gsll:make-ode-stepper gsll:+step-rk8pd+ (* n 2) #'coupled-mode-equations-optimized nil nil))
+	    (evo (gsll:make-ode-evolution (* 2 n)))
+	    (max-time 1d0))  
+	(loop for i below (grid:dim0 y0) do (setf (grid:aref y0 i) 0d0))
+	(setf (grid:aref y0 (* 2 k)) 1d0
+	      (grid:aref time 0) 0d0
+	      (grid:aref step-size 0) 1d-2)
+	(format t "there are ~d modes~%" n)
+	(terpri)
+	(let ((c-result nil))
+	  (with-open-file (f (format nil "bend~3,'0d.dat" k) :direction :output :if-exists :supersede :if-does-not-exist :create)
+	    (loop while (< (grid:aref time 0) max-time) do
+		 (gsll:apply-evolution evo time y0 step-size ctl stepper max-time)
+		 (let ((l (loop for i below n collect (complex (grid:aref y0 (* 2 i)) 
+							       (grid:aref y0 (+ 1 (* 2 i)))))))
+		   (push (make-array (length l) :element-type '(complex double-float) :initial-contents l)
+			 c-result))
+		 (format f "~20,12f ~8,3g ~{~18,13f ~}~%" 
+			 (grid:aref time 0)
+			 (grid:aref step-size 0)
 			
-			(loop for i below n collect 
-			     (expt (abs (complex (grid:aref y0 (* 2 i)) 
-						 (grid:aref y0 (+ 1 (* 2 i))))) 2)
-			     #+nil (phase (complex (grid:aref y0 (* 2 i)) 
-						   (grid:aref y0 (+ 1 (* 2 i)))))))))
-	 (defparameter *c-result* (reverse c-result)))))))
+			 (loop for i below n collect 
+			      (expt (abs (complex (grid:aref y0 (* 2 i)) 
+						  (grid:aref y0 (+ 1 (* 2 i))))) 2)
+			      #+nil (phase (complex (grid:aref y0 (* 2 i)) 
+						    (grid:aref y0 (+ 1 (* 2 i)))))))))
+	  (defparameter *c-result* (reverse c-result))))))))
+
+#+nil
+(destructuring-bind (n) (array-dimensions *b-lin*)
+     (loop for k below n do
+      (progn ;; create gnuplot file
+	(with-open-file (s (format nil "bend~3,'0d.gp" k) :direction :output :if-exists :supersede :if-does-not-exist :create)
+	  #+nil	 (format s "set output \"bend.ps\"; set term posts;plot ")
+	  (format s "plot ")
+	  (dotimes (i n)
+	    (format s "\"bend~3,'0d.dat\" u 1:~d w l lw 2 title \"~d\", " k (+ 3 i) i))
+	  (format s "\"bend~3,'0d.dat\" u 1:(" k)
+	  (dotimes (i n)
+	    (format s "$~d~c" (+ 3 i) (if (= i (- n 1)) #\Space #\+)))
+	  (format s ") w l lw 3~% pause -1~%"))
+	#+nil (sb-ext:run-program "/usr/bin/gnuplot" '("bend.gp"))))
+)
 
 (defvar *fields* nil)
 (defun superimpose-fields (c)
