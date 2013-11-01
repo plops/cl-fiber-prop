@@ -199,7 +199,13 @@
   (declaim (type (simple-array double-float 1) *b-lin*)
 	   (type (simple-array double-float 2) *k-mu-nu*) )
   (defparameter *fields* (step-fiber-fields *u-modes* v :scale sc :rco rco :nco nco
-					    :n (* 4 (step-fiber-minimal-sampling *u-modes* v :scale sc)))))
+					    :n 128 #+nil (* 4 (step-fiber-minimal-sampling *u-modes* v :scale sc)))))
+
+#+nil
+(progn
+ (fft::init-threads)
+ (fft::plan-with-nthreads 4))
+
 
 #+nil
 (destructuring-bind (z h w) (array-dimensions *fields*)

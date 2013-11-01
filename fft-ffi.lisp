@@ -1,7 +1,7 @@
 (in-package :fft)
 
-(defconstant +forward+ 1)
-(defconstant +backward+ -1)
+(defconstant +forward+ -1)
+(defconstant +backward+ 1)
 (defconstant +measure+ 0)
 (defconstant +estimate+ (ash 1 6)) ;; array isn't overwritten during planning
 
@@ -64,6 +64,7 @@
   (n (* int))
   (in (* double-float))	 ;; actually complex
   (out (* double-float))	  ;; actually complex
+  (sign int)
   (flags unsigned-int))
 
 
@@ -98,7 +99,7 @@
        (format t "array alignment ~a" (list in-sap out-sap))
        (sb-sys:with-pinned-objects (dims-in in out)
 	 (fftw_plan_dft rank (sb-sys:vector-sap dims-in)
-			in-sap out-sap +estimate+))))))
+			in-sap out-sap +forward+ +estimate+))))))
 
 (defun ft-inplace (a)
   (declare (type (array (complex double-float) *) a))
@@ -142,10 +143,10 @@
 	     (fftw_execute plan)))))
     out))
 
-
+(declaim (optimize (debug 3)))
 #+nil
 (time
- (let* ((n0 512)
+ (let* ((n0 4)
 	(n1 n0)
 	(in1 (make-array (* n1 n0)
 			 :element-type '(complex double-float)
@@ -155,6 +156,38 @@
 			:displaced-to in1))
 	(out (ft in)))
    (aref out 0 0)))
+#+nil
+(let* ((n0 4)
+	(in1 (make-array n0
+			 :element-type '(complex double-float)
+			 :initial-element (complex 1d0 0d0)))
+	(in (make-array (list n0)
+			:element-type '(complex double-float)
+			:displaced-to in1))
+	(out (ft in)))
+   (aref out 0))
+
+#+nil
+(let* ((n0 4)
+       (a (make-array n0
+		      :element-type '(complex double-float)
+		      :initial-element (complex 1d0 0d0)))
+       (b (make-array n0
+		      :element-type '(complex double-float)
+		      :initial-element (complex 1d0 0d0)))
+       (ind (make-array 1 :initial-contents (list n0) :element-type '(signed-byte 32)))
+       (in-sap (sb-sys:vector-sap (sb-ext:array-storage-vector a)))
+       (out-sap (sb-sys:vector-sap (sb-ext:array-storage-vector b))))
+  ;; check for 16-byte alignment
+  (format t "array alignment ~a~%" (list (= 0 (mod (sb-sys:sap-int in-sap) 16)) 
+					 (= 0 (mod (sb-sys:sap-int out-sap) 16))))
+  (let ((plan 
+	 (fftw_plan_dft 1 
+			(sb-sys:vector-sap (sb-ext:array-storage-vector ind))
+			in-sap
+			out-sap
+			+measure+)))
+    (format t "~a~%"(sb-alien:null-alien plan))))
 
 
 
