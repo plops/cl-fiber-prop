@@ -1,10 +1,16 @@
 #+nil
+(ql:quickload "cffi")
+#+nil
+(ql:quickload "gsll")
+#+nil
 (progn
   (setf asdf:*central-registry*
 	(union (list *default-pathname-defaults*)
 	       asdf:*central-registry*))
   (require :cl-fiber-prop))
 
+;; snyder p. 328 weakly guiding fiber (circular step index) and polarization correction
+;; 432 illumination of fiber endface
 (in-package :cl-fiber-prop)
 
 (defun bess-zeros (&key (a 1) (n 10) (d 1) (e 1e-5))
@@ -442,9 +448,9 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
  (progn
    (defparameter *bla* nil)
    (defparameter *bla*
-     (let* ((v 30d0) 
+     (let* ((v 10d0) 
 	   (start (sb-unix::get-time-of-day))
-	   (lambd .0005)
+	   (lambd .000633)
 	   (nco 1.5)
 	   (ncl 1.46)
 	   (k (* 2 pi (/ lambd))) 
@@ -454,17 +460,17 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
        (format t "calculating eigenvalues~%")
        (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
        (format t "ev took ~3d s time~%" (- (sb-unix::get-time-of-day) start))
-       (let ((sc 4d0))
+       (let ((sc 1.4d0))
 	(step-fiber-fields *bla-ev* v :scale sc :rco rho :nco nco
-			   :n (* 4 (step-fiber-minimal-sampling *bla-ev* v :scale sc))
+			   :n (* 2 4 (step-fiber-minimal-sampling *bla-ev* v :scale sc))
 			   :debug t))))
-#+nil   (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
+#+nil   (write-pgm "/dev/shm/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
 								  ) :scale .7 ;:offset -.2d0
 					     ))))
 #+nil
 (time
- (write-pgm "/run/q/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* ;:fun #'identity
-								) :invert t :scale .8d0 ;:offset -.2d0
+ (write-pgm "/dev/shm/bla.pgm" (convert-ub8  (create-field-mosaic *bla* *bla-ev* :fun #'identity
+								) :invert nil :scale .7d0 ;:offset -.2d0
 								  )))
 
 
