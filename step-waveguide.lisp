@@ -9,6 +9,26 @@
 	       asdf:*central-registry*))
   (require :cl-fiber-prop))
 
+(defparameter *bla*
+ (with-open-file (s "/media/sdd3/b/cam0" :element-type '(unsigned-byte 8))
+   (let ((a (make-array (* 1920 1080) :element-type '(unsigned-byte 8))))
+     (read-sequence a s)
+     (convert-12p-16 a))))
+
+(defun convert-12p-16 (data)
+  (let* ((n (* 1920 1080 12 (/ 8)))
+	 (out (make-array (list 1080 1920) :element-type '(unsigned-byte 16)))
+	 (out1 (sb-ext:array-storage-vector out)))
+   (loop for byte below (length data) by 3
+      and short from 0 below n by 2 do
+	(let ((ab (aref data byte))
+	      (c (ldb (byte 4 0) (aref data (+ 1 byte))))
+	      (d (ldb (byte 4 4) (aref data (+ 1 byte))))
+	      (ef (aref data (+ 2 byte))))
+	  (setf (aref out1 short) (ash (+ (ash ab 4) d) 4)
+		(aref out1 (1+ short)) (ash (+ (ash ef 4) c) 4))))
+   out))
+
 ;; snyder p. 328 weakly guiding fiber (circular step index) and polarization correction
 ;; 432 illumination of fiber endface
 (in-package :cl-fiber-prop)
