@@ -69,10 +69,55 @@
       b)))
 
 
+(defun tukey-window (nn &key (alpha .9d0))
+  "The Tukey window,[8][39] also known as the tapered cosine window,
+can be regarded as a cosine lobe of width alpha N/2 that is convolved
+with a rectangular window of width (1 - alpha/2)N. For alpha=0
+rectangular, for alpha=1 Hann window."
+  (declare (type (unsigned-byte 32) nn)
+           (type double-float alpha)
+           (values (simple-array double-float 1) &optional))
+  (let ((w (make-array nn :element-type 'double-float :initial-element 0d0))
+        (n-1 (- nn 1)))
+    (dotimes (n nn)
+      (setf (aref w n)
+            (cond ((<= 0d0 n (* alpha .5d0 n-1))
+                   (* .5d0 (+ 1d0 (cos (* (coerce pi 'double-float) (- (/ (* 2d0 n)
+                                                     (* alpha n-1)) 1d0))))))
+                  ((<= (* alpha .5d0 n-1) n (* n-1 (- 1d0 (* .5d0 alpha))))
+                   1.0d0)
+                  ((<= (* n-1 (- 1 (* .5d0 alpha))) n n-1)
+                   (* .5d0 (+ 1d0 (cos (* (coerce pi 'double-float) (+ (/ (* 2d0 n)
+                                                     (* alpha n-1))
+                                                  (/ -2.0d0 alpha)
+                                                  1d0))))))
+                  (t 0d0))))
+    w))
 
+(defun tukey-window2 (a &key (alpha-x .2d0) (alpha-y alpha-x))
+  (declare (type (array (complex double-float) 2) a)
+           (values (array (complex double-float) 2) &optional))
+  (destructuring-bind (h w) (array-dimensions a)
+    (let* ((b1 (make-array (array-total-size a) :element-type '(complex double-float)))
+	   (b (make-array (array-dimensions a) :element-type '(complex double-float)
+			  :displaced-to b1))
+	   (wh (tukey-window h :alpha alpha-y))
+	   (ww (tukey-window w :alpha alpha-x)))
+      (dotimes (j h)
+	(dotimes (i w)
+	  (setf (aref b j i) (* (aref a j i)
+				(aref wh j)
+				(aref ww i)))))
+      b)))
 
 #+nil
-(write-pgm "/dev/shm/ko.pgm" (convert-ub8 (convert-df (fftw:ft 
+(prog1 nil
+ (tukey-window2 (convert-u16-cdf *bla*)))
+
+#+nil
+(write-pgm "/dev/shm/ko.pgm" (convert-ub8 (convert-df #+nil (j1/r (convert-u16-cdf *bla*) 300d0)
+						      (fftw:ft (tukey-window2 (j1/r (convert-u16-cdf *bla*) 300d0)))
+						      #+NIL (fftw:ft 
 						       (j1/r (convert-u16-cdf *bla*) 300d0)
 						       #+nil (phase-wedge 
 							      (convert-u16-cdf *bla*)
