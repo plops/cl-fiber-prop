@@ -5,15 +5,13 @@
 #+nil
 (progn
   (setf asdf:*central-registry*
-	(union (list *default-pathname-defaults*)
-	       asdf:*central-registry*))
-  (require :cl-fiber-prop))
+	(union (list #p"/home/martin/stage/cl-cffi-fftw3/"
+		     *default-pathname-defaults*)
+	       asdf:*central-registry*
+	       ))
+  (require :cl-fiber-prop)
+  (require :fftw))
 
-(defparameter *bla*
- (with-open-file (s "/media/sdd3/b/cam0" :element-type '(unsigned-byte 8))
-   (let ((a (make-array (* 1920 1080) :element-type '(unsigned-byte 8))))
-     (read-sequence a s)
-     (convert-12p-16 a))))
 
 (defun convert-12p-16 (data)
   (let* ((n (* 1920 1080 12 (/ 8)))
@@ -28,6 +26,58 @@
 	  (setf (aref out1 short) (ash (+ (ash ab 4) d) 4)
 		(aref out1 (1+ short)) (ash (+ (ash ef 4) c) 4))))
    out))
+
+(defparameter *bla*
+ (with-open-file (s "/media/sdd3/b/cam0" :element-type '(unsigned-byte 8))
+   (let* ((n (* 1920 1080 12 (/ 8)))
+	  (a (make-array n :element-type '(unsigned-byte 8))))
+     (file-position s (* 5000 n))
+     (read-sequence a s)
+     (convert-12p-16 a))))
+
+
+
+#+nil
+(write-pgm "/dev/shm/o.pgm" (convert-u16-u8 *bla* :scale (/ 255d0 (reduce #'max (sb-ext:array-storage-vector *bla*)))))
+;; 614 846
+
+(defun phase-wedge (a kx ky)
+  (declare (type (array (complex double-float) 2) a))
+  (destructuring-bind (h w) (array-dimensions a)
+    (dotimes (j h)
+      (dotimes (i w)
+	(setf (aref a j i) (* (aref a j i)
+			      (exp (complex 0d0 (* 2 pi (+ (/ (* i kx) w) (/ (* j ky) h))))))))))
+  a)
+
+(defun j1/r (a alpha)
+  (declare (type (array * 2) a))
+  (let* ((b1 (make-array (array-total-size a)
+			 :element-type '(complex double-float)))
+	 (b (make-array (array-dimensions a)
+			:element-type '(complex double-float)
+			:displaced-to b1)))
+    (destructuring-bind (h w) (array-dimensions a)
+      (dotimes (j h)
+	(dotimes (i w)
+	  (let* ((r (sqrt (+ (expt (/ (- i (floor w 2)) w) 2)
+			     (expt (/ (- j (floor h 2)) h) 2))))
+		 (x (* 2 pi alpha r)))
+	    (setf (aref b j i) (if (< x 1e-30)
+				   (complex 0d0)
+				   (complex (* 2 (/ (gsll:cylindrical-bessel-j1 x) x)) 0d0))))))
+      b)))
+
+
+
+
+#+nil
+(write-pgm "/dev/shm/ko.pgm" (convert-ub8 (convert-df (fftw:ft 
+						       (j1/r (convert-u16-cdf *bla*) 300d0)
+						       #+nil (phase-wedge 
+							      (convert-u16-cdf *bla*)
+							      614 846))
+						      :fun (lambda (x) (abs x)))))
 
 ;; snyder p. 328 weakly guiding fiber (circular step index) and polarization correction
 ;; 432 illumination of fiber endface
