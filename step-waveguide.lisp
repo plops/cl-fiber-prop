@@ -36,12 +36,14 @@
 
 (defun phase-wedge (a kx ky)
   (declare (type (array (complex double-float) 2) a))
-  (destructuring-bind (h w) (array-dimensions a)
-    (dotimes (j h)
-      (dotimes (i w)
-	(setf (aref a j i) (* (aref a j i)
-			      (exp (complex 0d0 (* 2 pi (+ (/ (* i kx) w) (/ (* j ky) h))))))))))
-  a)
+  (let* ((b1 (make-array (array-total-size a) :element-type '(complex double-float)))
+	 (b (make-array (array-dimensions a) :element-type '(complex double-float)
+			:displaced-to b1)))
+   (destructuring-bind (h w) (array-dimensions a)
+     (dotimes (j h)
+       (dotimes (i w)
+	 (setf (aref b j i) (exp (complex 0d0 (* 2 pi (+ (/ (* i kx) w) (/ (* j ky) h)))))))))
+   b))
 
 (defun j1/r (a alpha)
   (declare (type (array * 2) a))
@@ -133,11 +135,7 @@ rectangular, for alpha=1 Hann window."
 			 )))
     c))
 
-(defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (convert-u16-cdf *bla*) 180d0)
-						       :alpha-x .4))
-			       (lambda (x) (if (< (abs x) 10)
-					       (complex 0d0)
-					       (complex (abs x))))))
+
 
 ;; (/ 34133529600 (* 1920 1080 12 (/ 8))) => 10974 = 118x93
 ;; 118 in fast axis and 93 in slow axis
@@ -156,22 +154,32 @@ rectangular, for alpha=1 Hann window."
 #+nil
 (require :sb-sprof)
 
+(defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (convert-u16-cdf *bla*) 180d0)
+						       :alpha-x .4))
+			       (lambda (x) (if (< (abs x) 10)
+					       (complex 0d0)
+					       (complex (abs x))))))
+
+(defparameter *windowed-phase-wedge* (tukey-window2 (phase-wedge (convert-u16-cdf *bla*) 614 846)))
+
 #+nil
 (sb-sprof:with-profiling (:max-samples 1000                                  
 				       :report :flat 
 				       :loop nil)                         
- (let ((im (get-cam-image 0 10 10)))
-   (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
-					       (fftw:ft
-						(.* *window*
-						    (fftw:ft 
-						     (tukey-window2 
-						      (phase-wedge 
-						       (convert-u16-cdf im)
-						       614 846))))
-						:sign fftw::+backward+
-						)
-					       :fun (lambda (x) (abs x)))))))
+  (let ((im (get-cam-image 0 10 10)))
+    (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
+						(fftw:ft
+						 (.* *window*
+						     (fftw:ft 
+						      (.* *windowed-phase-wedge* im)))
+						 :sign fftw::+backward+
+						 )
+						:fun (lambda (x) (abs x)))))))
+
+;; positions of fiber ends
+;; 207x207+1054+148 
+;; 625x395
+;; 569x637
 
 ;; snyder p. 328 weakly guiding fiber (circular step index) and polarization correction
 ;; 432 illumination of fiber endface
