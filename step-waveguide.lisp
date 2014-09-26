@@ -147,7 +147,7 @@ rectangular, for alpha=1 Hann window."
   (with-open-file (s (format nil "/media/sdd3/b/cam~d" cam) :element-type '(unsigned-byte 8))
     (let* ((n (* 1920 1080 12 (/ 8)))
 	   (a (make-array n :element-type '(unsigned-byte 8))))
-      (file-position s (* (+ j (* i 118)) n))
+      (file-position s (* (+ i (* j 118)) n))
       (read-sequence a s)
       (convert-12p-16 a))))
 
@@ -161,6 +161,49 @@ rectangular, for alpha=1 Hann window."
 					       (complex (abs x))))))
 
 (defparameter *windowed-phase-wedge* (tukey-window2 (phase-wedge (convert-u16-cdf *bla*) 614 846)))
+
+
+(defun .linear (a)
+;  #+sbcl  (declare (values (simple-array * *) &optional))
+  #+sbcl
+  (let ((d (array-displacement a)))
+   (if d
+       d
+       (sb-ext:array-storage-vector a)))
+  #-sbcl
+  (make-array (array-total-size a)
+              :element-type (array-element-type a)
+              :displaced-to a))
+
+(defun .accum (dst b)
+  (declare (optimize (speed 3)))
+  (declare (type (array double-float 2) b)
+           (type (simple-array double-float 2) dst)
+           (values (simple-array double-float 2) &optional))
+  (let* ((b1 (.linear b))
+         (dst1 (.linear dst))
+         (n (array-total-size dst)))
+    (declare (type (simple-array double-float 1) b1 dst1))
+    (dotimes (i n)
+      (setf (aref dst1 i) (+ (aref dst1 i) (aref b1 i))))
+    dst))
+
+(let ((a (make-array (list 1080 1920) :element-type 'double-float)))
+  (sb-sprof:with-profiling (:max-samples 1000                                  
+					 :report :flat 
+					 :loop nil)
+    (loop for j below 93 by 30 do
+	 (loop for i below 118 by 30 do
+	      (format t "~a~%" j i)
+	      (let ((im (get-cam-image 0 j i)))
+		(.accum a (convert-df
+			   (fftw:ft
+			    (.* *window*
+				(fftw:ft 
+				 (.* *windowed-phase-wedge* im)))
+			    :sign fftw::+backward+)
+			   :fun (lambda (x) (expt (abs x) 2))))))))
+  (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 a)))
 
 #+nil
 (sb-sprof:with-profiling (:max-samples 1000                                  
@@ -180,6 +223,14 @@ rectangular, for alpha=1 Hann window."
 ;; 207x207+1054+148 
 ;; 625x395
 ;; 569x637
+
+;; i assume fiber cladding to be quartz: ncl=1.457 
+;; na=0.54
+;; diameter=50um
+
+; solve(sqrt(nco^2 - 1.457^2)=0.54,nco)
+; sqrt (0.54^2+1.457^2) => nco=1.553
+
 
 ;; snyder p. 328 weakly guiding fiber (circular step index) and polarization correction
 ;; 432 illumination of fiber endface
@@ -332,6 +383,8 @@ mm."
 
 #+nil
 (numerical-aperture 1.5d0 1.46d0)
+#+nil
+(numerical-aperture 1.553d0 1.457d0)
 #+nil
 (v .0005 1.5d0 .146d0 .005d0)
 #+nil
