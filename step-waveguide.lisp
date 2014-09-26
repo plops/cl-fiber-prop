@@ -60,7 +60,7 @@
     (destructuring-bind (h w) (array-dimensions a)
       (dotimes (j h)
 	(dotimes (i w)
-	  (let* ((r (sqrt (+ (expt (/ (- i (floor w 2)) w) 2)
+	  (let* ((r (sqrt (+ (expt (/ (- i (floor w 2)) h) 2)
 			     (expt (/ (- j (floor h 2)) h) 2))))
 		 (x (* 2 pi alpha r)))
 	    (setf (aref b j i) (if (< x 1e-30)
@@ -114,15 +114,49 @@ rectangular, for alpha=1 Hann window."
 (prog1 nil
  (tukey-window2 (convert-u16-cdf *bla*)))
 
+
+(defun .* (a b)
+  (let* (
+	(a1 (make-array (array-total-size a) :element-type (array-element-type a)
+			:displaced-to a))
+	(b1 (make-array (array-total-size b) :element-type (array-element-type b)
+			:displaced-to b))
+	(c1 (make-array (array-total-size a) :element-type '(complex double-float)))
+	(c (make-array (array-dimensions a) :element-type '(complex double-float)
+		       :displaced-to c1)))
+    (dotimes (i (length a1))
+      (setf (aref c1 i) (* (aref a1 i) (aref b1 i))))
+    c))
+
+(defun .apply (a &optional (fun #'identity))
+  (let* (
+	(a1 (make-array (array-total-size a) :element-type (array-element-type a)
+			:displaced-to a))
+	(c1 (make-array (array-total-size a) :element-type '(complex double-float)))
+	(c (make-array (array-dimensions a) :element-type '(complex double-float)
+		       :displaced-to c1)))
+    (dotimes (i (length a1))
+      (setf (aref c1 i) (funcall fun (aref a1 i)
+			 )))
+    c))
+
+(defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (convert-u16-cdf *bla*) 180d0)
+						       :alpha-x .4))
+			       (lambda (x) (if (< (abs x) 10)
+					       (complex 0d0)
+					       (complex (abs x))))))
 #+nil
-(write-pgm "/dev/shm/ko.pgm" (convert-ub8 (convert-df #+nil (j1/r (convert-u16-cdf *bla*) 300d0)
-						      (fftw:ft (tukey-window2 (j1/r (convert-u16-cdf *bla*) 300d0)))
-						      #+NIL (fftw:ft 
-						       (j1/r (convert-u16-cdf *bla*) 300d0)
-						       #+nil (phase-wedge 
-							      (convert-u16-cdf *bla*)
-							      614 846))
-						      :fun (lambda (x) (abs x)))))
+(write-pgm "/dev/shm/ko.pgm" (convert-ub8 (convert-df
+					  (fftw:ft
+					   (.* *window*
+						(fftw:ft 
+						 (tukey-window2 
+						  (phase-wedge 
+						   (convert-u16-cdf *bla*)
+						   614 846))))
+					    :sign fftw::+backward+
+					    )
+					   :fun (lambda (x) (abs x)))))
 
 ;; snyder p. 328 weakly guiding fiber (circular step index) and polarization correction
 ;; 432 illumination of fiber endface
