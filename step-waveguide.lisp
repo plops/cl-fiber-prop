@@ -240,7 +240,8 @@ rectangular, for alpha=1 Hann window."
        ;(betas (step-fiber-betas* :wavelength lambd :ncore nco :ncladding ncl :core-radius core-radius))
        (u-modes (step-fiber-eigenvalues v))
        )
-  (number-of-modes u-modes)) ;  => 2757 modes (must be multiplied by 2 for the other polarization)
+  (* 2 (number-of-modes u-modes))) ;  => 2757 modes (must be multiplied by 2 for the other polarization)
+
 
 ;; v parameter is 134
 
