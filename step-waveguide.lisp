@@ -231,6 +231,19 @@ rectangular, for alpha=1 Hann window."
 ; solve(sqrt(nco^2 - 1.457^2)=0.54,nco)
 ; sqrt (0.54^2+1.457^2) => nco=1.553
 
+(let* ((ncl 1.457)
+       (lambd .0006328)
+       (na .54)
+       (nco (sqrt (+ (expt na 2) (expt ncl 2))))
+       (core-radius 25d-3)
+       (v (v .0006328 nco ncl core-radius))
+       ;(betas (step-fiber-betas* :wavelength lambd :ncore nco :ncladding ncl :core-radius core-radius))
+       (u-modes (step-fiber-eigenvalues v))
+       )
+  (number-of-modes u-modes)) ;  => 2757 modes (must be multiplied by 2 for the other polarization)
+
+;; v parameter is 134
+
 
 ;; snyder p. 328 weakly guiding fiber (circular step index) and polarization correction
 ;; 432 illumination of fiber endface
@@ -385,6 +398,8 @@ mm."
 (numerical-aperture 1.5d0 1.46d0)
 #+nil
 (numerical-aperture 1.553d0 1.457d0)
+#+nil
+(bigdelta 1.553d0 1.457d0)
 #+nil
 (v .0005 1.5d0 .146d0 .005d0)
 #+nil
@@ -668,21 +683,26 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 #+nil
 (room)
 
+
+
 #+nil
 (time 
  (progn
    (defparameter *bla* nil)
    (defparameter *bla*
-     (let* ((v 10d0) 
+     (let* (
 	   (start (sb-unix::get-time-of-day))
-	   (lambd .000633)
-	   (nco 1.5)
-	   (ncl 1.46)
+	   (lambd .0006328)
+	   (nco 1.553)
+	   (ncl 1.457)
 	   (k (* 2 pi (/ lambd))) 
-	   ;; diameter of the fiber:
-	   (rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
+	   ;; diameter of the fiber: ?? is it radius or diameter?
+	    (core-radius 25d-3)
+	    (v (v lambd nco ncl core-radius))
+	   (rho (* 1 core-radius))
+	    ;(rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
 	   )
-       (format t "calculating eigenvalues~%")
+       (format t "calculating eigenvalues v=~a~%" v)
        (defparameter *bla-ev* (step-fiber-eigenvalues v)) 
        (format t "ev took ~3d s time~%" (- (sb-unix::get-time-of-day) start))
        (let ((sc 1.4d0))
