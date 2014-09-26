@@ -142,26 +142,36 @@ rectangular, for alpha=1 Hann window."
 ;; (/ 34133529600 (* 1920 1080 12 (/ 8))) => 10974 = 118x93
 ;; 118 in fast axis and 93 in slow axis
 
-(defparameter *bla*
- (with-open-file (s "/media/sdd3/b/cam0" :element-type '(unsigned-byte 8))
-   (let* ((n (* 1920 1080 12 (/ 8)))
-	  (a (make-array n :element-type '(unsigned-byte 8))))
-     (file-position s (* 5101 n))
-     (read-sequence a s)
-     (convert-12p-16 a))))
+(defun get-cam-image (cam j i)
+  (declare (type (integer 0 2) cam)
+	   (type (integer 0 92) j)
+	   (type (integer 0 117) i))
+  (with-open-file (s (format nil "/media/sdd3/b/cam~d" cam) :element-type '(unsigned-byte 8))
+    (let* ((n (* 1920 1080 12 (/ 8)))
+	   (a (make-array n :element-type '(unsigned-byte 8))))
+      (file-position s (* (+ j (* i 118)) n))
+      (read-sequence a s)
+      (convert-12p-16 a))))
 
 #+nil
-(write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
-					  (fftw:ft
-					   (.* *window*
-						(fftw:ft 
-						 (tukey-window2 
-						  (phase-wedge 
-						   (convert-u16-cdf *bla*)
-						   614 846))))
-					    :sign fftw::+backward+
-					    )
-					   :fun (lambda (x) (abs x)))))
+(require :sb-sprof)
+
+#+nil
+(sb-sprof:with-profiling (:max-samples 1000                                  
+				       :report :flat 
+				       :loop nil)                         
+ (let ((im (get-cam-image 0 10 10)))
+   (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
+					       (fftw:ft
+						(.* *window*
+						    (fftw:ft 
+						     (tukey-window2 
+						      (phase-wedge 
+						       (convert-u16-cdf im)
+						       614 846))))
+						:sign fftw::+backward+
+						)
+					       :fun (lambda (x) (abs x)))))))
 
 ;; snyder p. 328 weakly guiding fiber (circular step index) and polarization correction
 ;; 432 illumination of fiber endface
