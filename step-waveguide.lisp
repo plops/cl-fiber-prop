@@ -27,13 +27,6 @@
 		(aref out1 (1+ short)) (ash (+ (ash ef 4) c) 4))))
    out))
 
-(defparameter *bla*
- (with-open-file (s "/media/sdd3/b/cam0" :element-type '(unsigned-byte 8))
-   (let* ((n (* 1920 1080 12 (/ 8)))
-	  (a (make-array n :element-type '(unsigned-byte 8))))
-     (file-position s (* 5000 n))
-     (read-sequence a s)
-     (convert-12p-16 a))))
 
 
 
@@ -145,8 +138,20 @@ rectangular, for alpha=1 Hann window."
 			       (lambda (x) (if (< (abs x) 10)
 					       (complex 0d0)
 					       (complex (abs x))))))
+
+;; (/ 34133529600 (* 1920 1080 12 (/ 8))) => 10974 = 118x93
+;; 118 in fast axis and 93 in slow axis
+
+(defparameter *bla*
+ (with-open-file (s "/media/sdd3/b/cam0" :element-type '(unsigned-byte 8))
+   (let* ((n (* 1920 1080 12 (/ 8)))
+	  (a (make-array n :element-type '(unsigned-byte 8))))
+     (file-position s (* 5101 n))
+     (read-sequence a s)
+     (convert-12p-16 a))))
+
 #+nil
-(write-pgm "/dev/shm/ko.pgm" (convert-ub8 (convert-df
+(write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
 					  (fftw:ft
 					   (.* *window*
 						(fftw:ft 
