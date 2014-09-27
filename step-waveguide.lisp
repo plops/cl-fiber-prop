@@ -151,6 +151,19 @@ rectangular, for alpha=1 Hann window."
       (read-sequence a s)
       (convert-12p-16 a))))
 
+(defun get-cam-image-laptop (cam j i)
+  (declare (type (integer 0 2) cam)
+	   (type (integer 0 92) j)
+	   (type (integer 0 117) i))
+  (unless (and (= 0 (mod i 30))
+	       (= 0 (mod j 30)))
+    (error "I only stored images with index dividable by 30."))
+  (with-open-file (s (format nil "/home/martin/cam_/cam~d_j~d-i~d" cam j i) :element-type '(unsigned-byte 8))
+    (let* ((n (* 1920 1080 12 (/ 8)))
+	   (a (make-array n :element-type '(unsigned-byte 8))))
+      (read-sequence a s)
+      (convert-12p-16 a))))
+
 #+nil
 (let ((cam 2))
  (loop for i from 0 below 118 by 30 do
@@ -170,14 +183,18 @@ rectangular, for alpha=1 Hann window."
 (require :sb-sprof)
 
 #+nil
-(defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (convert-u16-cdf *bla*) 180d0)
+(defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (make-array (list 1080 1920)
+									 :element-type '(complex double-float))
+							     100d0)
 						       :alpha-x .4))
 			       (lambda (x) (if (< (abs x) 10)
 					       (complex 0d0)
 					       (complex (abs x))))))
 
 #+nil
-(defparameter *windowed-phase-wedge* (tukey-window2 (phase-wedge (convert-u16-cdf *bla*) 614 846)))
+(defparameter *windowed-phase-wedge* (tukey-window2 (phase-wedge (make-array (list 1080 1920)
+									     :element-type '(complex double-float))
+								 614 846)))
 
 
 (defun .linear (a)
@@ -223,15 +240,21 @@ rectangular, for alpha=1 Hann window."
   (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 a)))
 
 #+nil
+(defparameter *bla*
+ (get-cam-image-laptop 0 60 60))
+
+#+nil
 (sb-sprof:with-profiling (:max-samples 1000                                  
 				       :report :flat 
 				       :loop nil)                         
-  (let ((im (get-cam-image 0 10 10)))
-    (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
-						(fftw:ft
+  (let ((im (get-cam-image-laptop 0 30 30)))
+    (write-pgm "/dev/shm/ko2.pgm" (convert-ub8 (convert-df
+
+						(.* *windowed-phase-wedge* (convert-u16-cdf im))
+						#+nil (fftw:ft
 						 (.* *window*
 						     (fftw:ft 
-						      (.* *windowed-phase-wedge* im)))
+						      (.* *windowed-phase-wedge* (convert-u16-cdf im))))
 						 :sign fftw::+backward+
 						 )
 						:fun (lambda (x) (abs x)))))))
