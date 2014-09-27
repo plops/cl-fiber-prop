@@ -1,4 +1,4 @@
-#+nil
+ #+nil
 (ql:quickload "cffi")
 #+nil
 (ql:quickload "gsll")
@@ -152,14 +152,31 @@ rectangular, for alpha=1 Hann window."
       (convert-12p-16 a))))
 
 #+nil
+(let ((cam 2))
+ (loop for i from 0 below 118 by 30 do
+      (loop for j from 0 below 93 by 30 do
+	   (with-open-file (s (format nil "/media/sdd3/b/cam~d" cam) :element-type '(unsigned-byte 8))
+	     (let* ((n (* 1920 1080 12 (/ 8)))
+		    (a (make-array n :element-type '(unsigned-byte 8))))
+	       (file-position s (* (+ i (* j 118)) n))
+	       (read-sequence a s)
+	       (with-open-file (s2 (format nil "/media/sdd3/b/cam~d_j~a-i~a" cam j i)
+				   :element-type '(unsigned-byte 8)
+				   :direction :output)
+		 (write-sequence a s2))))
+	   )))
+
+#+nil
 (require :sb-sprof)
 
+#+nil
 (defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (convert-u16-cdf *bla*) 180d0)
 						       :alpha-x .4))
 			       (lambda (x) (if (< (abs x) 10)
 					       (complex 0d0)
 					       (complex (abs x))))))
 
+#+nil
 (defparameter *windowed-phase-wedge* (tukey-window2 (phase-wedge (convert-u16-cdf *bla*) 614 846)))
 
 
@@ -187,7 +204,7 @@ rectangular, for alpha=1 Hann window."
     (dotimes (i n)
       (setf (aref dst1 i) (+ (aref dst1 i) (aref b1 i))))
     dst))
-
+#+nil
 (let ((a (make-array (list 1080 1920) :element-type 'double-float)))
   (sb-sprof:with-profiling (:max-samples 1000                                  
 					 :report :flat 
@@ -231,6 +248,7 @@ rectangular, for alpha=1 Hann window."
 ; solve(sqrt(nco^2 - 1.457^2)=0.54,nco)
 ; sqrt (0.54^2+1.457^2) => nco=1.553
 
+#+nil
 (let* ((ncl 1.457)
        (lambd .0006328)
        (na .54)
