@@ -321,14 +321,18 @@ rectangular, for alpha=1 Hann window."
 			       (+ j (floor (+ 234 441 -256) 2))
 			       (+ i (floor (+ 1147 1364 -256) 2))
 			       ))))
+  ;;(defparameter *raw* a)
   (dotimes (j n)
     (dotimes (i n)
-      (setf (aref a j i) (complex (+ (* 0 (realpart (aref a j i))) 
-				     (* 1 (realpart (aref *coef1-recon* j i))))))))
+      (setf (aref a j i) (complex (+ (* 1 (realpart (aref a j i))) 
+				     (* (- pi) (realpart (aref *coef1-recon* j i))))))))
   (defparameter *coef1-diff* a)
   (write-pgm "/dev/shm/recon-coef1p-diff0.pgm" (convert-ub8 (convert-df *coef1-diff* :fun #'realpart
-								     ))))
+								     )))) 
+(/ 1d-9 .86d-13)
 
+(write-pgm "/dev/shm/cur.pgm" (convert-ub8 (convert-df *current-field* :fun #'realpart
+								     )))
 
 ;;  mt9p031-2 is in basler aca1920-25gm which should have 2.2um pixel
 ;;  pitch according to research i did previously.
@@ -347,10 +351,18 @@ rectangular, for alpha=1 Hann window."
 (defun find-mode-coefficients (istart jstart)
  (let ((n 256)
        (fs *fields*)
-       (f *current-field*))
+       (f *current-field*)
+       (count 0))
    (declare (type (simple-array (complex double-float) 2) f)
 	    (type (simple-array double-float 3) fs)
 	    (optimize (speed 3)))
+   (loop for j below n do
+	(loop for i below n do
+	     (let ((r (sqrt (+ (expt (- i (floor n 2)) 2)
+			       (expt (- j (floor n 2)) 2)))))
+	       (when (< r (* .5 207.2396))
+		 (incf count)))))
+   (format t "count = ~a~%" count)
    (loop for k below (array-dimension fs 0) collect
 	(let ((sum (complex 0d0)))
 	  (loop for j below n do
@@ -359,8 +371,8 @@ rectangular, for alpha=1 Hann window."
 				      (expt (- j (floor n 2)) 2)))))
 		      (when (< r (* .5 207.2396))
 			(incf sum (* (aref fs k j i)
-				    (aref f (+ j jstart) (+ i istart))))))))
-	  sum))))
+				     (aref f (+ j jstart) (+ i istart))))))))
+	  (/ sum count)))))
 
 #+nil
 (time ;; used to be 25s, with types 0.6s
