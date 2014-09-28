@@ -1,4 +1,4 @@
- #+nil
+#+nil
 (ql:quickload "cffi")
 #+nil
 (ql:quickload "gsll")
@@ -35,32 +35,40 @@
 ;; 614 846
 
 (defun phase-wedge (a kx ky)
-  (declare (type (array (complex double-float) 2) a))
-  (let* ((b1 (make-array (array-total-size a) :element-type '(complex double-float)))
-	 (b (make-array (array-dimensions a) :element-type '(complex double-float)
-			:displaced-to b1)))
+  (declare (type (simple-array (complex double-float) 2) a)
+	   (type double-float kx ky)
+	   (optimize (speed 3))
+	   (values (simple-array (complex double-float) 2) &optional))
+  (let* ((b (make-array (array-dimensions a) :element-type '(complex double-float))))
    (destructuring-bind (h w) (array-dimensions a)
-     (dotimes (j h)
-       (dotimes (i w)
-	 (setf (aref b j i) (exp (complex 0d0 (* 2 pi (+ (/ (* i kx) w) (/ (* j ky) h)))))))))
+     (declare (type fixnum h w))
+     (let ((s (* 2 pi))
+	   (si (/ kx w))
+	   (sj (/ ky h)))
+      (dotimes (j h)
+	(dotimes (i w)
+	  (setf (aref b j i) (exp (complex 0d0 (* s (+ (* si i) (* sj j))))))))))
    b))
 
 (defun j1/r (a alpha)
-  (declare (type (array * 2) a))
-  (let* ((b1 (make-array (array-total-size a)
-			 :element-type '(complex double-float)))
-	 (b (make-array (array-dimensions a)
-			:element-type '(complex double-float)
-			:displaced-to b1)))
+  (declare (type (simple-array * 2) a)
+	   (type double-float alpha)
+	   (values (simple-array (complex double-float) 2))
+	   (optimize (speed 3)))
+  (let* ((b (make-array (array-dimensions a)
+			:element-type '(complex double-float))))
     (destructuring-bind (h w) (array-dimensions a)
+      (declare (type fixnum h w))
       (dotimes (j h)
 	(dotimes (i w)
-	  (let* ((r (sqrt (+ (expt (/ (- i (floor w 2)) h) 2)
-			     (expt (/ (- j (floor h 2)) h) 2))))
+	  (let* ((r (sqrt (+ (expt (/ (- i (floor w 2)) (* 1d0 h)) 2)
+			     (expt (/ (- j (floor h 2)) (* 1d0 h)) 2))))
 		 (x (* 2 pi alpha r)))
 	    (setf (aref b j i) (if (< x 1e-30)
 				   (complex 0d0)
-				   (complex (* 2 (/ (gsll:cylindrical-bessel-j1 x) x)) 0d0))))))
+				   (let ((j1 (gsll:cylindrical-bessel-j1 x)))
+				     (declare (type double-float j1))
+				     (complex (* 2d0 (/ j1 x)))))))))
       b)))
 
 
@@ -71,33 +79,36 @@ with a rectangular window of width (1 - alpha/2)N. For alpha=0
 rectangular, for alpha=1 Hann window."
   (declare (type (unsigned-byte 32) nn)
            (type double-float alpha)
+	   (optimize (speed 3))
            (values (simple-array double-float 1) &optional))
   (let ((w (make-array nn :element-type 'double-float :initial-element 0d0))
-        (n-1 (- nn 1)))
+        (n-1 (- nn 1d0)))
     (dotimes (n nn)
-      (setf (aref w n)
-            (cond ((<= 0d0 n (* alpha .5d0 n-1))
-                   (* .5d0 (+ 1d0 (cos (* (coerce pi 'double-float) (- (/ (* 2d0 n)
-                                                     (* alpha n-1)) 1d0))))))
-                  ((<= (* alpha .5d0 n-1) n (* n-1 (- 1d0 (* .5d0 alpha))))
-                   1.0d0)
-                  ((<= (* n-1 (- 1 (* .5d0 alpha))) n n-1)
-                   (* .5d0 (+ 1d0 (cos (* (coerce pi 'double-float) (+ (/ (* 2d0 n)
-                                                     (* alpha n-1))
-                                                  (/ -2.0d0 alpha)
-                                                  1d0))))))
-                  (t 0d0))))
+      (let ((nd (* 1d0 n)))
+       (setf (aref w n)
+	     (cond ((<= 0d0 nd (* alpha .5d0 n-1))
+		    (* .5d0 (+ 1d0 (cos (* pi (- (/ (* 2d0 n)
+						    (* alpha n-1)) 1d0))))))
+		   ((<= (* alpha .5d0 n-1) nd (* n-1 (- 1d0 (* .5d0 alpha))))
+		    1.0d0)
+		   ((<= (* n-1 (- 1 (* .5d0 alpha))) nd n-1)
+		    (* .5d0 (+ 1d0 (cos (* pi (+ (/ (* 2d0 n)
+						    (* alpha n-1))
+						 (/ -2.0d0 alpha)
+						 1d0))))))
+		   (t 0d0)))))
     w))
 
 (defun tukey-window2 (a &key (alpha-x .2d0) (alpha-y alpha-x))
-  (declare (type (array (complex double-float) 2) a)
-           (values (array (complex double-float) 2) &optional))
+  (declare (type (simple-array (complex double-float) 2) a)
+           (values (simple-array (complex double-float) 2) &optional)
+	   (optimize (speed 3)))
   (destructuring-bind (h w) (array-dimensions a)
-    (let* ((b1 (make-array (array-total-size a) :element-type '(complex double-float)))
-	   (b (make-array (array-dimensions a) :element-type '(complex double-float)
-			  :displaced-to b1))
+    (declare (type fixnum h w))
+    (let* ((b (make-array (array-dimensions a) :element-type '(complex double-float)))
 	   (wh (tukey-window h :alpha alpha-y))
 	   (ww (tukey-window w :alpha alpha-x)))
+      (declare (type (simple-array double-float 1) wh ww))
       (dotimes (j h)
 	(dotimes (i w)
 	  (setf (aref b j i) (* (aref a j i)
@@ -111,25 +122,31 @@ rectangular, for alpha=1 Hann window."
 
 
 (defun .* (a b)
+  (declare (type (simple-array * *) a b)
+	   (values (simple-array (complex double-float) *) &optional))
   (let* (
 	(a1 (make-array (array-total-size a) :element-type (array-element-type a)
 			:displaced-to a))
 	(b1 (make-array (array-total-size b) :element-type (array-element-type b)
 			:displaced-to b))
-	(c1 (make-array (array-total-size a) :element-type '(complex double-float)))
-	(c (make-array (array-dimensions a) :element-type '(complex double-float)
-		       :displaced-to c1)))
+	(c (make-array (array-dimensions a) :element-type '(complex double-float)))
+	(c1 (make-array (array-total-size a) :element-type '(complex double-float)
+			:displaced-to c)))
     (dotimes (i (length a1))
       (setf (aref c1 i) (* (aref a1 i) (aref b1 i))))
     c))
 
 (defun .apply (a &optional (fun #'identity))
+  (declare (type (simple-array * *) a)
+	   (values (simple-array (complex double-float) *) &optional))
   (let* (
 	(a1 (make-array (array-total-size a) :element-type (array-element-type a)
 			:displaced-to a))
-	(c1 (make-array (array-total-size a) :element-type '(complex double-float)))
 	(c (make-array (array-dimensions a) :element-type '(complex double-float)
-		       :displaced-to c1)))
+		       ))
+	(c1 (make-array (array-total-size a) :element-type '(complex double-float)
+			:displaced-to c))
+	)
     (dotimes (i (length a1))
       (setf (aref c1 i) (funcall fun (aref a1 i)
 			 )))
@@ -183,18 +200,43 @@ rectangular, for alpha=1 Hann window."
 (require :sb-sprof)
 
 #+nil
-(defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (make-array (list 1080 1920)
-									 :element-type '(complex double-float))
-							     100d0)
-						       :alpha-x .4))
-			       (lambda (x) (if (< (abs x) 10)
-					       (complex 0d0)
-					       (complex (abs x))))))
+(time ;; 4.4s
+ (defparameter *bla*
+   (j1/r (make-array (list 1080 1920)
+		     :element-type '(complex double-float))
+	 100d0)))
 
 #+nil
-(defparameter *windowed-phase-wedge* (tukey-window2 (phase-wedge (make-array (list 1080 1920)
-									     :element-type '(complex double-float))
-								 614 846)))
+(time ;; .025s
+ (defparameter *bla2*
+   (tukey-window2 *bla*)))
+
+#+nil
+(time
+ (defparameter *bla3*
+   (fftw:ft *bla2*)))
+
+#+nil
+(time ;; .684s
+ (defparameter *bla4* (phase-wedge (make-array (list 1080 1920)
+						    :element-type '(complex double-float))
+					614d0 846d0)))
+
+#+nil
+(time ;; 4.85s
+ (defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (make-array (list 1080 1920)
+									  :element-type '(complex double-float))
+							      100d0)
+							:alpha-x .4))
+				(lambda (x) (if (< (abs x) 10)
+						(complex 0d0)
+						(complex (abs x)))))))
+
+#+nil
+(time ;; 2.65s, now 0.724s
+ (defparameter *windowed-phase-wedge* (tukey-window2 (phase-wedge (make-array (list 1080 1920)
+									      :element-type '(complex double-float))
+								  614d0 846d0))))
 
 
 (defun .linear (a)
@@ -248,16 +290,16 @@ rectangular, for alpha=1 Hann window."
 				       :report :flat 
 				       :loop nil)                         
   (let ((im (get-cam-image-laptop 0 30 30)))
-    (write-pgm "/dev/shm/ko2.pgm" (convert-ub8 (convert-df
+    (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
 
-						(.* *windowed-phase-wedge* (convert-u16-cdf im))
+						#-nil (.* *windowed-phase-wedge* (convert-u16-cdf im))
 						#+nil (fftw:ft
 						 (.* *window*
 						     (fftw:ft 
 						      (.* *windowed-phase-wedge* (convert-u16-cdf im))))
 						 :sign fftw::+backward+
 						 )
-						:fun (lambda (x) (abs x)))))))
+						:fun (lambda (x) (expt (abs x) 1)))))))
 
 ;; positions of fiber ends
 ;; 207x207+1054+148 
