@@ -282,8 +282,8 @@ rectangular, for alpha=1 Hann window."
 
 #+nil
 (defparameter *coef1*
-  (find-mode-coefficients (floor (+ 1147 1364 -207) 2)
-			  (floor (+ 234 441 -207) 2))) 
+  (find-mode-coefficients (floor (+ 1147 1364 -256) 2)
+			  (floor (+ 234 441 -256) 2))) 
 
 #+nil
 (reduce #'max
@@ -295,7 +295,7 @@ rectangular, for alpha=1 Hann window."
 #+nil
 (time ;; 22s
  (defparameter *coef1-recon*
-   (let* ((n 207)
+   (let* ((n 256)
 	  (fs *fields*)
 	  (f *current-field*)
 	  (new-field (make-array (list n n) :element-type '(complex double-float))))
@@ -312,6 +312,24 @@ rectangular, for alpha=1 Hann window."
 #+nil
 (write-pgm "/dev/shm/recon-coef1.pgm" (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
 
+#+nil
+(let* ((n 256)
+       (a (make-array (list n n) :element-type '(complex double-float))))
+  (dotimes (j n)
+    (dotimes (i n)
+      (setf (aref a j i) (aref *current-field* 
+			       (+ j (floor (+ 234 441 -256) 2))
+			       (+ i (floor (+ 1147 1364 -256) 2))
+			       ))))
+  (dotimes (j n)
+    (dotimes (i n)
+      (setf (aref a j i) (complex (- (* 1 (abs (aref a j i))) 
+				     (* 1 (abs (aref *coef1-recon* j i))))))))
+  (defparameter *coef1-diff* a)
+  (write-pgm "/dev/shm/recon-coef1p-diff5.pgm" (convert-ub8 (convert-df *coef1-diff* :fun #'realpart
+								     ))))
+
+
 ;;  mt9p031-2 is in basler aca1920-25gm which should have 2.2um pixel
 ;;  pitch according to research i did previously.
 ;; i use a 10x objective with 150mm tubelens
@@ -320,10 +338,14 @@ rectangular, for alpha=1 Hann window."
 ;; fobj = ftl/M = 164.5 mm/10 = 16.45 mm
 ;; Msys = 150/16.45 = 9.118
 ;; diameter of the 50um fiber on the camera:
-;(/ (* 50 (/ 150 16.45)) 2.2) ; => 207.2396
+;(/ (* 50 (/ 150 16.45)) 2.2) ; => 207.2396px
+;; to fill 256 pixels, use scale 1.235 in field calculating function
+
+(/ 256 (/ (* 50 (/ 150 16.45)) 2.2))
+
 
 (defun find-mode-coefficients (istart jstart)
- (let ((n 207)
+ (let ((n 256)
        (fs *fields*)
        (f *current-field*))
    (declare (type (simple-array (complex double-float) 2) f)
@@ -352,7 +374,8 @@ rectangular, for alpha=1 Hann window."
 
 #+nil
 (sb-ext:gc :full t)
-
+#+nil
+(room)
 #+nil
 (let* ((ncl 1.457)
        (lambd .0006328)
@@ -368,12 +391,13 @@ rectangular, for alpha=1 Hann window."
        )
   (* 2 (number-of-modes u-modes)) ;  => 2757 modes (must be multiplied by 2 for the other polarization)
   ;;(field (step-fiber-field u v l :n 207 :scale 2d0))
-  (defparameter *fields* (step-fiber-fields u-modes v
-					 :scale 1d0 
-					 :rco core-radius
-					 :nco nco
-					 :n 207
-					 :debug t))
+  (time
+   (defparameter *fields* (step-fiber-fields u-modes v
+					     :scale (/ 256 (/ (* 50 (/ 150 16.45)) 2.2))  
+					     :rco core-radius
+					     :nco nco
+					     :n 256 
+					     :debug t)))
   ;;(write-pgm "/dev/shm/field.pgm" (convert-ub8 field))
   ) 
 
