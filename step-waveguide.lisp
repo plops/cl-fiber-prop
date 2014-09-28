@@ -312,16 +312,24 @@ rectangular, for alpha=1 Hann window."
 ; sqrt (0.54^2+1.457^2) => nco=1.553
 
 #+nil
-(let* ((ncl 1.457)
-       (lambd .0006328)
-       (na .54)
-       (nco (sqrt (+ (expt na 2) (expt ncl 2))))
-       (core-radius 25d-3)
-       (v (v .0006328 nco ncl core-radius))
-       ;(betas (step-fiber-betas* :wavelength lambd :ncore nco :ncladding ncl :core-radius core-radius))
-       (u-modes (step-fiber-eigenvalues v))
-       )
-  (* 2 (number-of-modes u-modes))) ;  => 2757 modes (must be multiplied by 2 for the other polarization)
+(time 
+ (let* ((ncl 1.457)
+	(lambd .0006328)
+	(na .54)
+	(nco (sqrt (+ (expt na 2) (expt ncl 2))))
+	(core-radius 25d-3)
+	(v (v .0006328 nco ncl core-radius))
+					;(betas (step-fiber-betas* :wavelength lambd :ncore nco :ncladding ncl :core-radius core-radius))
+	(u-modes (step-fiber-eigenvalues v :tol 1d-22 :itermax 10000))
+	(m 3)
+	(l 32)
+	(u (elt (elt u-modes l) m))
+	(field (step-fiber-field u v l :n 207 :scale 2d0)))
+   (* 2 (number-of-modes u-modes)) ;  => 2757 modes (must be multiplied by 2 for the other polarization)
+   
+   (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 field					       
+					      ))
+   )) 
 
 
 ;; v parameter is 134
@@ -395,7 +403,8 @@ rectangular, for alpha=1 Hann window."
       (/ (gsll:cylindrical-bessel-j         l u)))))
 
 
-(defun step-fiber-eigenvalues (v &key debug)
+(defun step-fiber-eigenvalues (v &key debug (tol 1d-9) (itermax 100))
+  (declare (type double-float tol))
   (let ((lmax (+ 1 (floor (* 2 V (/ pi)))))
 	(mmax (ceiling (- (/ V pi) 1/4))))
     
@@ -418,7 +427,8 @@ rectangular, for alpha=1 Hann window."
 				   (let ((du 1d-9))
 				     (handler-case 
 					 (zbrent #'(lambda (x) (char-step-index-fiber x v l))
-						 (+ (elt us (1- m)) du) (- (elt us m) du))
+						 (+ (elt us (1- m)) du) (- (elt us m) du)
+						 tol itermax)
 				       (root-not-bracketed ())
 				       (max-iterations-exceeded ()))))))))
       ;; occasionally there is no mode in the gap between the last pole and v
