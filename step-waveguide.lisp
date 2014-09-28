@@ -294,17 +294,22 @@ rectangular, for alpha=1 Hann window."
 	  sum))))
 
 #+nil
-(time
+(time ;; used to be 25s, with types 0.6s
  (defparameter *coef2*
    (let ((istart 625)
 	 (jstart 395)
-	 (n 207))
-     (loop for k below (array-dimension *fields* 0) collect
+	 (n 207)
+	 (fs *fields*)
+	 (f *current-field*))
+     (declare (type (simple-array (complex double-float) 2) f)
+	      (type (simple-array double-float 3) fs)
+	      (optimize (speed 3)))
+     (loop for k below (array-dimension fs 0) collect
 	  (let ((sum (complex 0d0)))
 	    (loop for j below n do
 		 (loop for i below n do
-		      (incf sum (* (aref *fields* k j i)
-				   (aref *current-field* (+ j jstart) (+ i istart))))))
+		      (incf sum (* (aref fs k j i)
+				   (aref f (+ j jstart) (+ i istart))))))
 	    sum)))))
 
 
