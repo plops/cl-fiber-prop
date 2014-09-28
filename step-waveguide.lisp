@@ -281,7 +281,7 @@ rectangular, for alpha=1 Hann window."
 ;; 569x637
 
 #+nil
-(defparameter *coef*
+(defparameter *coef1*
  (let ((istart 1054)
        (jstart 148)
        (n 207))
@@ -292,6 +292,20 @@ rectangular, for alpha=1 Hann window."
 		    (incf sum (* (aref *fields* k j i)
 				 (aref *current-field* (+ j jstart) (+ i istart))))))
 	  sum))))
+
+#+nil
+(time
+ (defparameter *coef2*
+   (let ((istart 625)
+	 (jstart 395)
+	 (n 207))
+     (loop for k below (array-dimension *fields* 0) collect
+	  (let ((sum (complex 0d0)))
+	    (loop for j below n do
+		 (loop for i below n do
+		      (incf sum (* (aref *fields* k j i)
+				   (aref *current-field* (+ j jstart) (+ i istart))))))
+	    sum)))))
 
 
 
