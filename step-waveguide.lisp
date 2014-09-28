@@ -7,8 +7,7 @@
   (setf asdf:*central-registry*
 	(union (list #p"/home/martin/stage/cl-cffi-fftw3/"
 		     *default-pathname-defaults*)
-	       asdf:*central-registry*
-	       ))
+	       asdf:*central-registry*))
   (require :cl-fiber-prop)
   (require :fftw))
 
@@ -200,29 +199,6 @@ rectangular, for alpha=1 Hann window."
 (require :sb-sprof)
 
 #+nil
-(time ;; 4.4s
- (defparameter *bla*
-   (j1/r (make-array (list 1080 1920)
-		     :element-type '(complex double-float))
-	 100d0)))
-
-#+nil
-(time ;; .025s
- (defparameter *bla2*
-   (tukey-window2 *bla*)))
-
-#+nil
-(time
- (defparameter *bla3*
-   (fftw:ft *bla2*)))
-
-#+nil
-(time ;; .684s
- (defparameter *bla4* (phase-wedge (make-array (list 1080 1920)
-						    :element-type '(complex double-float))
-					614d0 846d0)))
-
-#+nil
 (time ;; 4.85s
  (defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (make-array (list 1080 1920)
 									  :element-type '(complex double-float))
@@ -285,6 +261,7 @@ rectangular, for alpha=1 Hann window."
 (defparameter *bla*
  (get-cam-image-laptop 0 60 60))
 
+
 #+nil
 (time
  (let* ((im (get-cam-image-laptop 0 30 30))
@@ -293,6 +270,7 @@ rectangular, for alpha=1 Hann window."
 		    (fftw:ft 
 		     (.* *windowed-phase-wedge* (convert-u16-cdf im))))
 		:sign fftw::+backward+)))
+   (defparameter *current-field* field)
    (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
 					       field					       
 					       :fun (lambda (x) (realpart x)))))))
@@ -302,12 +280,30 @@ rectangular, for alpha=1 Hann window."
 ;; 625x395
 ;; 569x637
 
+#+nil
+(defparameter *coef*
+ (let ((istart 1054)
+       (jstart 148)
+       (n 207))
+   (loop for k below (array-dimension *fields* 0) collect
+	(let ((sum (complex 0d0)))
+	  (loop for j below n do
+	       (loop for i below n do
+		    (incf sum (* (aref *fields* k j i)
+				 (aref *current-field* (+ j jstart) (+ i istart))))))
+	  sum))))
+
+
+
 ;; i assume fiber cladding to be quartz: ncl=1.457 
 ;; na=0.54
 ;; diameter=50um
 
 ; solve(sqrt(nco^2 - 1.457^2)=0.54,nco)
 ; sqrt (0.54^2+1.457^2) => nco=1.553
+
+#+nil
+(sb-ext:gc :full t)
 
 #+nil
 (let* ((ncl 1.457)
@@ -324,16 +320,15 @@ rectangular, for alpha=1 Hann window."
        )
   (* 2 (number-of-modes u-modes)) ;  => 2757 modes (must be multiplied by 2 for the other polarization)
   ;;(field (step-fiber-field u v l :n 207 :scale 2d0))
-  (time (defparameter *bla* (step-fiber-fields u-modes v
-					  :scale 2d0 
-					  :rco core-radius
-					  :nco nco
-					  :n 207
-					  :debug t)))
+  (defparameter *fields* (step-fiber-fields u-modes v
+					 :scale 2d0 
+					 :rco core-radius
+					 :nco nco
+					 :n 207
+					 :debug t))
   ;;(write-pgm "/dev/shm/field.pgm" (convert-ub8 field))
   ) 
 
-(* 5500 207 207 8 (/ (* 1024d0 1024))) ;; 2Gb
 
 ;; v parameter is 134
 
