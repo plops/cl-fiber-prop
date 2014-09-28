@@ -294,6 +294,33 @@ rectangular, for alpha=1 Hann window."
 	  sum))))
 
 #+nil
+(reduce #'max
+	(mapcar #'(lambda (a) (floor (* 1d-9 (abs a)))) *coef1*))
+#+nil
+(format t "~{~a~%~}"
+ (mapcar #'(lambda (a) (* 1d-9 (abs a))) *coef1*))
+
+#+nil
+(time ;; 22s
+ (defparameter *coef1-recon*
+   (let* ((n 207)
+	  (fs *fields*)
+	  (f *current-field*)
+	  (new-field (make-array (list n n) :element-type '(complex double-float))))
+     (declare (type (simple-array (complex double-float) 2) f new-field)
+	      (type (simple-array double-float 3) fs)
+	      (optimize (speed 3)))
+     (loop for c in *coef1* and k from 0 do
+	  (loop for j below n do
+	       (loop for i below n do
+		    (incf (aref new-field j i)
+			  (* c (aref fs k j i))))))
+     new-field)))
+
+#+nil
+(write-pgm "/dev/shm/recon-coef1.pgm" (convert-ub8 (convert-df *coef1-recon*)))
+
+#+nil
 (time ;; used to be 25s, with types 0.6s
  (defparameter *coef2*
    (let ((istart 625)
@@ -340,7 +367,7 @@ rectangular, for alpha=1 Hann window."
   (* 2 (number-of-modes u-modes)) ;  => 2757 modes (must be multiplied by 2 for the other polarization)
   ;;(field (step-fiber-field u v l :n 207 :scale 2d0))
   (defparameter *fields* (step-fiber-fields u-modes v
-					 :scale 2d0 
+					 :scale 1d0 
 					 :rco core-radius
 					 :nco nco
 					 :n 207
