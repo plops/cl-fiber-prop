@@ -323,10 +323,10 @@ rectangular, for alpha=1 Hann window."
 			       ))))
   (dotimes (j n)
     (dotimes (i n)
-      (setf (aref a j i) (complex (- (* 1 (abs (aref a j i))) 
-				     (* 1 (abs (aref *coef1-recon* j i))))))))
+      (setf (aref a j i) (complex (+ (* 0 (realpart (aref a j i))) 
+				     (* 1 (realpart (aref *coef1-recon* j i))))))))
   (defparameter *coef1-diff* a)
-  (write-pgm "/dev/shm/recon-coef1p-diff5.pgm" (convert-ub8 (convert-df *coef1-diff* :fun #'realpart
+  (write-pgm "/dev/shm/recon-coef1p-diff0.pgm" (convert-ub8 (convert-df *coef1-diff* :fun #'realpart
 								     ))))
 
 
@@ -355,8 +355,11 @@ rectangular, for alpha=1 Hann window."
 	(let ((sum (complex 0d0)))
 	  (loop for j below n do
 	       (loop for i below n do
-		    (incf sum (* (aref fs k j i)
-				 (aref f (+ j jstart) (+ i istart))))))
+		    (let ((r (sqrt (+ (expt (- i (floor n 2)) 2)
+				      (expt (- j (floor n 2)) 2)))))
+		      (when (< r (* .5 207.2396))
+			(incf sum (* (aref fs k j i)
+				    (aref f (+ j jstart) (+ i istart))))))))
 	  sum))))
 
 #+nil
