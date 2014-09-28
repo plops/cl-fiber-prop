@@ -282,8 +282,8 @@ rectangular, for alpha=1 Hann window."
 
 #+nil
 (defparameter *coef1*
-  (find-mode-coefficients (+ 1054 (floor 207 2))
-			  (+ 148 (floor 207 2))))
+  (find-mode-coefficients (floor (+ 1147 1364 -207) 2)
+			  (floor (+ 234 441 -207) 2))) 
 
 #+nil
 (reduce #'max
@@ -311,6 +311,16 @@ rectangular, for alpha=1 Hann window."
 
 #+nil
 (write-pgm "/dev/shm/recon-coef1.pgm" (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
+
+;;  mt9p031-2 is in basler aca1920-25gm which should have 2.2um pixel
+;;  pitch according to research i did previously.
+;; i use a 10x objective with 150mm tubelens
+;; 50 um 164.5
+;; ftl/fobj = Yim/Yobj = M
+;; fobj = ftl/M = 164.5 mm/10 = 16.45 mm
+;; Msys = 150/16.45 = 9.118
+;; diameter of the 50um fiber on the camera:
+;(/ (* 50 (/ 150 16.45)) 2.2) ; => 207.2396
 
 (defun find-mode-coefficients (istart jstart)
  (let ((n 207)
