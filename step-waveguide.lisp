@@ -286,20 +286,18 @@ rectangular, for alpha=1 Hann window."
  (get-cam-image-laptop 0 60 60))
 
 #+nil
-(sb-sprof:with-profiling (:max-samples 1000                                  
-				       :report :flat 
-				       :loop nil)                         
-  (let ((im (get-cam-image-laptop 0 30 30)))
-    (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
-
-						#-nil (.* *windowed-phase-wedge* (convert-u16-cdf im))
-						#+nil (fftw:ft
-						 (.* *window*
-						     (fftw:ft 
-						      (.* *windowed-phase-wedge* (convert-u16-cdf im))))
-						 :sign fftw::+backward+
-						 )
-						:fun (lambda (x) (expt (abs x) 1)))))))
+(time
+ (let* ((im (get-cam-image-laptop 0 30 30))
+	(field (fftw:ft
+		(.* *window*
+		    (fftw:ft 
+		     (.* *windowed-phase-wedge* (convert-u16-cdf im))))
+		:sign fftw::+backward+)))
+   (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
+					       field					       
+					       :fun (lambda (x) (* (if (< (abs x) 300000d0)
+								       0d0
+								       (phase x)))))))))
 
 ;; positions of fiber ends
 ;; 207x207+1054+148 
