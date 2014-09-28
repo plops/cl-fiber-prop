@@ -295,9 +295,7 @@ rectangular, for alpha=1 Hann window."
 		:sign fftw::+backward+)))
    (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
 					       field					       
-					       :fun (lambda (x) (* (if (< (abs x) 300000d0)
-								       0d0
-								       (phase x)))))))))
+					       :fun (lambda (x) (realpart x)))))))
 
 ;; positions of fiber ends
 ;; 207x207+1054+148 
@@ -312,25 +310,30 @@ rectangular, for alpha=1 Hann window."
 ; sqrt (0.54^2+1.457^2) => nco=1.553
 
 #+nil
-(time 
- (let* ((ncl 1.457)
-	(lambd .0006328)
-	(na .54)
-	(nco (sqrt (+ (expt na 2) (expt ncl 2))))
-	(core-radius 25d-3)
-	(v (v .0006328 nco ncl core-radius))
+(let* ((ncl 1.457)
+       (lambd .0006328)
+       (na .54)
+       (nco (sqrt (+ (expt na 2) (expt ncl 2))))
+       (core-radius 25d-3)
+       (v (v .0006328 nco ncl core-radius))
 					;(betas (step-fiber-betas* :wavelength lambd :ncore nco :ncladding ncl :core-radius core-radius))
-	(u-modes (step-fiber-eigenvalues v :tol 1d-22 :itermax 10000))
-	(m 3)
-	(l 32)
-	(u (elt (elt u-modes l) m))
-	(field (step-fiber-field u v l :n 207 :scale 2d0)))
-   (* 2 (number-of-modes u-modes)) ;  => 2757 modes (must be multiplied by 2 for the other polarization)
-   
-   (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 field					       
-					      ))
-   )) 
+       (u-modes (step-fiber-eigenvalues v :tol 1d-22 :itermax 10000))
+       (m 3)
+       (l 32)
+       (u (elt (elt u-modes l) m))
+       )
+  (* 2 (number-of-modes u-modes)) ;  => 2757 modes (must be multiplied by 2 for the other polarization)
+  ;;(field (step-fiber-field u v l :n 207 :scale 2d0))
+  (time (defparameter *bla* (step-fiber-fields u-modes v
+					  :scale 2d0 
+					  :rco core-radius
+					  :nco nco
+					  :n 207
+					  :debug t)))
+  ;;(write-pgm "/dev/shm/field.pgm" (convert-ub8 field))
+  ) 
 
+(* 5500 207 207 8 (/ (* 1024d0 1024))) ;; 2Gb
 
 ;; v parameter is 134
 
@@ -353,7 +356,7 @@ rectangular, for alpha=1 Hann window."
 
 
 (defun check (fn pos &rest args)
-  "call a gsll function and check that the error lies within a margin i can live with. pos is there to indicate which of many calls was the problematic one"
+1  "call a gsll function and check that the error lies within a margin i can live with. pos is there to indicate which of many calls was the problematic one"
   (multiple-value-bind (v err) (apply fn args)
     (when (and (< .1 (/ err v))
 	       (< .01 v))
