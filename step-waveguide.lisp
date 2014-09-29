@@ -351,7 +351,7 @@ rectangular, for alpha=1 Hann window."
   (destructuring-bind (ncoef n no) (array-dimensions mode-fields) 
     (declare (ignorable ncoef no)
 	     (type fixnum n))
-    (with-multiprocessing 4 k 
+    (with-multiprocessing 1 k 
 		      (loop for k below (length coefficients) collect k)
 		      ((new-field (make-array (list processes n n) 
 					      :element-type '(complex double-float)
@@ -370,27 +370,33 @@ rectangular, for alpha=1 Hann window."
 			out))))
 
 
+
+
 #+nil
-(time ;; 4.8s, used to be >22s
+(time ;; 118s
  (progn
-   (defparameter *coef1*
-     (find-mode-coefficients *current-field* 
-			     (floor (+ 1147 1364 -256) 2)
-			     (floor (+ 234 441 -256) 2)
-			     *fields*))
-   (defparameter *coef1-recon*
-     (combine-mode-coefficients *coef1* *fields*))))
-
-#+nil
-(defparameter *coef1*
-     (find-mode-coefficients *current-field* 
-			     (floor (+ 1147 1364 -256) 2)
-			     (floor (+ 234 441 -256) 2)
-			     *fields*))
-
-#+nil
-(defparameter *coef1-recon*
-     (combine-mode-coefficients *coef1* *fields*))
+   (loop for j from 0 below 93 by 30 do 
+	(loop for i from 0 below 118 by 30 do
+	     (let* ((im (get-cam-image-laptop 0 j i))
+		    (field (fftw:ft
+			    (.* *window*
+				(fftw:ft 
+				 (.* *windowed-phase-wedge* (convert-u16-cdf im))))
+			    :sign fftw::+backward+)))
+	       (defparameter *current-field* field)
+	       (write-pgm (format nil "/dev/shm/ko3_j~d-i~d.pgm" j i)
+			  (convert-ub8 (convert-df
+					field					       
+					:fun (lambda (x) (realpart x))))))
+	     (defparameter *coef1*
+	       (find-mode-coefficients *current-field* 
+				       (floor (+ 1147 1364 -256) 2)
+				       (floor (+ 234 441 -256) 2)
+				       *fields*))
+	     (defparameter *coef1-recon*
+	       (combine-mode-coefficients *coef1* *fields*))
+	     (write-pgm (format nil "/dev/shm/recon-coef0_j~d-i~d.pgm" j i) (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
+	     (write-pgm (format nil "/dev/shm/c1m_j~d-i~d.pgm" j i) (convert-ub8 (convert-df (create-coefficient-mosaic *coef1* *u-modes*) :fun (lambda (x) (realpart x)))))))))
 
 #+nil
 (write-pgm "/dev/shm/recon-coef2.pgm" (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
@@ -451,7 +457,7 @@ rectangular, for alpha=1 Hann window."
 		 (incf count)))))
    (when debug
     (format t "find-mode-coefficient processes count = ~a pixels~%" count))
-   (with-multiprocessing 4 k 
+   (with-multiprocessing 1 k 
 		      (loop for k below (array-dimension fields 0) collect k)
 		      ((sum (make-array (array-dimension fields 0) 
 					:element-type '(complex double-float)
