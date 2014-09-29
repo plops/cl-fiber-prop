@@ -320,7 +320,7 @@ rectangular, for alpha=1 Hann window."
 (defmacro with-multiprocessing (processors var task-list
 				init body end)
   `(let* ((processes ,processors)
-	  (task-groups (schedule-tasks ,task-list)))
+	  (task-groups (schedule-tasks ,task-list :processes processes)))
      (let ,init
        (let ((th (loop for task in task-groups and process from 0 collect
 		      (sb-thread:make-thread 
@@ -434,7 +434,7 @@ rectangular, for alpha=1 Hann window."
 
 (defvar *current-field* nil)
 (defvar *fields* nil)
-(defun find-mode-coefficients (current-field istart jstart fields)
+(defun find-mode-coefficients (current-field istart jstart fields &key (debug nil))
   (declare (type fixnum istart jstart)
 	   (type (simple-array (complex double-float) 2) current-field)
 	   (type (simple-array double-float 3) fields)
@@ -449,19 +449,23 @@ rectangular, for alpha=1 Hann window."
 			       (expt (- j (floor n 2)) 2)))))
 	       (when (< r (* .52 207.2396))
 		 (incf count)))))
-   (format t "count = ~a~%" count)
-   (let ((ret (loop for k below (array-dimension fields 0) collect
-		   (let ((sum (complex 0d0)))
-		     (loop for j below n do
-			  (loop for i below n do
-			       (let ((r (sqrt (+ (expt (- i (floor n 2)) 2)
-						 (expt (- j (floor n 2)) 2)))))
-				 (when (< r (* .52 207.2396))
-				   (incf sum (* (aref fields k j i)
-						(aref current-field (+ j jstart) (+ i istart))))))))
-		     (* sum (/ 1d0 count)))))) 
-     (make-array  (length ret) :element-type '(complex double-float)
-		  :initial-contents ret))))
+   (when debug
+    (format t "find-mode-coefficient processes count = ~a pixels~%" count))
+   (with-multiprocessing 4 k 
+		      (loop for k below (array-dimension fields 0) collect k)
+		      ((sum (make-array (array-dimension fields 0) 
+					:element-type '(complex double-float)
+					:initial-element (complex 0d0))))
+		      (progn
+			(loop for j below n do
+			     (loop for i below n do
+				  (let ((r (sqrt (+ (expt (- i (floor n 2)) 2)
+						    (expt (- j (floor n 2)) 2)))))
+				    (when (< r (* .52 207.2396))
+				      (incf (aref sum k) (* (aref fields k j i)
+							    (aref current-field (+ j jstart) (+ i istart))))))))
+			(setf (aref sum k) (/ (aref sum k) (* 1d0 count))))
+		      sum)))
 
 #+nil
 (time ;; used to be 25s, with types 0.6s
