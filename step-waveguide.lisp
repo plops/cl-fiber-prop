@@ -290,26 +290,34 @@ rectangular, for alpha=1 Hann window."
 (format t "~{~a~%~}"
  (mapcar #'(lambda (a) (* 1d-9 (abs a))) *coef1*))
 
+(defun combine-mode-coefficients (coefficients mode-fields)
+  (declare (type (simple-array double-float 3) mode-fields)
+	   (type (simple-array (complex double-float) 1) coefficients)
+	   (values (simple-array (complex double-float) 2) &optional)
+	   (optimize (speed 3)))
+  (destructuring-bind (ncoef n no) (array-dimensions mode-fields) 
+    (declare (ignorable ncoef no)
+	     (type fixnum n))
+    (let* ((new-field (make-array (list n n) :element-type '(complex double-float))))
+      (declare (type (simple-array (complex double-float) 2) new-field))
+      (loop for k below (length coefficients) do
+	   (loop for j below n do
+		(loop for i below n do
+		     (incf (aref new-field j i)
+			   (* (aref coefficients k)
+			      (aref mode-fields k j i))))))
+      new-field)))
+
 #+nil
-(time ;; 22s
+(time ;; 4.8s, used to be >22s
  (progn
    (defparameter *coef1*
-     (find-mode-coefficients (floor (+ 1147 1364 -256 5) 2)
-			     (floor (+ 234 441 -256 3) 2)))
+     (find-mode-coefficients *current-field* 
+			     (floor (+ 1147 1364 -256) 2)
+			     (floor (+ 234 441 -256) 2)
+			     *fields*))
    (defparameter *coef1-recon*
-     (let* ((n 256)
-	    (fs *fields*)
-	    (f *current-field*)
-	    (new-field (make-array (list n n) :element-type '(complex double-float))))
-       (declare (type (simple-array (complex double-float) 2) f new-field)
-		(type (simple-array double-float 3) fs)
-	       (optimize (speed 3)))
-       (loop for c in *coef1* and k from 0 do
-	    (loop for j below n do
-		 (loop for i below n do
-		      (incf (aref new-field j i)
-			    (* c (aref fs k j i))))))
-       new-field))))
+     (combine-mode-coefficients *coef1* *fields*))))
 
 #+nil
 (with-open-file (s "/dev/shm/o.dat" :direction :output :if-exists :supersede)
@@ -359,14 +367,15 @@ rectangular, for alpha=1 Hann window."
 
 (defvar *current-field* nil)
 (defvar *fields* nil)
-(defun find-mode-coefficients (istart jstart)
+(defun find-mode-coefficients (current-field istart jstart fields)
+  (declare (type fixnum istart jstart)
+	   (type (simple-array (complex double-float) 2) current-field)
+	   (type (simple-array double-float 3) fields)
+	   (optimize (speed 3))
+	   (values (simple-array (complex double-float) 1) &optional))
  (let ((n 256)
-       (fs *fields*)
-       (f *current-field*)
        (count 0))
-   (declare (type (simple-array (complex double-float) 2) f)
-	    (type (simple-array double-float 3) fs)
-	    (optimize (speed 3)))
+   (declare (type fixnum count))
    (loop for j below n do
 	(loop for i below n do
 	     (let ((r (sqrt (+ (expt (- i (floor n 2)) 2)
@@ -374,16 +383,18 @@ rectangular, for alpha=1 Hann window."
 	       (when (< r (* .52 207.2396))
 		 (incf count)))))
    (format t "count = ~a~%" count)
-   (loop for k below (array-dimension fs 0) collect
-	(let ((sum (complex 0d0)))
-	  (loop for j below n do
-	       (loop for i below n do
-		    (let ((r (sqrt (+ (expt (- i (floor n 2)) 2)
-				      (expt (- j (floor n 2)) 2)))))
-		      (when (< r (* .52 207.2396))
-			(incf sum (* (aref fs k j i)
-				     (aref f (+ j jstart) (+ i istart))))))))
-	  (/ sum count)))))
+   (let ((ret (loop for k below (array-dimension fields 0) collect
+		   (let ((sum (complex 0d0)))
+		     (loop for j below n do
+			  (loop for i below n do
+			       (let ((r (sqrt (+ (expt (- i (floor n 2)) 2)
+						 (expt (- j (floor n 2)) 2)))))
+				 (when (< r (* .52 207.2396))
+				   (incf sum (* (aref fields k j i)
+						(aref current-field (+ j jstart) (+ i istart))))))))
+		     (* sum (/ 1d0 count)))))) 
+     (make-array  (length ret) :element-type '(complex double-float)
+		  :initial-contents ret))))
 
 #+nil
 (time ;; used to be 25s, with types 0.6s
