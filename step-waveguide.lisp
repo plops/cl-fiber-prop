@@ -311,10 +311,10 @@ rectangular, for alpha=1 Hann window."
     a))
 
 #+nil
-(defparameter *c1m* (create-coefficient-mosaic *coef1* *u-modes*))
+(defparameter *c1m* )
 
 #+nil
-(write-pgm "/dev/shm/c1m.pgm" (convert-ub8 (convert-df *c1m*)))
+(write-pgm "/dev/shm/c1m.pgm" (convert-ub8 (convert-df (create-coefficient-mosaic *coef1* *u-modes*) :fun (lambda (x) (log (+ .1 (abs x)))))))
 
 (defun combine-mode-coefficients (coefficients mode-fields)
   (declare (type (simple-array double-float 3) mode-fields)
@@ -334,6 +334,16 @@ rectangular, for alpha=1 Hann window."
 			      (aref mode-fields k j i))))))
       new-field)))
 
+(let* ((l (loop for i below 37 collect i))
+       (len (length l))
+       (processes 4)
+       (max-tasks-per-process (ceiling len processes))
+       (start-proc 0))
+  (loop for p below processes collect
+       (prog1
+	 (subseq l start-proc (min len 
+				   (+ start-proc max-tasks-per-process)))
+	 (incf start-proc max-tasks-per-process))))
 #+nil
 (time ;; 4.8s, used to be >22s
  (progn
