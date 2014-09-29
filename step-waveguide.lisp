@@ -281,9 +281,7 @@ rectangular, for alpha=1 Hann window."
 ;; 569x637
 
 #+nil
-(defparameter *coef1*
-  (find-mode-coefficients (floor (+ 1147 1364 -256) 2)
-			  (floor (+ 234 441 -256) 2))) 
+ 
 
 #+nil
 (reduce #'max
@@ -294,23 +292,33 @@ rectangular, for alpha=1 Hann window."
 
 #+nil
 (time ;; 22s
- (defparameter *coef1-recon*
-   (let* ((n 256)
-	  (fs *fields*)
-	  (f *current-field*)
-	  (new-field (make-array (list n n) :element-type '(complex double-float))))
-     (declare (type (simple-array (complex double-float) 2) f new-field)
-	      (type (simple-array double-float 3) fs)
-	      (optimize (speed 3)))
-     (loop for c in *coef1* and k from 0 do
-	  (loop for j below n do
-	       (loop for i below n do
-		    (incf (aref new-field j i)
-			  (* c (aref fs k j i))))))
-     new-field)))
+ (progn
+   (defparameter *coef1*
+     (find-mode-coefficients (floor (+ 1147 1364 -256 5) 2)
+			     (floor (+ 234 441 -256 3) 2)))
+   (defparameter *coef1-recon*
+     (let* ((n 256)
+	    (fs *fields*)
+	    (f *current-field*)
+	    (new-field (make-array (list n n) :element-type '(complex double-float))))
+       (declare (type (simple-array (complex double-float) 2) f new-field)
+		(type (simple-array double-float 3) fs)
+	       (optimize (speed 3)))
+       (loop for c in *coef1* and k from 0 do
+	    (loop for j below n do
+		 (loop for i below n do
+		      (incf (aref new-field j i)
+			    (* c (aref fs k j i))))))
+       new-field))))
 
 #+nil
-(write-pgm "/dev/shm/recon-coef1.pgm" (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
+(with-open-file (s "/dev/shm/o.dat" :direction :output :if-exists :supersede)
+ (format s "~{~{~d ~}~%~}" (loop for i in (sort (copy-seq (mapcar #'abs *coef1*)) #'>) and j from 0 collect (list j i))))
+
+#+nil
+(format t "~{~a~%~}" (mapcar #'floor (sort (copy-seq (mapcar #'(lambda (x) (* 1d-1 (abs x))) *coef1*)) #'>)))
+#+nil
+(write-pgm "/dev/shm/recon-coef2.pgm" (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
 
 #+nil
 (let* ((n 256)
@@ -318,14 +326,15 @@ rectangular, for alpha=1 Hann window."
   (dotimes (j n)
     (dotimes (i n)
       (setf (aref a j i) (aref *current-field* 
-			       (+ j (floor (+ 234 441 -256) 2))
-			       (+ i (floor (+ 1147 1364 -256) 2))
+			       (+ j (floor (+ 234 441 -256 3) 2))
+			       (+ i (floor (+ 1147 1364 -256 5) 2))
 			       ))))
+  (write-pgm "/dev/shm/raw.pgm" (convert-ub8 (convert-df a :fun #'realpart)))
   ;;(defparameter *raw* a)
   (dotimes (j n)
     (dotimes (i n)
       (setf (aref a j i) (complex (+ (* 1 (realpart (aref a j i))) 
-				     (* (- pi) (realpart (aref *coef1-recon* j i))))))))
+				     (*  (realpart (aref *coef1-recon* j i))))))))
   (defparameter *coef1-diff* a)
   (write-pgm "/dev/shm/recon-coef1p-diff0.pgm" (convert-ub8 (convert-df *coef1-diff* :fun #'realpart
 								     )))) 
@@ -360,7 +369,7 @@ rectangular, for alpha=1 Hann window."
 	(loop for i below n do
 	     (let ((r (sqrt (+ (expt (- i (floor n 2)) 2)
 			       (expt (- j (floor n 2)) 2)))))
-	       (when (< r (* .5 207.2396))
+	       (when (< r (* .52 207.2396))
 		 (incf count)))))
    (format t "count = ~a~%" count)
    (loop for k below (array-dimension fs 0) collect
@@ -369,7 +378,7 @@ rectangular, for alpha=1 Hann window."
 	       (loop for i below n do
 		    (let ((r (sqrt (+ (expt (- i (floor n 2)) 2)
 				      (expt (- j (floor n 2)) 2)))))
-		      (when (< r (* .5 207.2396))
+		      (when (< r (* .52 207.2396))
 			(incf sum (* (aref fs k j i)
 				     (aref f (+ j jstart) (+ i istart))))))))
 	  (/ sum count)))))
