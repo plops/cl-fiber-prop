@@ -297,20 +297,21 @@ rectangular, for alpha=1 Hann window."
   (let* ((lmax (list-length u-modes))
 	 (mmax (list-length (first u-modes)))
 	 (nmodes (number-of-modes u-modes))
-	 (a (make-array (list (+ lmax (1- lmax))  mmax) :element-type '(complex double-float))))
+	 (a (make-array (list (+ lmax (1- lmax))  mmax) :element-type '(complex double-float)))
+	 (lut (fiber-linear-to-lm-index-lut u-modes)))
     (declare (type (simple-array (complex double-float) 2) a)
 	     (type fixnum nmodes lmax mmax))
     (when debug
       (format t "filling a ~ax~a matrix~%" (array-dimension a 1) (array-dimension a 0)))
     (loop for k below nmodes do
 	 (when debug (format t "doing mode ~d/~d.~%" (1+ k) nmodes))
-	 (destructuring-bind (l m) (fiber-linear-to-lm-index k u-modes)
+	 (destructuring-bind (l m) (aref lut k)
 	   (declare (type fixnum l m))
 	   (setf (aref a (+ (- lmax 1) l) m) (aref coefs k))))
     a))
 
 #+nil
-(defparameter *c1m* (create-coefficient-mosaic *coef1* *u-modes* :debug t))
+(defparameter *c1m* (create-coefficient-mosaic *coef1* *u-modes*))
 
 #+nil
 (write-pgm "/dev/shm/c1m.pgm" (convert-ub8 (convert-df *c1m*)))
@@ -712,6 +713,9 @@ mm."
 (fiber-lm-to-linear-index 0 5 (step-fiber-eigenvalues 12d0))
 
 (defun fiber-linear-to-lm-index (j u-modes)
+  (aref (fiber-linear-to-lm-index-lut u-modes) j))
+
+(defun fiber-linear-to-lm-index-lut (u-modes)
   (let ((res (make-array (number-of-modes u-modes))))
     (loop for ul in u-modes and l from 0 do
 	 (loop for um in ul and m from 0 do
@@ -720,7 +724,7 @@ mm."
 	      (unless (= l 0)
 		(setf (aref res (fiber-lm-to-linear-index (- l) m u-modes))
 		      (list (- l) m)))))
-    (aref res j)))
+    res))
 
 #+nil
 (fiber-linear-to-lm-index 0 *bla-ev*)
@@ -946,11 +950,12 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	 (mmax (length (first u-modes)))
 	 (n (array-dimension fields 2))
 	 (nmodes (number-of-modes u-modes))
-	 (a (make-array (list (* (+ lmax (1- lmax)) n)  (* mmax n)) :element-type 'double-float)))
+	 (a (make-array (list (* (+ lmax (1- lmax)) n)  (* mmax n)) :element-type 'double-float))
+	 (lut (fiber-linear-to-lm-index-lut u-modes)))
     (declare (type (simple-array double-float 2) a)
 	     (type fixnum n nmodes lmax mmax))
     (loop for k below nmodes do
-	 (destructuring-bind (l m) (fiber-linear-to-lm-index k u-modes)
+	 (destructuring-bind (l m) (aref lut k)
 	   (declare (type fixnum l m))
 	   (dotimes (j n) (dotimes (i n)
 			    (setf (aref a (+ j (* n (+ (- lmax 1) l))) (+ i (* n m)))
