@@ -340,6 +340,7 @@ rectangular, for alpha=1 Hann window."
 								     )))) 
 (/ 1d-9 .86d-13)
 
+#+nil
 (write-pgm "/dev/shm/cur.pgm" (convert-ub8 (convert-df *current-field* :fun #'realpart
 								     )))
 
@@ -356,7 +357,8 @@ rectangular, for alpha=1 Hann window."
 
 (/ 256 (/ (* 50 (/ 150 16.45)) 2.2))
 
-
+(defvar *current-field* nil)
+(defvar *fields* nil)
 (defun find-mode-coefficients (istart jstart)
  (let ((n 256)
        (fs *fields*)
