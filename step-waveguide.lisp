@@ -290,6 +290,31 @@ rectangular, for alpha=1 Hann window."
 (format t "~{~a~%~}"
  (mapcar #'(lambda (a) (* 1d-9 (abs a))) *coef1*))
 
+(defun create-coefficient-mosaic (coefs u-modes &key (debug nil))
+  (declare (type (simple-array (complex double-float) 1) coefs)
+	   (optimize (speed 3))
+	   (values (simple-array (complex double-float) 2) &optional))
+  (let* ((lmax (list-length u-modes))
+	 (mmax (list-length (first u-modes)))
+	 (nmodes (number-of-modes u-modes))
+	 (a (make-array (list (+ lmax (1- lmax))  mmax) :element-type '(complex double-float))))
+    (declare (type (simple-array (complex double-float) 2) a)
+	     (type fixnum nmodes lmax mmax))
+    (when debug
+      (format t "filling a ~ax~a matrix~%" (array-dimension a 1) (array-dimension a 0)))
+    (loop for k below nmodes do
+	 (when debug (format t "doing mode ~d/~d.~%" (1+ k) nmodes))
+	 (destructuring-bind (l m) (fiber-linear-to-lm-index k u-modes)
+	   (declare (type fixnum l m))
+	   (setf (aref a (+ (- lmax 1) l) m) (aref coefs k))))
+    a))
+
+#+nil
+(defparameter *c1m* (create-coefficient-mosaic *coef1* *u-modes* :debug t))
+
+#+nil
+(write-pgm "/dev/shm/c1m.pgm" (convert-ub8 (convert-df *c1m*)))
+
 (defun combine-mode-coefficients (coefficients mode-fields)
   (declare (type (simple-array double-float 3) mode-fields)
 	   (type (simple-array (complex double-float) 1) coefficients)
@@ -319,12 +344,6 @@ rectangular, for alpha=1 Hann window."
    (defparameter *coef1-recon*
      (combine-mode-coefficients *coef1* *fields*))))
 
-#+nil
-(with-open-file (s "/dev/shm/o.dat" :direction :output :if-exists :supersede)
- (format s "~{~{~d ~}~%~}" (loop for i in (sort (copy-seq (mapcar #'abs *coef1*)) #'>) and j from 0 collect (list j i))))
-
-#+nil
-(format t "~{~a~%~}" (mapcar #'floor (sort (copy-seq (mapcar #'(lambda (x) (* 1d-1 (abs x))) *coef1*)) #'>)))
 #+nil
 (write-pgm "/dev/shm/recon-coef2.pgm" (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
 
@@ -428,6 +447,7 @@ rectangular, for alpha=1 Hann window."
        )
   (* 2 (number-of-modes u-modes)) ;  => 2757 modes (must be multiplied by 2 for the other polarization)
   ;;(field (step-fiber-field u v l :n 207 :scale 2d0))
+  (defparameter *u-modes* u-modes)
   (time
    (defparameter *fields* (step-fiber-fields u-modes v
 					     :scale (/ 256 (/ (* 50 (/ 150 16.45)) 2.2))  
