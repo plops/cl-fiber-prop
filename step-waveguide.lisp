@@ -1,3 +1,15 @@
+;; problem: the NA of the fiber surpasses the NA of the 10x detection
+;; objective idea: fit available data in fourier space and in real
+;; space sequentially switching also change the central position in
+;; both spaces (4 parameters)
+
+;; i know the transfermatrix using mode patterns for one polarization.
+;; using this i can reconstruct the mode pattern that results in the
+;; delta function due to the mirror. this way i should be able to
+;; verify that the modes are bended due to the refraction at the fiber
+;; interface and also estimate the refractive index of the fiber. any
+;; further inconsistencies may then be used to recover the distortions
+;; of the reference beam.
 #+nil
 (ql:quickload "cffi")
 #+nil
@@ -371,13 +383,30 @@ rectangular, for alpha=1 Hann window."
 
 ;; measuring the back shifted first order
 ;; ul 225px horizontal, 1079-934px vertical
-;; ol 222 110 
+;; ol 222 110  | currently 320 180
 ;; or 1919-1709 107
 ;; ur 1919-1708 1079-929
+
+(* 222 (/ 1080 1920d0) )
 
 #+nil
 (time ;; 118s
  (progn
+   (time ;; 4.85s
+    (defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (make-array (list 1080 1920)
+									     :element-type '(complex double-float))
+							      124d0)
+							   :alpha-x .4))
+				   (lambda (x) (if (< (abs x) 10)
+						   (complex 0d0)
+						   (complex (abs x)))))))
+   
+
+   (time ;; 2.65s, now 0.724s
+    (defparameter *windowed-phase-wedge* (tukey-window2 (phase-wedge (make-array (list 1080 1920)
+									      :element-type '(complex double-float))
+								  614d0 846d0))))
+
    (loop for j from 0 below 93 by 30 do 
 	(loop for i from 0 below 118 by 30 do
 	     (let* ((im (get-cam-image-laptop 0 j i))
