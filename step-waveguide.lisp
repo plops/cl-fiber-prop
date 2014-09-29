@@ -369,8 +369,11 @@ rectangular, for alpha=1 Hann window."
 				       (incf (aref out j i) (aref new-field p j i)))))
 			out))))
 
-
-
+;; measuring the back shifted first order
+;; ul 225px horizontal, 1079-934px vertical
+;; ol 222 110 
+;; or 1919-1709 107
+;; ur 1919-1708 1079-929
 
 #+nil
 (time ;; 118s
