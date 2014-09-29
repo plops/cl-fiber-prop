@@ -316,36 +316,20 @@ rectangular, for alpha=1 Hann window."
 #+nil
 (write-pgm "/dev/shm/c1m.pgm" (convert-ub8 (convert-df (create-coefficient-mosaic *coef1* *u-modes*) :fun (lambda (x) (log (+ .1 (abs x)))))))
 
-(defun combine-mode-coefficients (coefficients mode-fields)
-  (declare (type (simple-array double-float 3) mode-fields)
-	   (type (simple-array (complex double-float) 1) coefficients)
-	   (values (simple-array (complex double-float) 2) &optional)
-	   (optimize (speed 3)))
-  (destructuring-bind (ncoef n no) (array-dimensions mode-fields) 
-    (declare (ignorable ncoef no)
-	     (type fixnum n))
-    (let* ((processes 4)
-	   (new-field (make-array (list processes n n) 
-				  :element-type '(complex double-float)))
-	   (task-groups (schedule-tasks (loop for k below (length coefficients) collect k))))
-      (declare (type (simple-array (complex double-float) 3) new-field))
-      (let ((th (loop for task in task-groups and process from 0 collect
-		     (sb-thread:make-thread 
-		      #'(lambda ()
-			  (loop for k in task do
-			       (loop for j below n do
-				    (loop for i below n do
-					 (incf (aref new-field process j i)
-					       (* (aref coefficients k)
-						  (aref mode-fields k j i)))))))))))
-	(loop for thread in th do (sb-thread:join-thread thread))
-	(let ((out (make-array (list n n) 
-			       :element-type '(complex double-float))))
-	  (loop for p below processes do
-	       (loop for j below n do
-		    (loop for i below n do
-			 (incf (aref out j i) (aref new-field p j i)))))
-	  out)))))
+
+(defmacro with-multiprocessing (processors var task-list
+				init body end)
+  `(let* ((processes ,processors)
+	  (task-groups (schedule-tasks ,task-list)))
+     (let ,init
+       (let ((th (loop for task in task-groups and process from 0 collect
+		      (sb-thread:make-thread 
+		       #'(lambda ()
+			   (loop for ,var in task do
+				,body
+				))))))
+	 (loop for thread in th do (sb-thread:join-thread thread))
+	 ,end))))
 
 (defun schedule-tasks (l &key (processes 4))
  (let* ((len (length l))
@@ -357,6 +341,35 @@ rectangular, for alpha=1 Hann window."
 		    (min len 
 			 (+ start-proc max-tasks-per-process)))
 	  (incf start-proc max-tasks-per-process)))))
+
+
+(defun combine-mode-coefficients (coefficients mode-fields)
+  (declare (type (simple-array double-float 3) mode-fields)
+	   (type (simple-array (complex double-float) 1) coefficients)
+	   (values (simple-array (complex double-float) 2) &optional)
+	   (optimize (speed 3)))
+  (destructuring-bind (ncoef n no) (array-dimensions mode-fields) 
+    (declare (ignorable ncoef no)
+	     (type fixnum n))
+    (with-multiprocessing 4 k 
+		      (loop for k below (length coefficients) collect k)
+		      ((new-field (make-array (list processes n n) 
+					      :element-type '(complex double-float)
+					      :initial-element (complex 0d0))))
+		      (loop for j below n do
+			   (loop for i below n do
+				(incf (aref new-field process j i)
+				      (* (aref coefficients k)
+					 (aref mode-fields k j i)))))
+		      (let ((out (make-array (list n n) 
+					     :element-type '(complex double-float))))
+			(loop for p below processes do
+			     (loop for j below n do
+				  (loop for i below n do
+				       (incf (aref out j i) (aref new-field p j i)))))
+			out))))
+
+
 #+nil
 (time ;; 4.8s, used to be >22s
  (progn
