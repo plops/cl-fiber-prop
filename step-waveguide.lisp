@@ -324,26 +324,39 @@ rectangular, for alpha=1 Hann window."
   (destructuring-bind (ncoef n no) (array-dimensions mode-fields) 
     (declare (ignorable ncoef no)
 	     (type fixnum n))
-    (let* ((new-field (make-array (list n n) :element-type '(complex double-float))))
-      (declare (type (simple-array (complex double-float) 2) new-field))
-      (loop for k below (length coefficients) do
-	   (loop for j below n do
-		(loop for i below n do
-		     (incf (aref new-field j i)
-			   (* (aref coefficients k)
-			      (aref mode-fields k j i))))))
-      new-field)))
+    (let* ((processes 4)
+	   (new-field (make-array (list processes n n) 
+				  :element-type '(complex double-float)))
+	   (task-groups (schedule-tasks (loop for k below (length coefficients) collect k))))
+      (declare (type (simple-array (complex double-float) 3) new-field))
+      (let ((th (loop for task in task-groups and process from 0 collect
+		     (sb-thread:make-thread 
+		      #'(lambda ()
+			  (loop for k in task do
+			       (loop for j below n do
+				    (loop for i below n do
+					 (incf (aref new-field process j i)
+					       (* (aref coefficients k)
+						  (aref mode-fields k j i)))))))))))
+	(loop for thread in th do (sb-thread:join-thread thread))
+	(let ((out (make-array (list n n) 
+			       :element-type '(complex double-float))))
+	  (loop for p below processes do
+	       (loop for j below n do
+		    (loop for i below n do
+			 (incf (aref out j i) (aref new-field p j i)))))
+	  out)))))
 
-(let* ((l (loop for i below 37 collect i))
-       (len (length l))
-       (processes 4)
-       (max-tasks-per-process (ceiling len processes))
-       (start-proc 0))
-  (loop for p below processes collect
-       (prog1
-	 (subseq l start-proc (min len 
-				   (+ start-proc max-tasks-per-process)))
-	 (incf start-proc max-tasks-per-process))))
+(defun schedule-tasks (l &key (processes 4))
+ (let* ((len (length l))
+	(max-tasks-per-process (ceiling len processes))
+	(start-proc 0))
+   (loop for p below processes collect
+	(prog1
+	    (subseq l start-proc 
+		    (min len 
+			 (+ start-proc max-tasks-per-process)))
+	  (incf start-proc max-tasks-per-process)))))
 #+nil
 (time ;; 4.8s, used to be >22s
  (progn
@@ -354,6 +367,17 @@ rectangular, for alpha=1 Hann window."
 			     *fields*))
    (defparameter *coef1-recon*
      (combine-mode-coefficients *coef1* *fields*))))
+
+#+nil
+(defparameter *coef1*
+     (find-mode-coefficients *current-field* 
+			     (floor (+ 1147 1364 -256) 2)
+			     (floor (+ 234 441 -256) 2)
+			     *fields*))
+
+#+nil
+(defparameter *coef1-recon*
+     (combine-mode-coefficients *coef1* *fields*))
 
 #+nil
 (write-pgm "/dev/shm/recon-coef2.pgm" (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
