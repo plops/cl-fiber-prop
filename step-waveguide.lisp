@@ -202,7 +202,7 @@ rectangular, for alpha=1 Hann window."
 (time ;; 4.85s
  (defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (make-array (list 1080 1920)
 									  :element-type '(complex double-float))
-							      100d0)
+							      180d0)
 							:alpha-x .4))
 				(lambda (x) (if (< (abs x) 10)
 						(complex 0d0)
@@ -378,12 +378,17 @@ rectangular, for alpha=1 Hann window."
    (loop for j from 0 below 93 by 30 do 
 	(loop for i from 0 below 118 by 30 do
 	     (let* ((im (get-cam-image-laptop 0 j i))
+		    (order (.* *window*
+			       (fftw:ft 
+				(.* *windowed-phase-wedge* (convert-u16-cdf im)))))
 		    (field (fftw:ft
-			    (.* *window*
-				(fftw:ft 
-				 (.* *windowed-phase-wedge* (convert-u16-cdf im))))
+			    order
 			    :sign fftw::+backward+)))
 	       (defparameter *current-field* field)
+	       (write-pgm (format nil "/dev/shm/ko1_j~d-i~d.pgm" j i)
+			  (convert-ub8 (convert-df
+					order				       
+					:fun (lambda (x) (abs x)))))
 	       (write-pgm (format nil "/dev/shm/ko3_j~d-i~d.pgm" j i)
 			  (convert-ub8 (convert-df
 					field					       
