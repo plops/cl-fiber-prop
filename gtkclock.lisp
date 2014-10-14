@@ -13,6 +13,7 @@
   (:metaclass gobject-class))
 
 
+#+nil
 (let ((a (make-array (list 256 256) :element-type '(unsigned-byte 8))))
   (dotimes (j 256)
     (dotimes (i 256)
@@ -35,7 +36,8 @@
 	       (setf (aref a j (+ 0 (* 4 i))) v
 		     (aref a j (+ 1 (* 4 i))) v
 		     (aref a j (+ 2 (* 4 i))) v
-		     (aref a j (+ 3 (* 4 i))) v))))
+		     (aref a j (+ 3 (* 4 i))) 255 ;; alpha
+		     ))))
 	  (cairo-image-surface-create-for-data 
 	  (sb-sys:vector-sap (sb-ext:array-storage-vector a))
 	  format w h stride))))))
