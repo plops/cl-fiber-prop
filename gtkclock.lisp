@@ -83,8 +83,8 @@
   (sb-int:with-float-traps-masked (:divide-by-zero)
    (within-main-loop
      (let ((window (make-instance 'gtk-window :title "clock"
-				  :default-width 512
-				  :default-height 512
+				  :default-width 1920
+				  :default-height 1080
 				  ))
 	   (clock (make-instance 'clock-face)))
        (g-signal-connect window "destroy"

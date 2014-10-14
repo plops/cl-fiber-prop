@@ -273,6 +273,13 @@ rectangular, for alpha=1 Hann window."
 (defparameter *bla*
  (get-cam-image-laptop 0 60 60))
 
+#+nil
+(progn
+ (myclock::update-img 
+  (convert-ub8 
+   (convert-df (convert-u16-cdf (get-cam-image-laptop 0 30 30)))))
+ nil)
+
 
 #+nil
 (time
