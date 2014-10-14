@@ -280,7 +280,7 @@ rectangular, for alpha=1 Hann window."
    (convert-df (convert-u16-cdf (get-cam-image-laptop 0 30 30)))))
  nil)
 
-
+(cffi:s)
 #+nil
 (time
  (let* ((im (get-cam-image-laptop 0 30 30))
@@ -288,8 +288,16 @@ rectangular, for alpha=1 Hann window."
 		(.* *window*
 		    (fftw:ft 
 		     (.* *windowed-phase-wedge* (convert-u16-cdf im))))
-		:sign fftw::+backward+)))
+		:sign fftw::+backward+)
+	       ))
    (defparameter *current-field* field)
+   
+   (myclock::update-img
+    (convert-ub8 (convert-df
+		  field					       
+		  :fun (lambda (x) (realpart x)))))
+   nil
+   #+nil
    (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
 					       field					       
 					       :fun (lambda (x) (realpart x)))))))

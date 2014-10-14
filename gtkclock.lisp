@@ -51,9 +51,10 @@
      (when surf
        (cairo-set-source-surface cr surf 0 0))
      (cairo-paint cr)
-     (let* ((x 1170)
-	    (y 260)
-	    (radius 100))
+     (let* ((radius (* .5 207))
+	    (x (+ 1054 radius))
+	    (y (+ 148 radius))
+	    )
        (cairo-arc cr x y radius 0 (* 2 pi))
 					;(cairo-set-source-rgb cr 1 1 1)
 					;(cairo-fill-preserve cr)
