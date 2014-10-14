@@ -48,8 +48,10 @@
 	 (window (gtk-widget-window widget))
 	 (surf (surface-from-lisp-array)))
      (cairo-set-source-rgb cr 1.0 1.0 1.0)
+          (cairo-scale cr .5 .5)
      (when surf
        (cairo-set-source-surface cr surf 0 0))
+
      (cairo-paint cr)
      (let* ((radius (* .5 207))
 	    (x (+ 1054 radius))
