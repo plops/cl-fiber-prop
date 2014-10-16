@@ -95,14 +95,39 @@
   (sb-int:with-float-traps-masked (:divide-by-zero)
    (within-main-loop
      (let ((window (make-instance 'gtk-window :title "clock"
-				  :default-width 1920
-				  :default-height 1080
-				  ))
-	   (clock (make-instance 'clock-face)))
+				  :default-width (/ 1920 2)
+				  :default-height (/ 1080 2)
+				  :border-width 12))
+	   (paned (make-instance 'gtk-paned :orientation :horizontal :position 100))
+	   (paned-right (make-instance 'gtk-paned :orientation :vertical :position 300))
+	   (clock (make-instance 'clock-face))
+	   (frame1 (make-instance 'gtk-frame :label "bal"))
+	   (scrolled (make-instance 'gtk-scrolled-window
+				    :border-width 5
+				    :hscrollbar-policy :automatic
+				    :vscrollbar-policy :always))
+	   (table (make-instance 'gtk-table :n-rows 10
+				 :n-columns 10
+				 :row-spacing 10
+				 :column-spacing 10
+				 :homogeneous nil)))
        (defparameter *clock* clock)
        (g-signal-connect window "destroy"
 			 (lambda (widget) (leave-gtk-main)))
-       (gtk-container-add window clock)
+       (gtk-container-add window paned)
+       (gtk-paned-add1 paned clock)
+       (gtk-paned-add2 paned paned-right)
+       (progn
+	 (gtk-scrolled-window-add-with-viewport scrolled table)
+	 (dotimes (i 10)
+	   (dotimes (j 10)
+	     (gtk-table-attach table
+			       (make-instance 'gtk-button
+					      :label (format nil "~2,'0d|~2,'0d" i j)
+					      )
+			       i (+ i 1) j (+ j 1)))))
+       (gtk-paned-add1 paned-right scrolled)
+       (gtk-paned-add2 paned-right frame1)
        (gtk-widget-show-all window)))))
 #+nil
 (run)

@@ -280,7 +280,6 @@ rectangular, for alpha=1 Hann window."
    (convert-df (convert-u16-cdf (get-cam-image-laptop 0 30 30)))))
  nil)
 
-(cffi:s)
 #+nil
 (time
  (let* ((im (get-cam-image-laptop 0 30 30))
