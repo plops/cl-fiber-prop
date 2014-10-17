@@ -103,13 +103,13 @@
 	   (clock (make-instance 'clock-face))
 	   (frame1 (make-instance 'gtk-frame :label "bal"))
 	   (scrolled (make-instance 'gtk-scrolled-window
-				    :border-width 5
+				    :border-width 1
 				    :hscrollbar-policy :automatic
 				    :vscrollbar-policy :always))
 	   (table (make-instance 'gtk-table :n-rows 10
 				 :n-columns 10
-				 :row-spacing 10
-				 :column-spacing 10
+				 :row-spacing 0
+				 :column-spacing 0
 				 :homogeneous nil)))
        (defparameter *clock* clock)
        (g-signal-connect window "destroy"
@@ -124,7 +124,7 @@
 	     (gtk-table-attach table
 			       (let* ((label (make-instance 'gtk-label
 							    :use-markup t
-							    :label (format nil "<small>~2,'0d|~2,'0d</small>" i j)))
+							    :label (format nil "<span font='5'>~2,'0d|~2,'0d</span>" i j)))
 				      (button (make-instance 'gtk-button)))
 				 (gtk-container-add button label)
 				 button)
