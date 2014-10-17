@@ -122,9 +122,12 @@
 	 (dotimes (i 10)
 	   (dotimes (j 10)
 	     (gtk-table-attach table
-			       (make-instance 'gtk-button
-					      :label (format nil "~2,'0d|~2,'0d" i j)
-					      )
+			       (let* ((label (make-instance 'gtk-label
+							    :use-markup t
+							    :label (format nil "<small>~2,'0d|~2,'0d</small>" i j)))
+				      (button (make-instance 'gtk-button)))
+				 (gtk-container-add button label)
+				 button)
 			       i (+ i 1) j (+ j 1)))))
        (gtk-paned-add1 paned-right scrolled)
        (gtk-paned-add2 paned-right frame1)
