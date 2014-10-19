@@ -143,9 +143,81 @@
 	 (let* ((frame1 (make-instance 'gtk-frame :label "settings"))
 		(vbox (make-instance 'gtk-box :orientation :vertical))
 		(rb-ft (gtk-radio-button-new-with-label nil "fourier"))
-		(rb-fit (gtk-radio-button-new-with-label (gtk-radio-button-get-group rb-ft) "fit")))
+		(rb-fit (gtk-radio-button-new-with-label (gtk-radio-button-get-group rb-ft) "fit"))
+		(xpos (make-instance 'gtk-spin-button :adjustment
+				     (make-instance 'gtk-adjustment
+						    :value 1003
+						    :lower 0
+						    :upper (- 1920 1)
+						    :step-increment 1
+						    :page-increment 10
+						    :page-size 0)
+				     :climb-rate 0
+				     :digits 0
+				     :wrap t))
+		(ypos (make-instance 'gtk-spin-button :adjustment
+				     (make-instance 'gtk-adjustment
+						    :value 1003
+						    :lower 0
+						    :upper (- 1080 1)
+						    :step-increment 1
+						    :page-increment 10
+						    :page-size 0)
+				     :climb-rate 0
+				     :digits 0
+				     :wrap t))
+		(radius (make-instance 'gtk-spin-button :adjustment
+				     (make-instance 'gtk-adjustment
+						    :value 1003
+						    :lower 0
+						    :upper (- 1080 1)
+						    :step-increment 1
+						    :page-increment 10
+						    :page-size 0)
+				     :climb-rate 0
+				     :digits 0
+				     :wrap t))
+		(kxpos (make-instance 'gtk-spin-button :adjustment
+				     (make-instance 'gtk-adjustment
+						    :value 1003
+						    :lower 0
+						    :upper (- 1080 1)
+						    :step-increment 1
+						    :page-increment 10
+						    :page-size 0)
+				     :climb-rate 0
+				     :digits 0
+				     :wrap t))
+		(kypos (make-instance 'gtk-spin-button :adjustment
+				     (make-instance 'gtk-adjustment
+						    :value 1002
+						    :lower 0
+						    :upper (- 1080 1)
+						    :step-increment 1
+						    :page-increment 10
+						    :page-size 0)
+				     :climb-rate 0
+				     :digits 0
+				     :wrap t))
+		(kradius (make-instance 'gtk-spin-button :adjustment
+				     (make-instance 'gtk-adjustment
+						    :value 200
+						    :lower 0
+						    :upper (- 1080 1)
+						    :step-increment 1
+						    :page-increment 10
+						    :page-size 0)
+				     :climb-rate 0
+				     :digits 0
+				     :wrap t)))
 	   (gtk-box-pack-start vbox rb-ft)
 	   (gtk-box-pack-start vbox rb-fit)
+	   (gtk-box-pack-start vbox xpos)
+	   (gtk-box-pack-start vbox ypos)
+	   (gtk-box-pack-start vbox radius)
+	   (gtk-box-pack-start vbox kxpos)
+	   (gtk-box-pack-start vbox kypos)
+	   (gtk-box-pack-start vbox kradius)
 	   (gtk-container-add frame1 vbox)
 	   (gtk-paned-add2 paned-right frame1)))
        (gtk-widget-show-all window)))))
