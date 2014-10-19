@@ -90,136 +90,94 @@
 		    (lambda (widget cr)
 		      (funcall *draw-clock-face* widget cr clock))))
 
-
 (defun run ()
   (sb-int:with-float-traps-masked (:divide-by-zero)
-   (within-main-loop
-     (let ((window (make-instance 'gtk-window :title "holography"
-				  :default-width (/ 1920 2)
-				  :default-height (/ 1080 2)
-				  :border-width 12
-				  :type :toplevel))
-	   (paned (make-instance 'gtk-paned :orientation :horizontal :position 100))
-	   (paned-right (make-instance 'gtk-paned :orientation :vertical :position 300))
-	   )
-       (g-signal-connect window "destroy"
-			 (lambda (widget) (leave-gtk-main)))
-       (let* ((ghb (make-instance 'gtk-handle-box :snap-edge :top
-				  :shadow-type :in :handle-position :left))
-	      (scrolled (make-instance 'gtk-scrolled-window
+    (within-main-loop
+      (let ((window (make-instance 'gtk-window :title "holography"
+				   :default-width (/ 1920 2)
+				   :default-height (/ 1080 2)
+				   :border-width 12
+				   :type :toplevel))
+	    (paned (make-instance 'gtk-paned :orientation :horizontal :position 100))
+	    (paned-right (make-instance 'gtk-paned :orientation :vertical :position 300))
+	    )
+	(g-signal-connect window "destroy"
+			  (lambda (widget) (leave-gtk-main)))
+	(let* ((ghb (make-instance 'gtk-handle-box :snap-edge :top
+				   :shadow-type :in :handle-position :left))
+	       (scrolled (make-instance 'gtk-scrolled-window
+					:border-width 1
+					:hscrollbar-policy :automatic
+					:vscrollbar-policy :automatic))
+	       (clock (make-instance 'clock-face)))
+	  (gtk-scrolled-window-add-with-viewport scrolled clock)
+	  (setf (gtk-widget-size-request clock) (list 1920 1080))
+	  (setf (gtk-widget-size-request scrolled) (list 200 200))
+	  (gtk-container-add window paned)
+	  (gtk-container-add ghb scrolled)
+	  (gtk-paned-add1 paned ghb)
+	  (gtk-paned-add2 paned paned-right))
+	(let ((scrolled (make-instance 'gtk-scrolled-window
 				       :border-width 1
 				       :hscrollbar-policy :automatic
 				       :vscrollbar-policy :automatic))
-	      (clock (make-instance 'clock-face)))
-	 (gtk-scrolled-window-add-with-viewport scrolled clock)
-	 (setf (gtk-widget-size-request clock) (list 1920 1080))
-	 (setf (gtk-widget-size-request scrolled) (list 200 200))
-	 (gtk-container-add window paned)
-	 (gtk-container-add ghb scrolled)
-	 (gtk-paned-add1 paned ghb)
-	 (gtk-paned-add2 paned paned-right))
-       (let ((scrolled (make-instance 'gtk-scrolled-window
-				    :border-width 1
-				    :hscrollbar-policy :automatic
-				    :vscrollbar-policy :automatic))
-	     (table (make-instance 'gtk-table :n-rows 10
-				 :n-columns 10
-				 :row-spacing 0
-				 :column-spacing 0
-				 :homogeneous nil))
-	     )
-	 (gtk-scrolled-window-add-with-viewport scrolled table)
-	 (dotimes (i 10)
-	   (dotimes (j 10)
-	     (gtk-table-attach table
-			       (let* ((label (make-instance 'gtk-label
-							    :use-markup t
-							    :label (format nil "<span font='5'>~2,'0d|~2,'0d</span>" i j)))
-				      (button (make-instance 'gtk-button)))
-				 (gtk-container-add button label)
-				 button)
-			       i (+ i 1) j (+ j 1))))
-	 (gtk-paned-add1 paned-right scrolled)
-	 (let* ((frame1 (make-instance 'gtk-frame :label "settings"))
-		(vbox (make-instance 'gtk-box :orientation :vertical))
-		(rb-ft (gtk-radio-button-new-with-label nil "fourier"))
-		(rb-fit (gtk-radio-button-new-with-label (gtk-radio-button-get-group rb-ft) "fit"))
-		(xpos (make-instance 'gtk-spin-button :adjustment
-				     (make-instance 'gtk-adjustment
-						    :value 1003
-						    :lower 0
-						    :upper (- 1920 1)
-						    :step-increment 1
-						    :page-increment 10
-						    :page-size 0)
-				     :climb-rate 0
-				     :digits 0
-				     :wrap t))
-		(ypos (make-instance 'gtk-spin-button :adjustment
-				     (make-instance 'gtk-adjustment
-						    :value 1003
-						    :lower 0
-						    :upper (- 1080 1)
-						    :step-increment 1
-						    :page-increment 10
-						    :page-size 0)
-				     :climb-rate 0
-				     :digits 0
-				     :wrap t))
-		(radius (make-instance 'gtk-spin-button :adjustment
-				     (make-instance 'gtk-adjustment
-						    :value 1003
-						    :lower 0
-						    :upper (- 1080 1)
-						    :step-increment 1
-						    :page-increment 10
-						    :page-size 0)
-				     :climb-rate 0
-				     :digits 0
-				     :wrap t))
-		(kxpos (make-instance 'gtk-spin-button :adjustment
-				     (make-instance 'gtk-adjustment
-						    :value 1003
-						    :lower 0
-						    :upper (- 1080 1)
-						    :step-increment 1
-						    :page-increment 10
-						    :page-size 0)
-				     :climb-rate 0
-				     :digits 0
-				     :wrap t))
-		(kypos (make-instance 'gtk-spin-button :adjustment
-				     (make-instance 'gtk-adjustment
-						    :value 1002
-						    :lower 0
-						    :upper (- 1080 1)
-						    :step-increment 1
-						    :page-increment 10
-						    :page-size 0)
-				     :climb-rate 0
-				     :digits 0
-				     :wrap t))
-		(kradius (make-instance 'gtk-spin-button :adjustment
-				     (make-instance 'gtk-adjustment
-						    :value 200
-						    :lower 0
-						    :upper (- 1080 1)
-						    :step-increment 1
-						    :page-increment 10
-						    :page-size 0)
-				     :climb-rate 0
-				     :digits 0
-				     :wrap t)))
-	   (gtk-box-pack-start vbox rb-ft)
-	   (gtk-box-pack-start vbox rb-fit)
-	   (gtk-box-pack-start vbox xpos)
-	   (gtk-box-pack-start vbox ypos)
-	   (gtk-box-pack-start vbox radius)
-	   (gtk-box-pack-start vbox kxpos)
-	   (gtk-box-pack-start vbox kypos)
-	   (gtk-box-pack-start vbox kradius)
-	   (gtk-container-add frame1 vbox)
-	   (gtk-paned-add2 paned-right frame1)))
-       (gtk-widget-show-all window)))))
+	      (table (make-instance 'gtk-table :n-rows 10
+				    :n-columns 10
+				    :row-spacing 0
+				    :column-spacing 0
+				    :homogeneous nil))
+	      )
+	  (gtk-scrolled-window-add-with-viewport scrolled table)
+	  (dotimes (i 10)
+	    (dotimes (j 10)
+	      (gtk-table-attach table
+				(let* ((label (make-instance 'gtk-label
+							     :use-markup t
+							     :label (format nil "<span font='5'>~2,'0d|~2,'0d</span>" i j)))
+				       (button (make-instance 'gtk-button)))
+				  (gtk-container-add button label)
+				  button)
+				i (+ i 1) j (+ j 1))))
+	  (gtk-paned-add1 paned-right scrolled)
+	  (labels ((spin-box (name value upper)
+		     (let* ((hb (make-instance 'gtk-box :orientation :horizontal))
+			    (lab (make-instance 'gtk-label
+						:label (format nil "~s" name)))
+			    (sb (make-instance 'gtk-spin-button :adjustment
+					       (make-instance 'gtk-adjustment
+							      :value value
+							      :lower 0
+							      :upper upper
+							      :step-increment 1
+							      :page-increment 10
+							      :page-size 0)
+					       :climb-rate 0
+					       :digits 0
+					       :wrap t)))
+		       (gtk-box-pack-start hb lab)
+		       (gtk-box-pack-start hb sb)
+		       hb)))
+	    (let* ((frame1 (make-instance 'gtk-frame :label "settings"))
+		   (vbox (make-instance 'gtk-box :orientation :vertical))
+		   (rb-ft (gtk-radio-button-new-with-label nil "fourier"))
+		   (rb-fit (gtk-radio-button-new-with-label (gtk-radio-button-get-group rb-ft) "fit"))
+		   (xpos (spin-box 'xpos 100 (- 1920 1)))
+		   (ypos (spin-box 'ypos 100 (- 1920 1)))
+		   (radius (spin-box 'radius 100 (- 1920 1)))
+		   (kxpos (spin-box 'kxpos 100 (- 1920 1)))
+		   (kypos (spin-box 'kypos 100 (- 1920 1)))
+		   (kradius (spin-box 'kradius 100 (- 1920 1))))
+	      (gtk-box-pack-start vbox rb-ft)
+	      (gtk-box-pack-start vbox rb-fit)
+	      (gtk-box-pack-start vbox xpos)
+	      (gtk-box-pack-start vbox ypos)
+	      (gtk-box-pack-start vbox radius)
+	      (gtk-box-pack-start vbox kxpos)
+	      (gtk-box-pack-start vbox kypos)
+	      (gtk-box-pack-start vbox kradius)
+	      (gtk-container-add frame1 vbox)
+	      (gtk-paned-add2 paned-right frame1))))
+	(gtk-widget-show-all window)))))
+
 #+nil
 (run)
