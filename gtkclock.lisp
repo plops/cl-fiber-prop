@@ -89,6 +89,9 @@
   (g-signal-connect clock "draw"
 		    (lambda (widget cr)
 		      (funcall *draw-clock-face* widget cr clock))))
+(defparameter *adjustments* nil)
+#+nil
+(gtk-adjustment-get-value (cdr (assoc 'kradius *adjustments*)))
 
 (defun run ()
   (sb-int:with-float-traps-masked (:divide-by-zero)
@@ -139,44 +142,48 @@
 				  button)
 				i (+ i 1) j (+ j 1))))
 	  (gtk-paned-add1 paned-right scrolled)
-	  (labels ((spin-box (name value upper)
-		     (let* ((hb (make-instance 'gtk-box :orientation :horizontal))
-			    (lab (make-instance 'gtk-label
-						:label (format nil "~s" name)))
-			    (sb (make-instance 'gtk-spin-button :adjustment
-					       (make-instance 'gtk-adjustment
-							      :value value
-							      :lower 0
-							      :upper upper
-							      :step-increment 1
-							      :page-increment 10
-							      :page-size 0)
-					       :climb-rate 0
-					       :digits 0
-					       :wrap t)))
-		       (gtk-box-pack-start hb lab)
-		       (gtk-box-pack-start hb sb)
-		       hb)))
-	    (let* ((frame1 (make-instance 'gtk-frame :label "settings"))
-		   (vbox (make-instance 'gtk-box :orientation :vertical))
-		   (rb-ft (gtk-radio-button-new-with-label nil "fourier"))
-		   (rb-fit (gtk-radio-button-new-with-label (gtk-radio-button-get-group rb-ft) "fit"))
-		   (xpos (spin-box 'xpos 100 (- 1920 1)))
-		   (ypos (spin-box 'ypos 100 (- 1920 1)))
-		   (radius (spin-box 'radius 100 (- 1920 1)))
-		   (kxpos (spin-box 'kxpos 100 (- 1920 1)))
-		   (kypos (spin-box 'kypos 100 (- 1920 1)))
-		   (kradius (spin-box 'kradius 100 (- 1920 1))))
-	      (gtk-box-pack-start vbox rb-ft)
-	      (gtk-box-pack-start vbox rb-fit)
-	      (gtk-box-pack-start vbox xpos)
-	      (gtk-box-pack-start vbox ypos)
-	      (gtk-box-pack-start vbox radius)
-	      (gtk-box-pack-start vbox kxpos)
-	      (gtk-box-pack-start vbox kypos)
-	      (gtk-box-pack-start vbox kradius)
-	      (gtk-container-add frame1 vbox)
-	      (gtk-paned-add2 paned-right frame1))))
+	  (progn
+	    (setf *adjustments* nil)
+	   (labels ((spin-box (name value upper)
+		      (let* ((hb (make-instance 'gtk-box :orientation :horizontal))
+			     (lab (make-instance 'gtk-label
+						 :label (format nil "~s" name)))
+			     (adj (make-instance 'gtk-adjustment
+						 :value value
+						 :lower 0
+						 :upper upper
+						 :step-increment 1
+						 :page-increment 10
+						 :page-size 0))
+			     (sb (make-instance 'gtk-spin-button :adjustment
+						adj
+						:climb-rate 0
+						:digits 0
+						:wrap t)))
+			(gtk-box-pack-start hb lab)
+			(gtk-box-pack-start hb sb)
+			(push (cons name adj) *adjustments*)
+			hb)))
+	     (let* ((frame1 (make-instance 'gtk-frame :label "settings"))
+		    (vbox (make-instance 'gtk-box :orientation :vertical))
+		    (rb-ft (gtk-radio-button-new-with-label nil "fourier"))
+		    (rb-fit (gtk-radio-button-new-with-label (gtk-radio-button-get-group rb-ft) "fit"))
+		    (xpos (spin-box 'xpos 100 (- 1920 1)))
+		    (ypos (spin-box 'ypos 100 (- 1920 1)))
+		    (radius (spin-box 'radius 100 (- 1920 1)))
+		    (kxpos (spin-box 'kxpos 100 (- 1920 1)))
+		    (kypos (spin-box 'kypos 100 (- 1920 1)))
+		    (kradius (spin-box 'kradius 100 (- 1920 1))))
+	       (gtk-box-pack-start vbox rb-ft)
+	       (gtk-box-pack-start vbox rb-fit)
+	       (gtk-box-pack-start vbox xpos)
+	       (gtk-box-pack-start vbox ypos)
+	       (gtk-box-pack-start vbox radius)
+	       (gtk-box-pack-start vbox kxpos)
+	       (gtk-box-pack-start vbox kypos)
+	       (gtk-box-pack-start vbox kradius)
+	       (gtk-container-add frame1 vbox)
+	       (gtk-paned-add2 paned-right frame1)))))
 	(gtk-widget-show-all window)))))
 
 #+nil
