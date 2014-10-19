@@ -42,6 +42,8 @@
 	  (sb-sys:vector-sap (sb-ext:array-storage-vector a))
 	  format w h stride))))))
 
+
+
 (progn
  (defun draw-clock-face (widget cr clock)
    (let ((cr (pointer cr))
@@ -53,25 +55,26 @@
        (cairo-set-source-surface cr surf 0 0))
 
      (cairo-paint cr)
-     (let* ((radius (* .5 207))
-	    (x (+ 1054 radius))
-	    (y (+ 148 radius))
-	    )
-       (cairo-arc cr x y radius 0 (* 2 pi))
+     (when *adjustments*
+      (let* ((radius (gtk-adjustment-get-value (cdr (assoc 'radius *adjustments*))))
+	     (x (gtk-adjustment-get-value (cdr (assoc 'xpos *adjustments*))))
+	     (y (gtk-adjustment-get-value (cdr (assoc 'ypos *adjustments*))))
+	     )
+	(cairo-arc cr x y radius 0 (* 2 pi))
 					;(cairo-set-source-rgb cr 1 1 1)
 					;(cairo-fill-preserve cr)
-       (cairo-set-source-rgb cr 1 1 1)
-       (cairo-stroke cr)
-       (let ((angle (* (/ pi 30) (first (clock-face-time clock))
-		       )))
-	 (cairo-save cr)
-	 (cairo-set-source-rgb cr 1 0 0)
-	 (cairo-move-to cr x y)
-	 (cairo-line-to cr
-			(+ x (* radius (sin angle)))
-			(+ y (* radius (- (cos angle)))))
-	 (cairo-stroke cr)
-	 (cairo-restore cr)))
+	(cairo-set-source-rgb cr 1 1 1)
+	(cairo-stroke cr)
+	(let ((angle (* (/ pi 30) (first (clock-face-time clock))
+			)))
+	  (cairo-save cr)
+	  (cairo-set-source-rgb cr 1 0 0)
+	  (cairo-move-to cr x y)
+	  (cairo-line-to cr
+			 (+ x (* radius (sin angle)))
+			 (+ y (* radius (- (cos angle)))))
+	  (cairo-stroke cr)
+	  (cairo-restore cr))))
     
      (when surf
        (cairo-surface-destroy surf))
@@ -149,17 +152,18 @@
 			     (lab (make-instance 'gtk-label
 						 :label (format nil "~s" name)))
 			     (adj (make-instance 'gtk-adjustment
-						 :value value
-						 :lower 0
-						 :upper upper
-						 :step-increment 1
-						 :page-increment 10
-						 :page-size 0))
+						 :value (* 1d0 value)
+						 :lower 0d0
+						 :upper (* 1d0 upper)
+						 :step-increment 1d0
+						 :page-increment 10d0
+						 :page-size 0d0))
 			     (sb (make-instance 'gtk-spin-button :adjustment
 						adj
 						:climb-rate 0
-						:digits 0
+						:digits 1
 						:wrap t)))
+			(gtk-spin-button-set-value sb value)
 			(gtk-box-pack-start hb lab)
 			(gtk-box-pack-start hb sb)
 			(push (cons name adj) *adjustments*)
@@ -168,12 +172,12 @@
 		    (vbox (make-instance 'gtk-box :orientation :vertical))
 		    (rb-ft (gtk-radio-button-new-with-label nil "fourier"))
 		    (rb-fit (gtk-radio-button-new-with-label (gtk-radio-button-get-group rb-ft) "fit"))
-		    (xpos (spin-box 'xpos 100 (- 1920 1)))
-		    (ypos (spin-box 'ypos 100 (- 1920 1)))
-		    (radius (spin-box 'radius 100 (- 1920 1)))
+		    (xpos (spin-box 'xpos 1157.5 (- 1920 1)))
+		    (ypos (spin-box 'ypos 251.5 (- 1080 1)))
+		    (radius (spin-box 'radius 103.5 500))
 		    (kxpos (spin-box 'kxpos 100 (- 1920 1)))
-		    (kypos (spin-box 'kypos 100 (- 1920 1)))
-		    (kradius (spin-box 'kradius 100 (- 1920 1))))
+		    (kypos (spin-box 'kypos 100 (- 1080 1)))
+		    (kradius (spin-box 'kradius 100 500)))
 	       (gtk-box-pack-start vbox rb-ft)
 	       (gtk-box-pack-start vbox rb-fit)
 	       (gtk-box-pack-start vbox xpos)
