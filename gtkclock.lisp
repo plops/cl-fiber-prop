@@ -104,20 +104,24 @@
 	   )
        (g-signal-connect window "destroy"
 			 (lambda (widget) (leave-gtk-main)))
-       (let* ((scrolled (make-instance 'gtk-scrolled-window
+       (let* ((ghb (make-instance 'gtk-handle-box :snap-edge :top
+				  :shadow-type :in :handle-position :left))
+	      (scrolled (make-instance 'gtk-scrolled-window
 				       :border-width 1
 				       :hscrollbar-policy :automatic
-				       :vscrollbar-policy :always))
+				       :vscrollbar-policy :automatic))
 	      (clock (make-instance 'clock-face)))
 	 (gtk-scrolled-window-add-with-viewport scrolled clock)
 	 (setf (gtk-widget-size-request clock) (list 1920 1080))
+	 (setf (gtk-widget-size-request scrolled) (list 200 200))
 	 (gtk-container-add window paned)
-	 (gtk-paned-add1 paned scrolled)
+	 (gtk-container-add ghb scrolled)
+	 (gtk-paned-add1 paned ghb)
 	 (gtk-paned-add2 paned paned-right))
        (let ((scrolled (make-instance 'gtk-scrolled-window
 				    :border-width 1
 				    :hscrollbar-policy :automatic
-				    :vscrollbar-policy :always))
+				    :vscrollbar-policy :automatic))
 	     (table (make-instance 'gtk-table :n-rows 10
 				 :n-columns 10
 				 :row-spacing 0
