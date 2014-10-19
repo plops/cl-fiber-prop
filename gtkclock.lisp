@@ -127,7 +127,7 @@
 				 :row-spacing 0
 				 :column-spacing 0
 				 :homogeneous nil))
-	     (frame1 (make-instance 'gtk-frame :label "bal")))
+	     )
 	 (gtk-scrolled-window-add-with-viewport scrolled table)
 	 (dotimes (i 10)
 	   (dotimes (j 10)
@@ -140,7 +140,14 @@
 				 button)
 			       i (+ i 1) j (+ j 1))))
 	 (gtk-paned-add1 paned-right scrolled)
-	 (gtk-paned-add2 paned-right frame1))
+	 (let* ((frame1 (make-instance 'gtk-frame :label "settings"))
+		(vbox (make-instance 'gtk-box :orientation :vertical))
+		(rb-ft (gtk-radio-button-new-with-label nil "fourier"))
+		(rb-fit (gtk-radio-button-new-with-label (gtk-radio-button-get-group rb-ft) "fit")))
+	   (gtk-box-pack-start vbox rb-ft)
+	   (gtk-box-pack-start vbox rb-fit)
+	   (gtk-container-add frame1 vbox)
+	   (gtk-paned-add2 paned-right frame1)))
        (gtk-widget-show-all window)))))
 #+nil
 (run)
