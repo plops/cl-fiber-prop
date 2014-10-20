@@ -50,7 +50,7 @@
 	 (window (gtk-widget-window widget))
 	 (surf (surface-from-lisp-array)))
      (cairo-set-source-rgb cr 1.0 1.0 1.0)
-          (cairo-scale cr .5 .5)
+          (cairo-scale cr 1 1)
      (when surf
        (cairo-set-source-surface cr surf 0 0))
 
@@ -63,7 +63,7 @@
 	(cairo-arc cr x y radius 0 (* 2 pi))
 					;(cairo-set-source-rgb cr 1 1 1)
 					;(cairo-fill-preserve cr)
-	(cairo-set-source-rgb cr 1 1 1)
+	(cairo-set-source-rgb cr 1 0 1)
 	(cairo-stroke cr)
 	(let ((angle (* (/ pi 30) (first (clock-face-time clock))
 			)))

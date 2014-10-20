@@ -307,9 +307,6 @@ rectangular, for alpha=1 Hann window."
 ;; 569x637
 
 #+nil
- 
-
-#+nil
 (reduce #'max
 	(mapcar #'(lambda (a) (floor (* 1d-9 (abs a)))) *coef1*))
 #+nil
@@ -421,8 +418,8 @@ rectangular, for alpha=1 Hann window."
 									      :element-type '(complex double-float))
 								  614d0 846d0))))
 
-   (loop for j from 0 below 93 by 30 do 
-	(loop for i from 0 below 118 by 30 do
+   (let ((j 0)) ;; loop for j from 0 below 93 by 30 do 
+	(let ((i 0)) ;; loop for i from 0 below 118 by 30 do
 	     (let* ((im (get-cam-image-laptop 0 j i))
 		    (order (.* *window*
 			       (fftw:ft 
@@ -448,6 +445,42 @@ rectangular, for alpha=1 Hann window."
 	       (combine-mode-coefficients *coef1* *fields*))
 	     (write-pgm (format nil "/dev/shm/recon-coef0_j~d-i~d.pgm" j i) (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
 	     (write-pgm (format nil "/dev/shm/c1m_j~d-i~d.pgm" j i) (convert-ub8 (convert-df (create-coefficient-mosaic *coef1* *u-modes*) :fun (lambda (x) (realpart x)))))))))
+
+#+nil
+(let ((j 0)) ;; loop for j from 0 below 93 by 30 do 
+	(let ((i 0)) ;; loop for i from 0 below 118 by 30 do
+	     (let* ((im (get-cam-image-laptop 0 j i))
+		    (order (.* *window*
+			       (fftw:ft 
+				(.* *windowed-phase-wedge* (convert-u16-cdf im)))))
+		    (field (fftw:ft
+			    order
+			    :sign fftw::+backward+)))
+	       (defparameter *current-field* field)
+	       (write-pgm (format nil "/dev/shm/ko1_j~d-i~d.pgm" j i)
+			  (convert-ub8 (convert-df
+					order				       
+					:fun (lambda (x) (abs x)))))
+	       (write-pgm (format nil "/dev/shm/ko3_j~d-i~d.pgm" j i)
+			  (convert-ub8 (convert-df
+					field					       
+					:fun (lambda (x) (realpart x))))))
+	     (defparameter *coef1*
+	       (find-mode-coefficients *current-field* 
+				       (floor (+ 1147 1364 -256) 2)
+				       (floor (+ 234 441 -256) 2)
+				       *fields*))
+	     (defparameter *coef1-recon*
+	       (combine-mode-coefficients *coef1* *fields*))
+	     (write-pgm (format nil "/dev/shm/recon-coef0_j~d-i~d.pgm" j i) (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
+	     (write-pgm (format nil "/dev/shm/c1m_j~d-i~d.pgm" j i) (convert-ub8 (convert-df (create-coefficient-mosaic *coef1* *u-modes*) :fun (lambda (x) (realpart x)))))))
+
+#+nil
+(progn
+ (myclock::update-img 
+  (convert-ub8 
+   (convert-df *coef1-recon*)))
+ nil)
 
 #+nil
 (write-pgm "/dev/shm/recon-coef2.pgm" (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
