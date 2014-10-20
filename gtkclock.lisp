@@ -21,40 +21,56 @@
   (update-img a)
   nil)
 
-(let ((img nil))
-  (defun update-img (a)
-    (setf img a))
-  (defun surface-from-lisp-array ()
-    (when img
-      (destructuring-bind (h w) (array-dimensions img)
-	(let* ((format :argb32)
-	       (stride (cairo-format-stride-for-width format w))
-	       (a (make-array (list h stride) :element-type '(unsigned-byte 8))))
-	  (dotimes (j h)
-	    (dotimes (i w)
-	      (let ((v (max 0 (min 255 (aref img j i)))))
-	       (setf (aref a j (+ 0 (* 4 i))) v
-		     (aref a j (+ 1 (* 4 i))) v
-		     (aref a j (+ 2 (* 4 i))) v
-		     (aref a j (+ 3 (* 4 i))) 255 ;; alpha
-		     ))))
-	  (cairo-image-surface-create-for-data 
-	  (sb-sys:vector-sap (sb-ext:array-storage-vector a))
-	  format w h stride))))))
 
+(defun surface-from-lisp-array (img)
+  (destructuring-bind (h w) (array-dimensions img)
+    (let* ((format :argb32)
+	   (stride (cairo-format-stride-for-width format w))
+	   (a (make-array (list h stride) :element-type '(unsigned-byte 8))))
+      (dotimes (j h)
+	(dotimes (i w)
+	  (let ((v (max 0 (min 255 (aref img j i)))))
+	    (setf (aref a j (+ 0 (* 4 i))) v
+		  (aref a j (+ 1 (* 4 i))) v
+		  (aref a j (+ 2 (* 4 i))) v
+		  (aref a j (+ 3 (* 4 i))) 255 ;; alpha
+		  ))))
+      (cairo-image-surface-create-for-data 
+       (sb-sys:vector-sap (sb-ext:array-storage-vector a))
+       format w h stride))))
 
+(defclass pic ()
+  ((surface :accessor surface :initarg :surface)
+   (x :accessor pic-x :initarg :pic-x)
+   (y :accessor pic-y :initarg :pic-y)))
+
+(defmethod initialize-instance :after ((pic pic) &key surface)
+  (with-slots (surface) pic
+    (setf surface pic)))
+
+(let ((pics nil))
+  (defun clear-pics ()
+    (dolist (s pics)
+      (cairo-surface-destroy (surface s)))
+    (setf pics nil))
+  (defun push-pic (x y a)
+    (push (make-instance 'pic :surface (surface-from-lisp-array a) :pic-x x :pic-y y) pics))
+  (defun get-pics ()
+    pics))
+#+nil
+(type-of (surface (first (get-pics))))
 
 (progn
  (defun draw-clock-face (widget cr clock)
    (let ((cr (pointer cr))
 	 (window (gtk-widget-window widget))
-	 (surf (surface-from-lisp-array)))
+	 (surf (get-img)))
      (cairo-set-source-rgb cr 1.0 1.0 1.0)
-          (cairo-scale cr 1 1)
-     (when surf
-       (cairo-set-source-surface cr surf 0 0))
-
-     (cairo-paint cr)
+     (cairo-scale cr 1 1)
+     (dolist (pic (get-pics))
+       (cairo-set-source-surface cr (surface pic) (pic-x pic) (pic-y pic))
+       (cairo-paint cr))
+     
      (when *adjustments*
       (let* ((radius (gtk-adjustment-get-value (cdr (assoc 'radius *adjustments*))))
 	     (x (gtk-adjustment-get-value (cdr (assoc 'xpos *adjustments*))))
@@ -76,8 +92,6 @@
 	  (cairo-stroke cr)
 	  (cairo-restore cr))))
     
-     (when surf
-       (cairo-surface-destroy surf))
      (cairo-destroy cr)
      t))
 
@@ -134,9 +148,9 @@
 				    :homogeneous nil))
 	      )
 	  (gtk-scrolled-window-add-with-viewport scrolled table)
-	  (dotimes (i 10)
-	    (dotimes (j 10)
-	      (gtk-table-attach table
+	  (loop for j below 93 by 30 do
+	       (loop for i below 118 by 30 do
+		    (gtk-table-attach table
 				(let* ((label (make-instance 'gtk-label
 							     :use-markup t
 							     :label (format nil "<span font='5'>~2,'0d|~2,'0d</span>" i j)))
@@ -144,6 +158,7 @@
 				  (gtk-container-add button label)
 				  button)
 				i (+ i 1) j (+ j 1))))
+	  (setf (gtk-widget-size-request scrolled) (list 200 200))
 	  (gtk-paned-add1 paned-right scrolled)
 	  (progn
 	    (setf *adjustments* nil)
