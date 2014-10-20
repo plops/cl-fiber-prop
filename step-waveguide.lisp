@@ -467,13 +467,14 @@ rectangular, for alpha=1 Hann window."
 					:fun (lambda (x) (realpart x))))))
 	     (defparameter *coef1*
 	       (find-mode-coefficients *current-field* 
-				       (floor (+ 1147 1364 -256) 2)
-				       (floor (+ 234 441 -256) 2)
+				       (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*))) -256) 2)
+				       (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*))) -256) 2)
 				       *fields*))
 	     (defparameter *coef1-recon*
 	       (combine-mode-coefficients *coef1* *fields*))
 	     (write-pgm (format nil "/dev/shm/recon-coef0_j~d-i~d.pgm" j i) (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
 	     (write-pgm (format nil "/dev/shm/c1m_j~d-i~d.pgm" j i) (convert-ub8 (convert-df (create-coefficient-mosaic *coef1* *u-modes*) :fun (lambda (x) (realpart x)))))))
+
 
 #+nil
 (progn
