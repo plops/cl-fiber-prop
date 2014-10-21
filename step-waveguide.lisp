@@ -366,7 +366,7 @@ rectangular, for alpha=1 Hann window."
 
 
 (defun combine-mode-coefficients (coefficients mode-fields)
-  (declare (type (simple-array double-float 3) mode-fields)
+  (declare (type (simple-array single-float 3) mode-fields)
 	   (type (simple-array (complex double-float) 1) coefficients)
 	   (values (simple-array (complex double-float) 2) &optional)
 	   (optimize (speed 3)))
@@ -447,6 +447,9 @@ rectangular, for alpha=1 Hann window."
 	     (write-pgm (format nil "/dev/shm/recon-coef0_j~d-i~d.pgm" j i) (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
 	     (write-pgm (format nil "/dev/shm/c1m_j~d-i~d.pgm" j i) (convert-ub8 (convert-df (create-coefficient-mosaic *coef1* *u-modes*) :fun (lambda (x) (realpart x)))))))
 
+#+nil
+(defparameter *coef1-recon*
+	       (combine-mode-coefficients *coef1* *fields*))
 
 #+nil
 (progn
@@ -505,7 +508,7 @@ rectangular, for alpha=1 Hann window."
     (with-open-file (s (format nil "~a_~dx~dx~d.raw" fn m h w)
 		       :direction :output :if-exists :supersede :if-does-not-exist :create
 		       :element-type '(unsigned-byte 32))
-      (let ((fields1 (sb-ext:array-storage-vector fields)))
+      (let ((fields1 x(sb-ext:array-storage-vector fields)))
 	(dotimes (i m)
 	  (let* ((a (make-array (list h w) :element-type 'single-float))
 		 (a1 (sb-ext:array-storage-vector a)))
@@ -517,16 +520,23 @@ rectangular, for alpha=1 Hann window."
 			       (* 4 (array-total-size a)))))))))
 
 (defun load-fields-as-single-float (fn m h w)
-  (let ((a (make-array (list m h w) :element-type 'single-float)))
+  (let ((a1 (make-array (* m h w) :element-type 'single-float)))
     (with-open-file (s fn :direction :input :element-type '(unsigned-byte 32))
       (sb-unix:unix-read (sb-sys:fd-stream-fd s)
-			 (sb-sys:vector-sap (sb-ext:array-storage-vector a))
-			 (* 4 (array-total-size a))))
-    a))
+			 (sb-sys:vector-sap a1)
+			 (* 4 (array-total-size a1))))
+    (let* ((aa (make-array (list m h w) :element-type 'single-float))
+	   (aa1 (sb-ext:array-storage-vector aa)))
+      (dotimes (i (length a1))
+	(setf (aref aa1 i) (aref a1 i)))
+      aa)))
 
 #+nil
-(time
+(time ;; 14.2s
  (defparameter *fields* (load-fields-as-single-float "/home/martin/fields_2757x256x256.raw" 2757 256 256)))
+
+#+nil
+(sb-sys::gc :full t)
 
 #+nil
 (save-fields-as-single-float "/home/martin/fields" *fields*)
@@ -535,7 +545,7 @@ rectangular, for alpha=1 Hann window."
 (defun find-mode-coefficients (current-field istart jstart fields &key (debug nil))
   (declare (type fixnum istart jstart)
 	   (type (simple-array (complex double-float) 2) current-field)
-	   (type (simple-array double-float 3) fields)
+	   (type (simple-array single-float 3) fields)
 	   (optimize (speed 3))
 	   (values (simple-array (complex double-float) 1) &optional))
  (let ((n 256)
