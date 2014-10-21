@@ -439,8 +439,8 @@ rectangular, for alpha=1 Hann window."
 	     (defparameter *coef1*
 	       (if myclock::*adjustments*
 		   (find-mode-coefficients *current-field* 
-					   (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*))) -256) 2)
-					   (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*))) -256) 2)
+					   1127 ;; (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*)))))
+					   215 ;; (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*)))))
 					   *fields*)
 		   (find-mode-coefficients *current-field* 
 					   1157.5
@@ -450,7 +450,10 @@ rectangular, for alpha=1 Hann window."
 	       (combine-mode-coefficients *coef1* *fields*))
 	     (write-pgm (format nil "/dev/shm/recon-coef0_j~d-i~d.pgm" j i) (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
 	     (write-pgm (format nil "/dev/shm/c1m_j~d-i~d.pgm" j i) (convert-ub8 (convert-df (create-coefficient-mosaic *coef1* *u-modes*) :fun (lambda (x) (realpart x)))))))
-
+#+nil
+(list
+ (floor (+ 1147 1364 -256) 2)
+ (floor (+ 234 441 -256) 2))
 #+nil
 (defparameter *coef1-recon*
 	       (combine-mode-coefficients *coef1* *fields*))
