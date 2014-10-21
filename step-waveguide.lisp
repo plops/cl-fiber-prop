@@ -467,7 +467,7 @@ rectangular, for alpha=1 Hann window."
 	(dotimes (j h)
 	  (dotimes (i w)
 	    (setf (aref resi j i) (- (aref orig (+ jstart j) (+ istart i))
-				     (* 3.4 (aref fit j i))))))
+				     (* 3. (aref fit j i))))))
 	resi))))
 #+nil
 (defparameter *res* (calc-mode-residuum))
@@ -1012,9 +1012,10 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
       (format s "~f ~d ~d~%" v j n))) ;; for v=10.2 wmin is very small, for v=30.0 wmin is quite big wmin=6.3
 
 
-(defun step-fiber-fields (u-modes v &key (scale 1.3d0) #+nil rco #+nil nco (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
+(defun step-fiber-fields (u-modes v &key (scale 1.3d0) rco nco (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   "for proper normalization result must be multiplied with 1/sqrt(r_co^2 n_co sqrt(epsilon_0/mu_0))"
-  (declare (values (simple-array double-float 3) &optional))
+  (declare (values (simple-array double-float 3) &optional)
+	   (ignorable rco nco))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
 	 (azimuthal-mode-count (length radial-mode-counts))
 	 (fields  (make-array (list (number-of-modes u-modes) n n) :element-type 'double-float))
