@@ -498,8 +498,7 @@ rectangular, for alpha=1 Hann window."
 ;; diameter of the 50um fiber on the camera:
 ;(/ (* 50 (/ 150 16.45)) 2.2) ; => 207.2396px
 ;; to fill 256 pixels, use scale 1.235 in field calculating function
-
-(/ 256 (/ (* 50 (/ 150 16.45)) 2.2))
+;; (/ 256 (/ (* 50 (/ 150 16.45)) 2.2)) => 1.235
 
 (defvar *current-field* nil)
 
@@ -972,10 +971,10 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) rco nco (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   "for proper normalization result must be multiplied with 1/sqrt(r_co^2 n_co sqrt(epsilon_0/mu_0))"
-  (declare (values (simple-array double-float 3) &optional))
+  (declare (values (simple-array single-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
 	 (azimuthal-mode-count (length radial-mode-counts))
-	 (fields  (make-array (list (number-of-modes u-modes) n n) :element-type 'double-float))
+	 (fields  (make-array (list (number-of-modes u-modes) n n) :element-type 'single-float))
 	 (r-a (make-array (list n n) :element-type 'double-float)) ;; some arrays that store reusable intermediate results
 	 (phi-a (make-array (list n n) :element-type 'double-float))
 	 (sin-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float))
@@ -1033,14 +1032,15 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 		 (format t "m ~3d l ~4d u ~6,3f w ~6,3f co ~8,2,2e cl ~8,2,2,2e cl/full ~6,1f%~%" 
 			 m l u w  nrad-core nrad-clad (/ (* 100 nrad-clad)  nrad)))
 		(doplane (j i) (setf (aref fields k j i)
-				     (* norm (cond ((= l 0) 1d0) 
-						   ((< l 0) (aref sin-a (- (abs l) 1) j i))
-						   (t (aref cos-a (- l 1) j i)))
-					(let ((r (aref r-a j i)))
-					  (if (<= r 1d0)
-					      (* scale-j (bessel-j-interp (abs l) (* u r)))
-					      (* scale-k (bessel-k-scaled-interp (abs l) (* w r)))
-					      ))))))))))
+				     (coerce (* norm (cond ((= l 0) 1d0) 
+							   ((< l 0) (aref sin-a (- (abs l) 1) j i))
+							   (t (aref cos-a (- l 1) j i)))
+						(let ((r (aref r-a j i)))
+						  (if (<= r 1d0)
+						      (* scale-j (bessel-j-interp (abs l) (* u r)))
+						      (* scale-k (bessel-k-scaled-interp (abs l) (* w r)))
+						      )))
+					     'single-float))))))))
     fields))
 
 #+Nil
@@ -1465,82 +1465,5 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 ;; quad_qagi(bessel_k(0,1*r)^2*r/bessel_k(0,.1),r,1,inf);
 ;; w:9.758; f(r):= bessel_k(0,w*r)^2*r/bessel_k(0,w)^2 ; a:[quad_qag(f(r),r,1,2,6), quad_qag(f(r),r,1,4,6), quad_qag(f(r),r,1,10,6), quad_qagi(f(r),r,1,inf), .5*(1-bessel_k(1,w)^2/bessel_k(0,w)^2)] ;
 ;; 
-
-
-#+nil
-(destructuring-bind (nmodes h w) (array-dimensions *bla*)
-     (loop for jmode in (mapcar #'first ;; sort modes by u starting with ground mode
-				(sort (loop for j across (step-fiber-eigenvalues-linear *bla-ev*) 
-					 and i from 0 collect
-					   (list i j)) #'< :key #'second)) 
-	do
-	  (destructuring-bind (l m) (fiber-linear-to-lm-index jmode *bla-ev*)
-	    (let* ((v 30d0)
-		   (scale 4d0)
-		   (lambd .0005)
-		   (nco 1.5)
-		   (ncl 1.46)
-		   (k (* 2 pi (/ lambd))) 
-		   ;; diameter of the fiber:
-		   (rho (* v (/ (* k (sqrt (- (expt nco 2) (expt ncl 2)))))))
-		   ;; resolution of the field in mm/px:
-		   (resol (/ (* 2 scale rho) w))
-		   (core-simple (* resol resol (loop for j below h sum
-				      (loop for i below w sum
-					   (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
-						  (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
-						  (r (sqrt (+ (expt x 2) (expt y 2)))))
-					     (if (<= r 1d0)
-						 (expt (abs (aref *bla* jmode j i)) 2)
-						 0d0))))))
-		   (clad-simple (* resol resol  (loop for j below h sum
-				      (loop for i below w sum
-					   (let* ((x (* 2 scale (- i (floor w 2)) (/ 1d0 w)))
-						  (y (* 2 scale (- j (floor h 2)) (/ 1d0 h)))
-						  (r (sqrt (+ (expt x 2) (expt y 2)))))
-					     (if (<= 1d0 r)
-						 (expt (abs (aref *bla* jmode j i)) 2)
-						 0d0))))))
-		   (full-simple (*  (loop for j below h sum
-				      (loop for i below w sum
-					   (expt (abs (aref *bla* jmode j i)) 2)
-					 )))))
-	      
-	      (format 
-	       t "~d ~3d co ~8,2,2e cl ~8,2,2e full ~12,4f ~12,1f ~%"
-	       w jmode core-simple clad-simple full-simple (/ (* resol)))))))
-
-(/ (* 66 66) (* 2 pi))
-;; Integrate[r BesselJ[l, u r]^2, {r, 0, 1} ]
-;; 1/2 (BesselJ[-1 + l, u]^2 - (2 l BesselJ[-1 + l, u] BesselJ[l, u])/u +
-;;    BesselJ[l, u]^2)
-
-;; page 432 mode launching, fields reflected from the end surface are
-;; extermely complicated, but there is a simple approximation for
-;; weakly guiding fibers
-;; incident beam is tilted towards fiber axis: ni (sin thetai) = nco (sin thetaz)
-;; fresnel reflection: Et(thetaz) = 2ni/(nco+ni) Ei(thetai)
-;; in the rest of the chapter they assume ni=nco (!)
-
- 
-;; levin transform, oscillatory integral 5.3.24
-;; 13.9
-
-
-;; shemirani 2009y
-;; Due to symmetries enforced by the bends in and directions, it is
-;; easiest to find the coupling coefficients in Carte- sian
-;; coordinates, using the eigenmodes of the ideal fiber, which are
-;; orthonormal Hermite–Gaussian function
-
-#+nil
-(defun solve-couple-into-lp-modes (matrix)
-  "Solve the linear equation using SVD with the supplied matrix and
-   a right-hand side vector which is the reciprocal of one more than
-   the index."
-  (let ((dim (dim0 matrix)))
-    (multiple-value-bind (u q d)
-        (SV-decomposition (copy matrix))
-      (SV-solve u q d (gsll::create-rhs-vector dim)))))
 
 
