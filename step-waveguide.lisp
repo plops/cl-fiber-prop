@@ -460,20 +460,53 @@ rectangular, for alpha=1 Hann window."
 (defparameter *coef1-recon*
 	       (combine-mode-coefficients *coef1* *fields*))
 
+
+(defun calc-mode-residuum ()
+  (let ((fit *coef1-recon*)
+	(orig *current-field*))
+    (declare (type (simple-array (complex double-float) 2) fit orig))
+    (destructuring-bind (h w) (array-dimensions fit)
+      (let* ((istart (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*)))
+			       -128)))
+	     (jstart (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*)))
+			       -128)))
+	     (resi (make-array (list h w) :element-type '(complex double-float))))
+	(dotimes (j h)
+	  (dotimes (i w)
+	    (setf (aref resi j i) (- (aref orig (+ jstart j) (+ istart i))
+				     (* 3.3 (aref fit j i))))))
+	resi))))
+#+nil
+(defparameter *res* (calc-mode-residuum))
+
+#+nil
+(/
+ (reduce #'max (map-into (make-array (array-total-size *current-field*)) #'abs (sb-ext:array-storage-vector *current-field*)))
+ (reduce #'max (map-into (make-array (array-total-size *current-field*)) #'abs (sb-ext:array-storage-vector *coef1-recon*))))
+
 #+nil
 (myclock::clear-pics)
+
 
 #+nil
 (progn
   (myclock::push-pic 0 0
   (convert-ub8 
    (convert-df *current-field*)))
+  #+nil (myclock::push-pic (floor
+		      (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*))) -128))
+		     (floor
+		      (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*))) -128))
+	  
+		     (convert-ub8 
+		      (convert-df *coef1-recon*)))
   (myclock::push-pic (floor
 		      (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*))) -128))
 		     (floor
 		      (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*))) -128))
-  (convert-ub8 
-   (convert-df *coef1-recon*)))
+	  
+		     (convert-ub8 
+		      (convert-df (calc-mode-residuum))))
  nil)
 
 #+nil
