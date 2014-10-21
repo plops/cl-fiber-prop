@@ -467,7 +467,7 @@ rectangular, for alpha=1 Hann window."
 	(dotimes (j h)
 	  (dotimes (i w)
 	    (setf (aref resi j i) (- (aref orig (+ jstart j) (+ istart i))
-				     (* 3. (aref fit j i))))))
+				     (* 2. (aref fit j i))))))
 	resi))))
 #+nil
 (defparameter *res* (calc-mode-residuum))
@@ -486,14 +486,14 @@ rectangular, for alpha=1 Hann window."
   (myclock::push-pic 0 0
   (convert-ub8 
    (convert-df *current-field*)))
-  #+nil (myclock::push-pic (floor
+   (myclock::push-pic (floor
 		      (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*))) -128))
 		     (floor
 		      (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*))) -128))
 	  
 		     (convert-ub8 
 		      (convert-df *coef1-recon*)))
-  (myclock::push-pic (floor
+#+nil  (myclock::push-pic (floor
 		      (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*))) -128))
 		     (floor
 		      (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*))) -128))
@@ -651,13 +651,13 @@ rectangular, for alpha=1 Hann window."
   (defparameter *u-modes* u-modes)
   (time
    (defparameter *fields* (step-fiber-fields u-modes v
-					     :scale (/ 256 (/ (* 55 (/ 150 16.45)) 2.2))  
+					     :scale (/ 256 (/ (* 45 (/ 150 16.45)) 2.2))  
 					     :rco core-radius
 					     :nco nco
 					     :n 256 
 					     :debug t)))
   ;;(write-pgm "/dev/shm/field.pgm" (convert-ub8 field))
-  ) 
+  )
 
 
 ;; v parameter is 134
