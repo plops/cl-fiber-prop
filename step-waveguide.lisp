@@ -554,20 +554,20 @@ rectangular, for alpha=1 Hann window."
 			   0
 			   (* 4 (array-total-size fields1)))))))
 
-;; (defun load-fields-as-single-float (fn m h w)
-;;   (let ((a1 (make-array (* m h w) :element-type 'single-float)))
-;;     (with-open-file (s fn :direction :input :element-type '(unsigned-byte 32))
-;;       (sb-unix:unix-read (sb-sys:fd-stream-fd s)
-;; 			 (sb-sys:vector-sap a1)
-;; 			 (* 4 (array-total-size a1))))
-;;     (let* ((aa (make-array (list m h w) :element-type 'single-float))
-;; 	   (aa1 (sb-ext:array-storage-vector aa)))
-;;       (dotimes (i (length a1))
-;; 	(setf (aref aa1 i) (aref a1 i)))
-;;       aa)))
+(defun load-fields-as-single-float (fn m h w)
+  (let ((a1 (make-array (* m h w) :element-type 'single-float)))
+    (with-open-file (s fn :direction :input :element-type '(unsigned-byte 32))
+      (sb-unix:unix-read (sb-sys:fd-stream-fd s)
+			 (sb-sys:vector-sap a1)
+			 (* 4 (array-total-size a1))))
+    (let* ((aa (make-array (list m h w) :element-type 'single-float))
+	   (aa1 (sb-ext:array-storage-vector aa)))
+      (dotimes (i (length a1))
+	(setf (aref aa1 i) (aref a1 i)))
+      aa)))
 
 #+nil
-(time ;; 14.2s
+(time ;; 9.4s
  (defparameter *fields* (load-fields-as-single-float "/home/martin/fields_2757x256x256.raw" 2757 256 256)))
 
 #+nil
