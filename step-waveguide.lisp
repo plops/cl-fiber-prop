@@ -501,14 +501,13 @@ rectangular, for alpha=1 Hann window."
 (defvar *current-field* nil)
 
 (defun save-fields-as-single-float (fn fields)
-  (declare (optimize (safety 0)))
-  (destructuring-bind (m w h) (array-dimensions fields)
-    (with-open-file (s (format nil "~a_~dx~dx~d.raw" fn m w h)
+  (destructuring-bind (m h w) (array-dimensions fields)
+    (with-open-file (s (format nil "~a_~dx~dx~d.raw" fn m h w)
 		       :direction :output :if-exists :supersede :if-does-not-exist :create
 		       :element-type '(unsigned-byte 32))
       (let ((fields1 (sb-ext:array-storage-vector fields)))
 	(dotimes (i m)
-	  (let* ((a (make-array (list w h) :element-type 'single-float))
+	  (let* ((a (make-array (list h w) :element-type 'single-float))
 		 (a1 (sb-ext:array-storage-vector a)))
 	   (dotimes (j (length a1))
 	     (setf (aref a1 i) (coerce (aref fields1 (+ j (* i (* w h)))) 'single-float)))
@@ -517,7 +516,17 @@ rectangular, for alpha=1 Hann window."
 			       0
 			       (* 4 (array-total-size a)))))))))
 
+(defun load-fields-as-single-float (fn m h w)
+  (let ((a (make-array (list m h w) :element-type 'single-float)))
+    (with-open-file (s fn :direction :input :element-type '(unsigned-byte 32))
+      (sb-unix:unix-read (sb-sys:fd-stream-fd s)
+			 (sb-sys:vector-sap (sb-ext:array-storage-vector a))
+			 (* 4 (array-total-size a))))
+    a))
 
+#+nil
+(time
+ (defparameter *fields* (load-fields-as-single-float "/home/martin/fields_2757x256x256.raw" 2757 256 256)))
 
 #+nil
 (save-fields-as-single-float "/home/martin/fields" *fields*)
