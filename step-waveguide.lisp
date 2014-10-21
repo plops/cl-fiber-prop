@@ -23,7 +23,6 @@
   (require :cl-fiber-prop)
   (require :fftw))
 
-
 (defun convert-12p-16 (data)
   (let* ((n (* 1920 1080 12 (/ 8)))
 	 (out (make-array (list 1080 1920) :element-type '(unsigned-byte 16)))
@@ -275,7 +274,7 @@ rectangular, for alpha=1 Hann window."
 
 #+nil
 (progn
- (myclock::push-pic 100 10
+ (myclock::push-pic 0 0
   (convert-ub8 
    (convert-df (convert-u16-cdf (get-cam-image-laptop 0 30 30)))))
  nil)
@@ -401,7 +400,7 @@ rectangular, for alpha=1 Hann window."
 (* 222 (/ 1080 1920d0) )
 
 #+nil
-(time ;; 118s
+(time 
  (progn
    (time ;; 4.85s
     (defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (make-array (list 1080 1920)
@@ -451,7 +450,10 @@ rectangular, for alpha=1 Hann window."
 
 #+nil
 (progn
- (myclock::update-img 
+  (myclock::push-pic (floor
+		      (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*))) -128))
+		     (floor
+		      (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*))) -128))
   (convert-ub8 
    (convert-df *coef1-recon*)))
  nil)
@@ -497,6 +499,29 @@ rectangular, for alpha=1 Hann window."
 (/ 256 (/ (* 50 (/ 150 16.45)) 2.2))
 
 (defvar *current-field* nil)
+
+(defun save-fields-as-single-float (fn fields)
+  (declare (optimize (safety 0)))
+  (destructuring-bind (m w h) (array-dimensions fields)
+    (with-open-file (s (format nil "~a_~dx~dx~d.raw" fn m w h)
+		       :direction :output :if-exists :supersede :if-does-not-exist :create
+		       :element-type '(unsigned-byte 32))
+      (let ((fields1 (sb-ext:array-storage-vector fields)))
+	(dotimes (i m)
+	  (let* ((a (make-array (list w h) :element-type 'single-float))
+		 (a1 (sb-ext:array-storage-vector a)))
+	   (dotimes (j (length a1))
+	     (setf (aref a1 i) (coerce (aref fields1 (+ j (* i (* w h)))) 'single-float)))
+	   (sb-unix:unix-write (sb-sys:fd-stream-fd s)
+			       (sb-sys:vector-sap a1)
+			       0
+			       (* 4 (array-total-size a)))))))))
+
+
+
+#+nil
+(save-fields-as-single-float "/home/martin/fields" *fields*)
+
 (defvar *fields* nil)
 (defun find-mode-coefficients (current-field istart jstart fields &key (debug nil))
   (declare (type fixnum istart jstart)
@@ -548,6 +573,8 @@ rectangular, for alpha=1 Hann window."
 (sb-ext:gc :full t)
 #+nil
 (room)
+#+nil
+(/ (* 50 (/ 150 16.45)) 2.2)  
 #+nil
 (let* ((ncl 1.457)
        (lambd .0006328)

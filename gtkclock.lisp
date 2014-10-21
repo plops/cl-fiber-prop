@@ -18,7 +18,7 @@
   (dotimes (j 256)
     (dotimes (i 256)
       (setf (aref a j i) j)))
-  (update-img a)
+  (push-pic 10 100 a)
   nil)
 
 
@@ -44,10 +44,6 @@
    (x :accessor pic-x :initarg :pic-x)
    (y :accessor pic-y :initarg :pic-y)))
 
-(defmethod initialize-instance :after ((pic pic) &key surface)
-  (with-slots (surface) pic
-    (setf surface pic)))
-
 (let ((pics nil))
   (defun clear-pics ()
     (dolist (s pics)
@@ -58,18 +54,31 @@
   (defun get-pics ()
     pics))
 #+nil
-(type-of (surface (first (get-pics))))
-
+(surface (first (get-pics)))
+#+nil
+(get-pics)
+#+nil
+(clear-pics)
+(defparameter *adjustments* nil)
 (progn
  (defun draw-clock-face (widget cr clock)
+   (declare (ignorable widget))
    (let ((cr (pointer cr))
-	 (window (gtk-widget-window widget))
-	 (surf (get-img)))
+	 ;(window (gtk-widget-window widget))
+	 )
      (cairo-set-source-rgb cr 1.0 1.0 1.0)
      (cairo-scale cr 1 1)
-     (dolist (pic (get-pics))
-       (cairo-set-source-surface cr (surface pic) (pic-x pic) (pic-y pic))
-       (cairo-paint cr))
+     
+     (if (and (get-pics)
+	      (gtk-toggle-button-active (cdr (assoc 'rb-fit *adjustments*))))
+	 (let ((pic (first (get-pics))))
+	   (when pic
+	     (cairo-set-source-surface cr (surface pic) (pic-x pic) (pic-y pic))
+	     (cairo-paint cr)))
+	 (let ((pic (second (get-pics))))
+	   (when pic
+	     (cairo-set-source-surface cr (surface pic) (pic-x pic) (pic-y pic))
+	     (cairo-paint cr))))
      
      (when *adjustments*
       (let* ((radius (gtk-adjustment-get-value (cdr (assoc 'radius *adjustments*))))
@@ -106,9 +115,11 @@
   (g-signal-connect clock "draw"
 		    (lambda (widget cr)
 		      (funcall *draw-clock-face* widget cr clock))))
-(defparameter *adjustments* nil)
+
 #+nil
 (gtk-adjustment-get-value (cdr (assoc 'kradius *adjustments*)))
+#+nil
+(cdr (assoc 'rb-ft *adjustments*))
 
 (defun run ()
   (sb-int:with-float-traps-masked (:divide-by-zero)
@@ -122,7 +133,9 @@
 	    (paned-right (make-instance 'gtk-paned :orientation :vertical :position 300))
 	    )
 	(g-signal-connect window "destroy"
-			  (lambda (widget) (leave-gtk-main)))
+			  (lambda (widget)
+			    (declare (ignorable widget))
+			    (leave-gtk-main)))
 	(let* ((ghb (make-instance 'gtk-handle-box :snap-edge :top
 				   :shadow-type :in :handle-position :left))
 	       (scrolled (make-instance 'gtk-scrolled-window
@@ -132,7 +145,7 @@
 	       (clock (make-instance 'clock-face)))
 	  (gtk-scrolled-window-add-with-viewport scrolled clock)
 	  (setf (gtk-widget-size-request clock) (list 1920 1080))
-	  (setf (gtk-widget-size-request scrolled) (list 200 200))
+	  ;(setf (gtk-widget-size-request scrolled) (list 200 200))
 	  (gtk-container-add window paned)
 	  (gtk-container-add ghb scrolled)
 	  (gtk-paned-add1 paned ghb)
@@ -158,7 +171,7 @@
 				  (gtk-container-add button label)
 				  button)
 				i (+ i 1) j (+ j 1))))
-	  (setf (gtk-widget-size-request scrolled) (list 200 200))
+	  ;(setf (gtk-widget-size-request scrolled) (list 200 200))
 	  (gtk-paned-add1 paned-right scrolled)
 	  (progn
 	    (setf *adjustments* nil)
@@ -193,6 +206,8 @@
 		    (kxpos (spin-box 'kxpos 100 (- 1920 1)))
 		    (kypos (spin-box 'kypos 100 (- 1080 1)))
 		    (kradius (spin-box 'kradius 100 500)))
+	       (push (cons 'rb-ft rb-ft) *adjustments*)
+	       (push (cons 'rb-fit rb-ft) *adjustments*)
 	       (gtk-box-pack-start vbox rb-ft)
 	       (gtk-box-pack-start vbox rb-fit)
 	       (gtk-box-pack-start vbox xpos)
