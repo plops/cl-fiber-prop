@@ -366,7 +366,7 @@ rectangular, for alpha=1 Hann window."
 
 
 (defun combine-mode-coefficients (coefficients mode-fields)
-  (declare (type (simple-array single-float 3) mode-fields)
+  (declare (type (simple-array double-float 3) mode-fields)
 	   (type (simple-array (complex double-float) 1) coefficients)
 	   (values (simple-array (complex double-float) 2) &optional)
 	   (optimize (speed 3)))
@@ -502,33 +502,33 @@ rectangular, for alpha=1 Hann window."
 
 (defvar *current-field* nil)
 
-(defun save-fields-as-single-float (fn fields)
-  (destructuring-bind (m h w) (array-dimensions fields)
-    (with-open-file (s (format nil "~a_~dx~dx~d.raw" fn m h w)
-		       :direction :output :if-exists :supersede :if-does-not-exist :create
-		       :element-type '(unsigned-byte 32))
-      (let ((fields1 x(sb-ext:array-storage-vector fields)))
-	(dotimes (i m)
-	  (let* ((a (make-array (list h w) :element-type 'single-float))
-		 (a1 (sb-ext:array-storage-vector a)))
-	   (dotimes (j (length a1))
-	     (setf (aref a1 i) (coerce (aref fields1 (+ j (* i (* w h)))) 'single-float)))
-	   (sb-unix:unix-write (sb-sys:fd-stream-fd s)
-			       (sb-sys:vector-sap a1)
-			       0
-			       (* 4 (array-total-size a)))))))))
+;; (defun save-fields-as-single-float (fn fields)
+;;   (destructuring-bind (m h w) (array-dimensions fields)
+;;     (with-open-file (s (format nil "~a_~dx~dx~d.raw" fn m h w)
+;; 		       :direction :output :if-exists :supersede :if-does-not-exist :create
+;; 		       :element-type '(unsigned-byte 32))
+;;       (let ((fields1 x(sb-ext:array-storage-vector fields)))
+;; 	(dotimes (i m)
+;; 	  (let* ((a (make-array (list h w) :element-type 'single-float))
+;; 		 (a1 (sb-ext:array-storage-vector a)))
+;; 	   (dotimes (j (length a1))
+;; 	     (setf (aref a1 i) (coerce (aref fields1 (+ j (* i (* w h)))) 'single-float)))
+;; 	   (sb-unix:unix-write (sb-sys:fd-stream-fd s)
+;; 			       (sb-sys:vector-sap a1)
+;; 			       0
+;; 			       (* 4 (array-total-size a)))))))))
 
-(defun load-fields-as-single-float (fn m h w)
-  (let ((a1 (make-array (* m h w) :element-type 'single-float)))
-    (with-open-file (s fn :direction :input :element-type '(unsigned-byte 32))
-      (sb-unix:unix-read (sb-sys:fd-stream-fd s)
-			 (sb-sys:vector-sap a1)
-			 (* 4 (array-total-size a1))))
-    (let* ((aa (make-array (list m h w) :element-type 'single-float))
-	   (aa1 (sb-ext:array-storage-vector aa)))
-      (dotimes (i (length a1))
-	(setf (aref aa1 i) (aref a1 i)))
-      aa)))
+;; (defun load-fields-as-single-float (fn m h w)
+;;   (let ((a1 (make-array (* m h w) :element-type 'single-float)))
+;;     (with-open-file (s fn :direction :input :element-type '(unsigned-byte 32))
+;;       (sb-unix:unix-read (sb-sys:fd-stream-fd s)
+;; 			 (sb-sys:vector-sap a1)
+;; 			 (* 4 (array-total-size a1))))
+;;     (let* ((aa (make-array (list m h w) :element-type 'single-float))
+;; 	   (aa1 (sb-ext:array-storage-vector aa)))
+;;       (dotimes (i (length a1))
+;; 	(setf (aref aa1 i) (aref a1 i)))
+;;       aa)))
 
 #+nil
 (time ;; 14.2s
@@ -544,7 +544,7 @@ rectangular, for alpha=1 Hann window."
 (defun find-mode-coefficients (current-field istart jstart fields &key (debug nil))
   (declare (type fixnum istart jstart)
 	   (type (simple-array (complex double-float) 2) current-field)
-	   (type (simple-array single-float 3) fields)
+	   (type (simple-array double-float 3) fields)
 	   (optimize (speed 3))
 	   (values (simple-array (complex double-float) 1) &optional))
  (let ((n 256)
@@ -971,10 +971,10 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) rco nco (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   "for proper normalization result must be multiplied with 1/sqrt(r_co^2 n_co sqrt(epsilon_0/mu_0))"
-  (declare (values (simple-array single-float 3) &optional))
+  (declare (values (simple-array double-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
 	 (azimuthal-mode-count (length radial-mode-counts))
-	 (fields  (make-array (list (number-of-modes u-modes) n n) :element-type 'single-float))
+	 (fields  (make-array (list (number-of-modes u-modes) n n) :element-type 'double-float))
 	 (r-a (make-array (list n n) :element-type 'double-float)) ;; some arrays that store reusable intermediate results
 	 (phi-a (make-array (list n n) :element-type 'double-float))
 	 (sin-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float))
@@ -1040,7 +1040,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 						      (* scale-j (bessel-j-interp (abs l) (* u r)))
 						      (* scale-k (bessel-k-scaled-interp (abs l) (* w r)))
 						      )))
-					     'single-float))))))))
+					     'double-float))))))))
     fields))
 
 #+Nil
