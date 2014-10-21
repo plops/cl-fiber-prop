@@ -436,12 +436,16 @@ rectangular, for alpha=1 Hann window."
 			  (convert-ub8 (convert-df
 					field					       
 					:fun (lambda (x) (realpart x))))))
-	     (when myclock::*adjustments*
-	      (defparameter *coef1*
-		(find-mode-coefficients *current-field* 
-					(floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*))) -256) 2)
-					(floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*))) -256) 2)
-					*fields*)))
+	     (defparameter *coef1*
+	       (if myclock::*adjustments*
+		   (find-mode-coefficients *current-field* 
+					   (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*))) -256) 2)
+					   (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*))) -256) 2)
+					   *fields*)
+		   (find-mode-coefficients *current-field* 
+					   1157.5
+					   251.5
+					   *fields*)))
 	     (defparameter *coef1-recon*
 	       (combine-mode-coefficients *coef1* *fields*))
 	     (write-pgm (format nil "/dev/shm/recon-coef0_j~d-i~d.pgm" j i) (convert-ub8 (convert-df *coef1-recon* :fun #'realpart)))
@@ -452,7 +456,13 @@ rectangular, for alpha=1 Hann window."
 	       (combine-mode-coefficients *coef1* *fields*))
 
 #+nil
+(myclock::clear-pics)
+
+#+nil
 (progn
+  (myclock::push-pic 0 0
+  (convert-ub8 
+   (convert-df *current-field*)))
   (myclock::push-pic (floor
 		      (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*))) -128))
 		     (floor
