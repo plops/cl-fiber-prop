@@ -47,7 +47,6 @@
 (defun phase-wedge (a kx ky)
   (declare (type (simple-array (complex double-float) 2) a)
 	   (type double-float kx ky)
-	   (optimize (speed 3))
 	   (values (simple-array (complex double-float) 2) &optional))
   (let* ((b (make-array (array-dimensions a) :element-type '(complex double-float))))
    (destructuring-bind (h w) (array-dimensions a)
@@ -63,8 +62,7 @@
 (defun j1/r (a alpha)
   (declare (type (simple-array * 2) a)
 	   (type double-float alpha)
-	   (values (simple-array (complex double-float) 2))
-	   (optimize (speed 3)))
+	   (values (simple-array (complex double-float) 2)))
   (let* ((b (make-array (array-dimensions a)
 			:element-type '(complex double-float))))
     (destructuring-bind (h w) (array-dimensions a)
@@ -89,7 +87,6 @@ with a rectangular window of width (1 - alpha/2)N. For alpha=0
 rectangular, for alpha=1 Hann window."
   (declare (type (unsigned-byte 32) nn)
            (type double-float alpha)
-	   (optimize (speed 3))
            (values (simple-array double-float 1) &optional))
   (let ((w (make-array nn :element-type 'double-float :initial-element 0d0))
         (n-1 (- nn 1d0)))
@@ -111,8 +108,7 @@ rectangular, for alpha=1 Hann window."
 
 (defun tukey-window2 (a &key (alpha-x .2d0) (alpha-y alpha-x))
   (declare (type (simple-array (complex double-float) 2) a)
-           (values (simple-array (complex double-float) 2) &optional)
-	   (optimize (speed 3)))
+           (values (simple-array (complex double-float) 2) &optional))
   (destructuring-bind (h w) (array-dimensions a)
     (declare (type fixnum h w))
     (let* ((b (make-array (array-dimensions a) :element-type '(complex double-float)))
@@ -239,7 +235,6 @@ rectangular, for alpha=1 Hann window."
               :displaced-to a))
 
 (defun .accum (dst b)
-  (declare (optimize (speed 3)))
   (declare (type (array double-float 2) b)
            (type (simple-array double-float 2) dst)
            (values (simple-array double-float 2) &optional))
@@ -314,7 +309,6 @@ rectangular, for alpha=1 Hann window."
 
 (defun create-coefficient-mosaic (coefs u-modes &key (debug nil))
   (declare (type (simple-array (complex double-float) 1) coefs)
-	   (optimize (speed 3))
 	   (values (simple-array (complex double-float) 2) &optional))
   (let* ((lmax (list-length u-modes))
 	 (mmax (list-length (first u-modes)))
@@ -368,8 +362,7 @@ rectangular, for alpha=1 Hann window."
 (defun combine-mode-coefficients (coefficients mode-fields)
   (declare (type (simple-array double-float 3) mode-fields)
 	   (type (simple-array (complex double-float) 1) coefficients)
-	   (values (simple-array (complex double-float) 2) &optional)
-	   (optimize (speed 3)))
+	   (values (simple-array (complex double-float) 2) &optional))
   (destructuring-bind (ncoef n no) (array-dimensions mode-fields) 
     (declare (ignorable ncoef no)
 	     (type fixnum n))
@@ -460,7 +453,7 @@ rectangular, for alpha=1 Hann window."
 (defparameter *coef1-recon*
 	       (combine-mode-coefficients *coef1* *fields*))
 
-
+#+nil
 (defun calc-mode-residuum ()
   (let ((fit *coef1-recon*)
 	(orig *current-field*))
@@ -474,7 +467,7 @@ rectangular, for alpha=1 Hann window."
 	(dotimes (j h)
 	  (dotimes (i w)
 	    (setf (aref resi j i) (- (aref orig (+ jstart j) (+ istart i))
-				     (* 3.3 (aref fit j i))))))
+				     (* 3.4 (aref fit j i))))))
 	resi))))
 #+nil
 (defparameter *res* (calc-mode-residuum))
@@ -593,7 +586,6 @@ rectangular, for alpha=1 Hann window."
   (declare (type fixnum istart jstart)
 	   (type (simple-array (complex double-float) 2) current-field)
 	   (type (simple-array double-float 3) fields)
-	   (optimize (speed 3))
 	   (values (simple-array (complex double-float) 1) &optional))
  (let ((n 256)
        (count 0))
@@ -659,7 +651,7 @@ rectangular, for alpha=1 Hann window."
   (defparameter *u-modes* u-modes)
   (time
    (defparameter *fields* (step-fiber-fields u-modes v
-					     :scale (/ 256 (/ (* 50 (/ 150 16.45)) 2.2))  
+					     :scale (/ 256 (/ (* 55 (/ 150 16.45)) 2.2))  
 					     :rco core-radius
 					     :nco nco
 					     :n 256 
@@ -676,6 +668,7 @@ rectangular, for alpha=1 Hann window."
 (in-package :cl-fiber-prop)
 
 (defun bess-zeros (&key (a 1) (n 10) (d 1) (e 1e-5))
+  (declare (ignorable d e))
   (let ((res (make-array n :element-type 'double-float)))
     (loop for i from 1 upto n collect
 	(setf (aref res (- i 1)) (gsll:bessel-zero-jnu (* 1d0 a) i)))
@@ -982,8 +975,10 @@ mm."
   ;; largest u will show most oscillations in the field
   " n is number of points between R=0 .. 1, returns the minimal n that
 covers -scale*R .. scale*R and still ensures sampling of the signal"
+  (declare (ignorable v))
   (destructuring-bind (u lin-index) (find-fastest-mode (step-fiber-eigenvalues-linear u-modes)) 
     (destructuring-bind (l m) (fiber-linear-to-lm-index lin-index u-modes)
+      (declare (ignorable m))
       (let* ((field (make-array (list n) :element-type 'double-float)))
 	(dotimes (i n)
 	  (let ((r (* i (/ 1d0 n))))
@@ -1017,7 +1012,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
       (format s "~f ~d ~d~%" v j n))) ;; for v=10.2 wmin is very small, for v=30.0 wmin is quite big wmin=6.3
 
 
-(defun step-fiber-fields (u-modes v &key (scale 1.3d0) rco nco (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
+(defun step-fiber-fields (u-modes v &key (scale 1.3d0) #+nil rco #+nil nco (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   "for proper normalization result must be multiplied with 1/sqrt(r_co^2 n_co sqrt(epsilon_0/mu_0))"
   (declare (values (simple-array double-float 3) &optional))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
@@ -1153,7 +1148,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 (defun create-field-mosaic (fields u-modes &key (fun #'(lambda (x) (expt x 2))))
   (declare (type (simple-array double-float 3) fields)
-	   (optimize (speed 3))
+	   (ignorable fun)
 	   (values (simple-array double-float 2) &optional))
   (let* ((lmax (length u-modes))
 	 (mmax (length (first u-modes)))
@@ -1180,8 +1175,6 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 ;; 1971 lether a generalized product rule for the unit cirlce
 ;; http://www.holoborodko.com/pavel/numerical-methods/numerical-integration/cubature-formulas-for-the-unit-disk/
 
-(declaim (optimize (debug 3)))
-
 (defun couple (u-modes j0 j1 v &key scale alpha)
   (destructuring-bind (nl0 m0) (fiber-linear-to-lm-index j0 u-modes)
     (destructuring-bind (nl1 m1) (fiber-linear-to-lm-index j1 u-modes)
@@ -1197,9 +1190,10 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
        (flet ((mode-norm (l u)
 		(let* ((w (sqrt (- (expt v 2) (expt u 2))))
 		       (nphi (* pi (if (= l 0) 2 1)))
-		       (mu0 (* 4d-7 pi))
-		       (c0 299792458d0)
+		       ;(mu0 (* 4d-7 pi))
+		       ;(c0 299792458d0)
 					;(eps0 (/ (* mu0 (expt c0 2))))
+		       #+nil
 		       (nrad-scale (* 1d0 ;(expt rco 2) ;(/ nco (* mu0 c0))
 				      ))
 		       (nrad-core (* .5 (- 1
@@ -1352,7 +1346,8 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
   ;; i might have to figure out the proper sampling by calculating a
   ;; high resolution cross section through the highest mode
 ;  (declare (optimize (speed 3)))
-  (declare (type (simple-array double-float 3) fields))
+  (declare (type (simple-array double-float 3) fields)
+	   (ignorable radius))
   (destructuring-bind (nmodes h w) (array-dimensions fields)
     (multiple-value-bind (wedge resol nco rco) (calculate-bend-wedge :n w :v v :scale scale :alpha alpha)
       
