@@ -116,6 +116,7 @@
 		    (lambda (widget cr)
 		      (funcall *draw-clock-face* widget cr clock))))
 
+
 #+nil
 (gtk-adjustment-get-value (cdr (assoc 'kradius *adjustments*)))
 #+nil
@@ -149,75 +150,84 @@
 	  (gtk-container-add window paned)
 	  (gtk-container-add ghb scrolled)
 	  (gtk-paned-add1 paned ghb)
-	  (gtk-paned-add2 paned paned-right))
-	(let ((scrolled (make-instance 'gtk-scrolled-window
-				       :border-width 1
-				       :hscrollbar-policy :automatic
-				       :vscrollbar-policy :automatic))
-	      (table (make-instance 'gtk-table :n-rows 10
-				    :n-columns 10
-				    :row-spacing 0
-				    :column-spacing 0
-				    :homogeneous nil))
-	      )
-	  (gtk-scrolled-window-add-with-viewport scrolled table)
-	  (loop for j below 93 by 30 do
-	       (loop for i below 118 by 30 do
-		    (gtk-table-attach table
-				(let* ((label (make-instance 'gtk-label
-							     :use-markup t
-							     :label (format nil "<span font='5'>~2,'0d|~2,'0d</span>" i j)))
-				       (button (make-instance 'gtk-button)))
-				  (gtk-container-add button label)
-				  button)
-				i (+ i 1) j (+ j 1))))
-	  ;(setf (gtk-widget-size-request scrolled) (list 200 200))
-	  (gtk-paned-add1 paned-right scrolled)
-	  (progn
-	    (setf *adjustments* nil)
-	   (labels ((spin-box (name value upper)
-		      (let* ((hb (make-instance 'gtk-box :orientation :horizontal))
-			     (lab (make-instance 'gtk-label
-						 :label (format nil "~s" name)))
-			     (adj (make-instance 'gtk-adjustment
-						 :value (* 1d0 value)
-						 :lower 0d0
-						 :upper (* 1d0 upper)
-						 :step-increment 1d0
-						 :page-increment 10d0
-						 :page-size 0d0))
-			     (sb (make-instance 'gtk-spin-button :adjustment
-						adj
-						:climb-rate 0
-						:digits 1
-						:wrap t)))
-			(gtk-spin-button-set-value sb value)
-			(gtk-box-pack-start hb lab)
-			(gtk-box-pack-start hb sb)
-			(push (cons name adj) *adjustments*)
-			hb)))
-	     (let* ((frame1 (make-instance 'gtk-frame :label "settings"))
-		    (vbox (make-instance 'gtk-box :orientation :vertical))
-		    (rb-ft (gtk-radio-button-new-with-label nil "fourier"))
-		    (rb-fit (gtk-radio-button-new-with-label (gtk-radio-button-get-group rb-ft) "fit"))
-		    (xpos (spin-box 'xpos 1157.5 (- 1920 1)))
-		    (ypos (spin-box 'ypos 251.5 (- 1080 1)))
-		    (radius (spin-box 'radius 103.5 500))
-		    (kxpos (spin-box 'kxpos 100 (- 1920 1)))
-		    (kypos (spin-box 'kypos 100 (- 1080 1)))
-		    (kradius (spin-box 'kradius 100 500)))
-	       (push (cons 'rb-ft rb-ft) *adjustments*)
-	       (push (cons 'rb-fit rb-ft) *adjustments*)
-	       (gtk-box-pack-start vbox rb-ft)
-	       (gtk-box-pack-start vbox rb-fit)
-	       (gtk-box-pack-start vbox xpos)
-	       (gtk-box-pack-start vbox ypos)
-	       (gtk-box-pack-start vbox radius)
-	       (gtk-box-pack-start vbox kxpos)
-	       (gtk-box-pack-start vbox kypos)
-	       (gtk-box-pack-start vbox kradius)
-	       (gtk-container-add frame1 vbox)
-	       (gtk-paned-add2 paned-right frame1)))))
+	  (gtk-paned-add2 paned paned-right)
+	  (let ((scrolled (make-instance 'gtk-scrolled-window
+					 :border-width 1
+					 :hscrollbar-policy :automatic
+					 :vscrollbar-policy :automatic))
+		(table (make-instance 'gtk-table :n-rows 10
+				      :n-columns 10
+				      :row-spacing 0
+				      :column-spacing 0
+				      :homogeneous nil))
+		)
+	    (gtk-scrolled-window-add-with-viewport scrolled table)
+	    (loop for j below 93 by 30 do
+		 (loop for i below 118 by 30 do
+		      (gtk-table-attach table
+					(let* ((label (make-instance 'gtk-label
+								     :use-markup t
+								     :label (format nil "<span font='5'>~2,'0d|~2,'0d</span>" i j)))
+					       (button (make-instance 'gtk-button)))
+					  (gtk-container-add button label)
+					  button)
+					i (+ i 1) j (+ j 1))))
+					;(setf (gtk-widget-size-request scrolled) (list 200 200))
+	    (gtk-paned-add1 paned-right scrolled)
+	    (progn
+	      (setf *adjustments* nil)
+	      (labels ((spin-box (name value upper)
+			 (let* ((hb (make-instance 'gtk-box :orientation :horizontal))
+				(lab (make-instance 'gtk-label
+						    :label (format nil "~s" name)))
+				(adj (make-instance 'gtk-adjustment
+						    :value (* 1d0 value)
+						    :lower 0d0
+						    :upper (* 1d0 upper)
+						    :step-increment 1d0
+						    :page-increment 10d0
+						    :page-size 0d0))
+				(sb (make-instance 'gtk-spin-button :adjustment
+						   adj
+						   :climb-rate 0
+						   :digits 1
+						   :wrap t)))
+			   (gtk-spin-button-set-value sb value)
+			   (gtk-box-pack-start hb lab)
+			   (gtk-box-pack-start hb sb)
+			   (g-signal-connect sb "value-changed"
+					     (lambda (adjustment)
+					       (gtk-widget-queue-draw clock)))
+			   (push (cons name adj) *adjustments*)
+			   hb)))
+		(let* ((frame1 (make-instance 'gtk-frame :label "settings"))
+		       (vbox (make-instance 'gtk-box :orientation :vertical))
+		       (rb-ft (gtk-radio-button-new-with-label nil "fourier"))
+		       (rb-fit (gtk-radio-button-new-with-label (gtk-radio-button-get-group rb-ft) "fit"))
+		       (xpos (spin-box 'xpos 1157.5 (- 1920 1)))
+		       (ypos (spin-box 'ypos 251.5 (- 1080 1)))
+		       (radius (spin-box 'radius 103.5 500))
+		       (kxpos (spin-box 'kxpos 100 (- 1920 1)))
+		       (kypos (spin-box 'kypos 100 (- 1080 1)))
+		       (kradius (spin-box 'kradius 100 500)))
+		  (push (cons 'rb-ft rb-ft) *adjustments*)
+		  (push (cons 'rb-fit rb-ft) *adjustments*)
+		  (g-signal-connect rb-ft "clicked"
+				    (lambda (widget)
+				      (gtk-widget-queue-draw clock)))
+		  (g-signal-connect rb-fit "clicked"
+				    (lambda (widget)
+				      (gtk-widget-queue-draw clock)))
+		  (gtk-box-pack-start vbox rb-ft)
+		  (gtk-box-pack-start vbox rb-fit)
+		  (gtk-box-pack-start vbox xpos)
+		  (gtk-box-pack-start vbox ypos)
+		  (gtk-box-pack-start vbox radius)
+		  (gtk-box-pack-start vbox kxpos)
+		  (gtk-box-pack-start vbox kypos)
+		  (gtk-box-pack-start vbox kradius)
+		  (gtk-container-add frame1 vbox)
+		  (gtk-paned-add2 paned-right frame1))))))
 	(gtk-widget-show-all window)))))
 
 #+nil

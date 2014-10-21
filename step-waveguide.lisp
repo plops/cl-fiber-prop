@@ -360,7 +360,7 @@ rectangular, for alpha=1 Hann window."
 
 
 (defun combine-mode-coefficients (coefficients mode-fields)
-  (declare (type (simple-array double-float 3) mode-fields)
+  (declare (type (simple-array single-float 3) mode-fields)
 	   (type (simple-array (complex double-float) 1) coefficients)
 	   (values (simple-array (complex double-float) 2) &optional))
   (destructuring-bind (ncoef n no) (array-dimensions mode-fields) 
@@ -585,7 +585,7 @@ rectangular, for alpha=1 Hann window."
 (defun find-mode-coefficients (current-field istart jstart fields &key (debug nil))
   (declare (type fixnum istart jstart)
 	   (type (simple-array (complex double-float) 2) current-field)
-	   (type (simple-array double-float 3) fields)
+	   (type (simple-array single-float 3) fields)
 	   (values (simple-array (complex double-float) 1) &optional))
  (let ((n 256)
        (count 0))
@@ -651,7 +651,7 @@ rectangular, for alpha=1 Hann window."
   (defparameter *u-modes* u-modes)
   (time
    (defparameter *fields* (step-fiber-fields u-modes v
-					     :scale (/ 256 (/ (* 45 (/ 150 16.45)) 2.2))  
+					     :scale (/ 256 (/ (* 50 (/ 150 16.45)) 2.2))  
 					     :rco core-radius
 					     :nco nco
 					     :n 256 
@@ -1014,11 +1014,11 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 (defun step-fiber-fields (u-modes v &key (scale 1.3d0) rco nco (n (step-fiber-minimal-sampling u-modes v :scale scale)) (debug nil))
   "for proper normalization result must be multiplied with 1/sqrt(r_co^2 n_co sqrt(epsilon_0/mu_0))"
-  (declare (values (simple-array double-float 3) &optional)
+  (declare (values (simple-array single-float 3) &optional)
 	   (ignorable rco nco))
   (let* ((radial-mode-counts (mapcar #'length u-modes))
 	 (azimuthal-mode-count (length radial-mode-counts))
-	 (fields  (make-array (list (number-of-modes u-modes) n n) :element-type 'double-float))
+	 (fields  (make-array (list (number-of-modes u-modes) n n) :element-type 'single-float))
 	 (r-a (make-array (list n n) :element-type 'double-float)) ;; some arrays that store reusable intermediate results
 	 (phi-a (make-array (list n n) :element-type 'double-float))
 	 (sin-a (make-array (list (- azimuthal-mode-count 1) n n) :element-type 'double-float))
@@ -1084,7 +1084,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 						      (* scale-j (bessel-j-interp (abs l) (* u r)))
 						      (* scale-k (bessel-k-scaled-interp (abs l) (* w r)))
 						      )))
-					     'double-float))))))))
+					     'single-float))))))))
     fields))
 
 #+Nil
@@ -1104,7 +1104,6 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
   (* pi nco (expt rho 2)))
 
 ;; integrate(bessel_j(0,r)^2*r,r,0,1)
-
 
 #+nil
 (sb-ext:gc :full t)
@@ -1148,7 +1147,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 
 
 (defun create-field-mosaic (fields u-modes &key (fun #'(lambda (x) (expt x 2))))
-  (declare (type (simple-array double-float 3) fields)
+  (declare (type (simple-array single-float 3) fields)
 	   (ignorable fun)
 	   (values (simple-array double-float 2) &optional))
   (let* ((lmax (length u-modes))
