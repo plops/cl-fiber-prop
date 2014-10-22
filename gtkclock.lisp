@@ -120,7 +120,7 @@
 #+nil
 (gtk-adjustment-get-value (cdr (assoc 'kradius *adjustments*)))
 #+nil
-(cdr (assoc 'rb-ft *adjustments*))
+(gtk-widget-destroy (cdr (assoc 'rb-ft *adjustments*)))
 
 (defun run ()
   (sb-int:with-float-traps-masked (:divide-by-zero)
