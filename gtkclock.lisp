@@ -70,7 +70,7 @@
      (cairo-scale cr 1 1)
      
      (if (and (get-pics)
-	      (gtk-toggle-button-active (first (cdr (assoc 'rb-fit *adjustments*)))))
+	      (gtk-toggle-button-active (cdr (assoc 'rb-fit *adjustments*))))
 	 (let ((pic (first (get-pics))))
 	   (when pic
 	     (cairo-set-source-surface cr (surface pic) (pic-x pic) (pic-y pic))
@@ -81,9 +81,9 @@
 	     (cairo-paint cr))))
      
      (when *adjustments*
-      (let* ((radius (gtk-adjustment-get-value (second (cdr (assoc 'radius *adjustments*)))))
-	     (x (gtk-adjustment-get-value (second (cdr (assoc 'xpos *adjustments*)))))
-	     (y (gtk-adjustment-get-value (second (cdr (assoc 'ypos *adjustments*)))))
+       (let* ((radius (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (cdr (assoc 'radius *adjustments*))))
+		(x (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (cdr (assoc 'xpos *adjustments*))))))
+	     (y (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (cdr (assoc 'ypos *adjustments*)))))
 	     )
 	(cairo-arc cr x y radius 0 (* 2 pi))
 					;(cairo-set-source-rgb cr 1 1 1)
@@ -198,7 +198,7 @@
 			   (g-signal-connect sb "value-changed"
 					     (lambda (adjustment)
 					       (gtk-widget-queue-draw clock)))
-			   (push (cons name (list sb adj)) *adjustments*)
+			   (push (cons name sb) *adjustments*)
 			   hb)))
 		(let* ((frame1 (make-instance 'gtk-frame :label "settings"))
 		       (vbox (make-instance 'gtk-box :orientation :vertical))
@@ -210,15 +210,15 @@
 		       (kxpos (spin-box 'kxpos 100 (- 1920 1)))
 		       (kypos (spin-box 'kypos 100 (- 1080 1)))
 		       (kradius (spin-box 'kradius 100 500)))
-		  (push (cons 'rb-ft (list rb-ft)) *adjustments*)
-		  (push (cons 'rb-fit (list rb-ft)) *adjustments*)
+		  (push (cons 'rb-ft rb-ft) *adjustments*)
+		  (push (cons 'rb-fit rb-ft) *adjustments*)
 		  (g-signal-connect rb-ft "clicked"
 				    (lambda (widget)
 				      (gtk-widget-queue-draw clock)))
 		  (g-signal-connect rb-fit "clicked"
 				    (lambda (widget)
 				      (gtk-widget-queue-draw clock)))
-		  (loop for (name . (widget &rest r)) in *adjustments* do
+		  (loop for (name . widget) in *adjustments* do
 		       (gtk-box-pack-start vbox widget))
 		  (defparameter *vbox* vbox)
 		  (gtk-container-add frame1 vbox)
@@ -227,9 +227,3 @@
 
 #+nil
 (run)
-
-
-#+nil
-(list
- (third (assoc 'radius *adjustments*))
- (gtk-spin-button-get-adjustment (second (assoc 'radius *adjustments*))))
