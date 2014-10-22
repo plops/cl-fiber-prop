@@ -432,9 +432,9 @@ rectangular, for alpha=1 Hann window."
 	     (defparameter *coef1*
 	       (if myclock::*adjustments*
 		   (find-mode-coefficients *current-field* 
-					   (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*)))
+					   (floor (+ (myclock::gtk-adjustment-get-value (second (cdr (assoc 'myclock::xpos myclock::*adjustments*))))
 					       -128))
-					   (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*)))
+					   (floor (+ (myclock::gtk-adjustment-get-value (second (cdr (assoc 'myclock::ypos myclock::*adjustments*))))
 					       -128))
 					   *fields*)
 		   (find-mode-coefficients *current-field* 
@@ -459,9 +459,9 @@ rectangular, for alpha=1 Hann window."
 	(orig *current-field*))
     (declare (type (simple-array (complex double-float) 2) fit orig))
     (destructuring-bind (h w) (array-dimensions fit)
-      (let* ((istart (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::xpos myclock::*adjustments*)))
+      (let* ((istart (floor (+ (myclock::gtk-adjustment-get-value (second (cdr (assoc 'myclock::xpos myclock::*adjustments*))))
 			       -128)))
-	     (jstart (floor (+ (myclock::gtk-adjustment-get-value (cdr (assoc 'myclock::ypos myclock::*adjustments*)))
+	     (jstart (floor (+ (myclock::gtk-adjustment-get-value (second (cdr (assoc 'myclock::ypos myclock::*adjustments*))))
 			       -128)))
 	     (resi (make-array (list h w) :element-type '(complex double-float))))
 	(dotimes (j h)
@@ -1159,7 +1159,7 @@ covers -scale*R .. scale*R and still ensures sampling of the signal"
 	   (declare (type fixnum l m))
 	   (dotimes (j n) (dotimes (i n)
 			    (setf (aref a (+ j (* n (+ (- lmax 1) l))) (+ i (* n m)))
-				  (expt (abs (aref fields k j i)) 2) )))))
+				  (expt (abs (* 1d0 (aref fields k j i))) 2) )))))
     a))
 
 
