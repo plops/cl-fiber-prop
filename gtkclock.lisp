@@ -227,3 +227,9 @@
 
 #+nil
 (run)
+
+
+#+nil
+(list
+ (third (assoc 'radius *adjustments*))
+ (gtk-spin-button-get-adjustment (second (assoc 'radius *adjustments*))))
