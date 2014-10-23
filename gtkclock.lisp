@@ -61,11 +61,19 @@
 (clear-pics)
 (defparameter *adjustments* nil)
 
+#+nil
+(gtk-container-get-children (cdr (assoc 'rt-sb *adjustments*
+				  )))
+
 (defun spin-button-value (widget-name)
-  (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (second (gtk-container-get-children (cdr (assoc widget-name *adjustments*)))))))
+  (let ((hbox-children (gtk-container-get-children (cdr (assoc widget-name *adjustments*)))))
+    (when hbox-children
+     (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (second hbox-children))))))
 
 (defun button-active-p (widget-name)
-  (gtk-toggle-button-active (cdr (assoc widget-name *adjustments*))))
+  (let ((button-widget (cdr (assoc widget-name *adjustments*))))
+    (when button-widget
+     (gtk-toggle-button-active button-widget))))
 
 (progn
  (defun draw-clock-face (widget cr clock)
@@ -87,9 +95,9 @@
 	     (cairo-paint cr))))
      
      (when *adjustments*
-       (let* ((radius (spin-button-value 'radius))
-	      (x (spin-button-value 'xpos))
-	      (y (spin-button-value 'ypos)))
+       (let* ((radius (or (spin-button-value 'radius) 0d0))
+	      (x (or (spin-button-value 'xpos) 0d0))
+	      (y (or (spin-button-value 'ypos) 0d0)))
 	(cairo-arc cr x y radius 0 (* 2 pi))
 					;(cairo-set-source-rgb cr 1 1 1)
 					;(cairo-fill-preserve cr)
@@ -227,10 +235,6 @@
 		       (format t "~a~%" name)
 		       (gtk-box-pack-start vbox widget)
 		       )
-		  ;; (gtk-box-pack-start vbox xpos)
-		  ;; (gtk-box-pack-start vbox ypos)
-		 #+nil (loop for widget in (list rb-fit rb-ft xpos ypos radius kxpos kypos kradius) do
-		       (gtk-box-pack-start vbox widget))
 		  (defparameter *vbox* vbox)
 		  (gtk-container-add frame1 vbox)
 		  (defparameter *frame1* frame1)
@@ -254,9 +258,13 @@
 
 #+nil
 (list *vbox*
- (gtk-container-get-children *frame1*))
+      (gtk-container-get-children *frame1*))
 
+#+nil
+(gtk-container-get-children *vbox*)
 
 
 #+nil
 (gtk-widget-show-all *frame1*)
+#+nil
+(gtk-widget-show-all *vbox*)
