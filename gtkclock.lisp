@@ -197,7 +197,7 @@
 			   (g-signal-connect sb "value-changed"
 					     (lambda (adjustment)
 					       (gtk-widget-queue-draw clock)))
-			   (push (cons name sb) *adjustments*)
+			   (push (cons name hb) *adjustments*)
 			   hb)))
 		(let* ((frame1 (make-instance 'gtk-frame :label "settings"))
 		       (vbox (make-instance 'gtk-box :orientation :vertical))
