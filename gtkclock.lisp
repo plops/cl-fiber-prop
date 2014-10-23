@@ -216,14 +216,14 @@
 		       (kypos (spin-box 'kypos 100 (- 1080 1)))
 		       (kradius (spin-box 'kradius 100 500)))
 		  (push (cons 'rb-ft rb-ft) *adjustments*)
-		  (push (cons 'rb-fit rb-ft) *adjustments*)
+		  (push (cons 'rb-fit rb-fit) *adjustments*)
 		  (g-signal-connect rb-ft "clicked"
 				    (lambda (widget) (declare (ignorable widget))
 				      (gtk-widget-queue-draw clock)))
 		  (g-signal-connect rb-fit "clicked"
 				    (lambda (widget) (declare (ignorable widget))
 				      (gtk-widget-queue-draw clock)))
-		  (loop for (name . widget) in (reverse *adjustments*) do
+		  (loop for (name . widget) in *adjustments* do
 		       (format t "~a~%" name)
 		       (gtk-box-pack-start vbox widget)
 		       )
