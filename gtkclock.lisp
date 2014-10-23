@@ -81,10 +81,9 @@
 	     (cairo-paint cr))))
      
      (when *adjustments*
-       (let* ((radius (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (cdr (assoc 'radius *adjustments*))))
-		(x (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (cdr (assoc 'xpos *adjustments*))))))
-	     (y (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (cdr (assoc 'ypos *adjustments*)))))
-	     )
+       (let* ((radius (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (cdr (assoc 'radius *adjustments*)))))
+	      (x (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (cdr (assoc 'xpos *adjustments*)))))
+	      (y (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (cdr (assoc 'ypos *adjustments*))))))
 	(cairo-arc cr x y radius 0 (* 2 pi))
 					;(cairo-set-source-rgb cr 1 1 1)
 					;(cairo-fill-preserve cr)
@@ -213,17 +212,41 @@
 		  (push (cons 'rb-ft rb-ft) *adjustments*)
 		  (push (cons 'rb-fit rb-ft) *adjustments*)
 		  (g-signal-connect rb-ft "clicked"
-				    (lambda (widget)
+				    (lambda (widget) (declare (ignorable widget))
 				      (gtk-widget-queue-draw clock)))
 		  (g-signal-connect rb-fit "clicked"
-				    (lambda (widget)
+				    (lambda (widget) (declare (ignorable widget))
 				      (gtk-widget-queue-draw clock)))
-		  (loop for (name . widget) in *adjustments* do
+		  (loop for (name . widget) in (reverse *adjustments*) do
+		       (format t "~a~%" name)
+		       (gtk-box-pack-start vbox widget)
+		       )
+		  ;; (gtk-box-pack-start vbox xpos)
+		  ;; (gtk-box-pack-start vbox ypos)
+		 #+nil (loop for widget in (list rb-fit rb-ft xpos ypos radius kxpos kypos kradius) do
 		       (gtk-box-pack-start vbox widget))
 		  (defparameter *vbox* vbox)
 		  (gtk-container-add frame1 vbox)
+		  (defparameter *frame1* frame1)
 		  (gtk-paned-add2 paned-right frame1))))))
 	(gtk-widget-show-all window)))))
 
 #+nil
 (run)
+
+#+nil
+(gtk-widget-destroy *vbox*)
+
+#+nil
+(let ((vbox (make-instance 'gtk-box :orientation :vertical)))
+  (defparameter *vbox* vbox)
+  (loop for (name . widget) in *adjustments* do
+       (gtk-box-pack-start vbox widget))
+  (gtk-container-add *frame1* vbox))
+
+#+nil
+(list *vbox*
+ (gtk-container-get-children *frame1*))
+
+#+nil
+(gtk-widget-show-all *frame1*)
