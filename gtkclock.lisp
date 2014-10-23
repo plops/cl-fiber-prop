@@ -248,13 +248,21 @@
 
 #+nil
 (gtk-widget-destroy *vbox*)
+#+nil
+(gtk-widget-destroy (first (gtk-container-get-children *frame1*)))
 
 #+nil
 (let ((vbox (make-instance 'gtk-box :orientation :vertical)))
   (defparameter *vbox* vbox)
-  (loop for (name . widget) in *adjustments* do
+  (loop for (name widget) in `((rb-ft ,(gtk-check-button-new-with-label "ft"))
+			       (rb-fit ,(gtk-check-button-new-with-label "fit"))
+			       (rb-bla ,(gtk-check-button-new-with-label "bla"))
+			       (rb-bla2 ,(gtk-check-button-new-with-label "bla2"))) do
        (gtk-box-pack-start vbox widget))
   (gtk-container-add *frame1* vbox))
+
+
+
 
 #+nil
 (list *vbox*
