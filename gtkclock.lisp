@@ -231,6 +231,8 @@
 		  (gtk-paned-add2 paned-right frame1))))))
 	(gtk-widget-show-all window)))))
 
+
+
 #+nil
 (run)
 
@@ -247,6 +249,9 @@
 #+nil
 (list *vbox*
  (gtk-container-get-children *frame1*))
+
+#+nil ;; this gives me a spin button
+(second (gtk-container-get-children (first (gtk-container-get-children *vbox*))))
 
 #+nil
 (gtk-widget-show-all *frame1*)
