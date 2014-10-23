@@ -60,6 +60,13 @@
 #+nil
 (clear-pics)
 (defparameter *adjustments* nil)
+
+(defun spin-button-value (widget-name)
+  (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (second (gtk-container-get-children (cdr (assoc widget-name *adjustments*)))))))
+
+(defun button-active-p (widget-name)
+  (gtk-toggle-button-active (cdr (assoc widget-name *adjustments*))))
+
 (progn
  (defun draw-clock-face (widget cr clock)
    (declare (ignorable widget))
@@ -69,8 +76,7 @@
      (cairo-set-source-rgb cr 1.0 1.0 1.0)
      (cairo-scale cr 1 1)
      
-     (if (and (get-pics)
-	      (gtk-toggle-button-active (cdr (assoc 'rb-fit *adjustments*))))
+     (if (and (get-pics) (button-active-p 'rb-fit))
 	 (let ((pic (first (get-pics))))
 	   (when pic
 	     (cairo-set-source-surface cr (surface pic) (pic-x pic) (pic-y pic))
@@ -81,9 +87,9 @@
 	     (cairo-paint cr))))
      
      (when *adjustments*
-       (let* ((radius (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (cdr (assoc 'radius *adjustments*)))))
-	      (x (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (cdr (assoc 'xpos *adjustments*)))))
-	      (y (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (cdr (assoc 'ypos *adjustments*))))))
+       (let* ((radius (spin-button-value 'radius))
+	      (x (spin-button-value 'xpos))
+	      (y (spin-button-value 'ypos)))
 	(cairo-arc cr x y radius 0 (* 2 pi))
 					;(cairo-set-source-rgb cr 1 1 1)
 					;(cairo-fill-preserve cr)
@@ -250,8 +256,7 @@
 (list *vbox*
  (gtk-container-get-children *frame1*))
 
-#+nil ;; this gives me a spin button
-(second (gtk-container-get-children (first (gtk-container-get-children *vbox*))))
+
 
 #+nil
 (gtk-widget-show-all *frame1*)
