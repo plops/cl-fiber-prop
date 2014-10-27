@@ -59,7 +59,8 @@ nil)
       (cairo-surface-destroy (surface s)))
     (setf pics nil))
   (defun push-pic (x y a name)
-    (push (make-instance 'pic :surface (surface-from-lisp-array a) :pic-x x :pic-y y :pic-name name) pics))
+    (push (make-instance 'pic :surface (surface-from-lisp-array a)
+			 :pic-x x :pic-y y :pic-name name) pics))
   (defun get-pics ()
     pics))
 #+nil
@@ -140,6 +141,8 @@ nil)
 #+nil
 (gtk-widget-destroy (cdr (assoc 'rb-ft *adjustments*)))
 
+(defparameter *frame1* nil)
+
 (defun run ()
   (sb-int:with-float-traps-masked (:divide-by-zero)
     (within-main-loop
@@ -148,7 +151,7 @@ nil)
 				   :default-height (/ 1080 2)
 				   :border-width 12
 				   :type :toplevel))
-	    (paned (make-instance 'gtk-paned :orientation :horizontal :position 100))
+	    (paned (make-instance 'gtk-paned :orientation :horizontal :position 400))
 	    (paned-right (make-instance 'gtk-paned :orientation :vertical :position 300))
 	    )
 	(g-signal-connect window "destroy"
@@ -162,6 +165,7 @@ nil)
 					:hscrollbar-policy :automatic
 					:vscrollbar-policy :automatic))
 	       (clock (make-instance 'clock-face)))
+	  (defparameter *canvas* clock)
 	  (gtk-scrolled-window-add-with-viewport scrolled clock)
 	  (setf (gtk-widget-size-request clock) (list 1920 1080))
 	  ;(setf (gtk-widget-size-request scrolled) (list 200 200))
@@ -215,6 +219,7 @@ nil)
 			   (gtk-box-pack-start hb sb)
 			   (g-signal-connect sb "value-changed"
 					     (lambda (adjustment)
+					       (declare (ignorable adjustment))
 					       (gtk-widget-queue-draw clock)))
 			   (push (cons name hb) *adjustments*)
 			   hb)))
@@ -228,18 +233,18 @@ nil)
 		       (kxpos (spin-box 'kxpos 100 (- 1920 1)))
 		       (kypos (spin-box 'kypos 100 (- 1080 1)))
 		       (kradius (spin-box 'kradius 100 500)))
-		  (push (cons 'rb-ft rb-ft) *adjustments*)
-		  (push (cons 'rb-fit rb-fit) *adjustments*)
-		  (g-signal-connect rb-ft "clicked"
-				    (lambda (widget) (declare (ignorable widget))
-				      (gtk-widget-queue-draw clock)))
-		  (g-signal-connect rb-fit "clicked"
-				    (lambda (widget) (declare (ignorable widget))
-				      (gtk-widget-queue-draw clock)))
-		  (loop for (name . widget) in *adjustments* do
-		       (format t "~a~%" name)
-		       (gtk-box-pack-start vbox widget)
-		       )
+		  ;; (push (cons 'rb-ft rb-ft) *adjustments*)
+		  ;; (push (cons 'rb-fit rb-fit) *adjustments*)
+		  ;; (g-signal-connect rb-ft "clicked"
+		  ;; 		    (lambda (widget) (declare (ignorable widget))
+		  ;; 		      (gtk-widget-queue-draw clock)))
+		  ;; (g-signal-connect rb-fit "clicked"
+		  ;; 		    (lambda (widget) (declare (ignorable widget))
+		  ;; 		      (gtk-widget-queue-draw clock)))
+		  ;; (loop for (name . widget) in *adjustments* do
+		  ;;      (format t "~a~%" name)
+		  ;;      (gtk-box-pack-start vbox widget)
+		  ;;      )
 		  (defparameter *vbox* vbox)
 		  (gtk-container-add frame1 vbox)
 		  (defparameter *frame1* frame1)
@@ -253,35 +258,49 @@ nil)
 
 #+nil
 (gtk-widget-destroy *vbox*)
+
 #+nil
-(gtk-widget-destroy (first (gtk-container-get-children *frame1*)))
+(type-of (first (gtk-container-get-children (first (gtk-container-get-children *frame1*)))))
+
+#+nil
+(let ((vbox (first (gtk-container-get-children *frame1*))))
+  (when (and vbox (eq 'gtk-box (type-of vbox)))
+   (gtk-widget-destroy vbox)))
 
 (defun button-checked-p (name)
-  (let ((button-widget (find-if
-			#'(lambda (x) (string= name (gtk-button-label x)))
-			(gtk-container-get-children (first (gtk-container-get-children *frame1*))))))
-    (when button-widget
-      (gtk-toggle-button-active button-widget))))
+  (let ((vbox (first (gtk-container-get-children *frame1*))))
+    (when (and vbox (eq 'gtk-box (type-of vbox)))
+     (let ((buttons (gtk-container-get-children vbox)))
+       (when buttons
+	 (let ((button-widget (find-if
+			       #'(lambda (x) (string= name (gtk-button-label x)))
+			       buttons)))
+	   (when (and button-widget (eq 'gtk-check-button (type-of button-widget))) 
+	     (gtk-toggle-button-active button-widget))))))))
 
 #+nil
 (let ((vbox (make-instance 'gtk-box :orientation :vertical)))
   (defparameter *vbox* vbox)
   (loop for p in (get-pics) do
-       (gtk-box-pack-start vbox (gtk-check-button-new-with-label (pic-name p))))
+       (let ((button (gtk-check-button-new-with-label (pic-name p))))
+	 (gtk-box-pack-start vbox button)
+	 (g-signal-connect button "toggled"
+			 (lambda (adjustment)
+			   (gtk-widget-queue-draw *canvas*)))))
     (gtk-container-add *frame1* vbox)
     (gtk-widget-show-all *frame1*))
 
 
 
-  #+nil
-  (list *vbox*
-	(gtk-container-get-children *frame1*))
+#+nil
+(list *vbox*
+      (gtk-container-get-children *frame1*))
 
-  #+nil
-  (gtk-container-get-children *vbox*)
+#+nil
+(gtk-container-get-children *vbox*)
 
 
-  #+nil
-  (gtk-widget-show-all *frame1*)))
+#+nil
+(gtk-widget-show-all *frame1*)
 #+nil
 (gtk-widget-show-all *vbox*)
