@@ -258,18 +258,14 @@
 #+nil
 (let ((vbox (make-instance 'gtk-box :orientation :vertical)))
   (defparameter *vbox* vbox)
-  (loop for (name widget) in `((rb-ft ,(gtk-check-button-new-with-label "ft"))
-			       (rb-fit ,(gtk-check-button-new-with-label "fit"))
-			       (rb-bla ,(gtk-check-button-new-with-label "bla"))
-			       (rb-bla2 ,(gtk-check-button-new-with-label "bla2"))) do
-       (gtk-box-pack-start vbox widget))
+  (loop for p in (get-pics) do
+       (gtk-box-pack-start vbox (gtk-check-button-new-with-label (pic-name p))))
   (gtk-container-add *frame1* vbox)
   (gtk-widget-show-all *frame1*))
 
 
 
-
-#+nil
+ #+nil
 (list *vbox*
       (gtk-container-get-children *frame1*))
 
