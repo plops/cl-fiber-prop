@@ -19,7 +19,12 @@
     (dotimes (i 256)
       (setf (aref a j i) j)))
   (push-pic 10 100 a "j")
-  nil)
+
+  (dotimes (j 256)
+    (dotimes (i 256)
+      (setf (aref a j i) i)))
+  (push-pic 20 300 a "i")
+nil)
 
 
 (defun surface-from-lisp-array (img)
@@ -88,16 +93,12 @@
      (cairo-set-source-rgb cr 1.0 1.0 1.0)
      (cairo-scale cr 1 1)
      
-     (if (and (get-pics) (button-active-p 'rb-fit))
-	 (let ((pic (first (get-pics))))
-	   (when pic
-	     (cairo-set-source-surface cr (surface pic) (pic-x pic) (pic-y pic))
-	     (cairo-paint cr)))
-	 (let ((pic (second (get-pics))))
-	   (when pic
-	     (cairo-set-source-surface cr (surface pic) (pic-x pic) (pic-y pic))
-	     (cairo-paint cr))))
-     
+
+     (dolist (pic (get-pics))
+       (when (button-checked-p (pic-name pic))
+	 (cairo-set-source-surface cr (surface pic) (pic-x pic) (pic-y pic))
+	 (cairo-paint cr)))
+         
      (when *adjustments*
        (let* ((radius (or (spin-button-value 'radius) 0d0))
 	      (x (or (spin-button-value 'xpos) 0d0))
@@ -255,25 +256,32 @@
 #+nil
 (gtk-widget-destroy (first (gtk-container-get-children *frame1*)))
 
+(defun button-checked-p (name)
+  (let ((button-widget (find-if
+			#'(lambda (x) (string= name (gtk-button-label x)))
+			(gtk-container-get-children (first (gtk-container-get-children *frame1*))))))
+    (when button-widget
+      (gtk-toggle-button-active button-widget))))
+
 #+nil
 (let ((vbox (make-instance 'gtk-box :orientation :vertical)))
   (defparameter *vbox* vbox)
   (loop for p in (get-pics) do
        (gtk-box-pack-start vbox (gtk-check-button-new-with-label (pic-name p))))
-  (gtk-container-add *frame1* vbox)
-  (gtk-widget-show-all *frame1*))
+    (gtk-container-add *frame1* vbox)
+    (gtk-widget-show-all *frame1*))
 
 
 
- #+nil
-(list *vbox*
-      (gtk-container-get-children *frame1*))
+  #+nil
+  (list *vbox*
+	(gtk-container-get-children *frame1*))
 
-#+nil
-(gtk-container-get-children *vbox*)
+  #+nil
+  (gtk-container-get-children *vbox*)
 
 
-#+nil
-(gtk-widget-show-all *frame1*)
+  #+nil
+  (gtk-widget-show-all *frame1*)))
 #+nil
 (gtk-widget-show-all *vbox*)
