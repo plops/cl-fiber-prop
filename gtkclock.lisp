@@ -18,7 +18,7 @@
   (dotimes (j 256)
     (dotimes (i 256)
       (setf (aref a j i) j)))
-  (push-pic 10 100 a)
+  (push-pic 10 100 a "j")
   nil)
 
 
@@ -42,15 +42,19 @@
 (defclass pic ()
   ((surface :accessor surface :initarg :surface)
    (x :accessor pic-x :initarg :pic-x)
-   (y :accessor pic-y :initarg :pic-y)))
+   (y :accessor pic-y :initarg :pic-y)
+   (name :accessor pic-name :initarg :pic-name)))
+
+(defmethod print-object ((pic pic) stream)
+  (format stream "#<pic: ~a ~d,~d>" (pic-name pic) (pic-x pic) (pic-y pic)))
 
 (let ((pics nil))
   (defun clear-pics ()
     (dolist (s pics)
       (cairo-surface-destroy (surface s)))
     (setf pics nil))
-  (defun push-pic (x y a)
-    (push (make-instance 'pic :surface (surface-from-lisp-array a) :pic-x x :pic-y y) pics))
+  (defun push-pic (x y a name)
+    (push (make-instance 'pic :surface (surface-from-lisp-array a) :pic-x x :pic-y y :pic-name name) pics))
   (defun get-pics ()
     pics))
 #+nil
@@ -259,7 +263,8 @@
 			       (rb-bla ,(gtk-check-button-new-with-label "bla"))
 			       (rb-bla2 ,(gtk-check-button-new-with-label "bla2"))) do
        (gtk-box-pack-start vbox widget))
-  (gtk-container-add *frame1* vbox))
+  (gtk-container-add *frame1* vbox)
+  (gtk-widget-show-all *frame1*))
 
 
 
