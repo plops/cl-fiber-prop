@@ -63,6 +63,7 @@
 (gtk-container-get-children (cdr (assoc 'rt-sb *adjustments*
 				  )))
 
+
 (defun spin-button-value (widget-name)
   (let ((hbox-children (gtk-container-get-children (cdr (assoc widget-name *adjustments*)))))
     (when hbox-children
@@ -77,7 +78,7 @@
      (cairo-set-source-rgb cr 1.0 1.0 1.0)
      (cairo-scale cr 1 1)
      
-     #+nil
+     
      (dolist (pic (get-pics))
        (when (button-checked-p (pic-name pic))
 	 (cairo-set-source-surface cr (surface pic) (pic-x pic) (pic-y pic))
@@ -253,20 +254,27 @@
   (when (and vbox (eq 'gtk-box (type-of vbox)))
    (gtk-widget-destroy vbox)))
 
+#+nil
+(button-checked-p "i")
+
+#+nil
+(gtk-toggle-button-active (first (gtk-container-get-children (first (gtk-container-get-children (first (gtk-container-get-children *frame1*)))))))
+
 (defun button-checked-p (name)
-#+nil  (let ((vbox (first (gtk-container-get-children *frame1*))))
+  (let ((vbox (first (gtk-container-get-children *frame1*))))
     (when (and vbox (eq 'gtk-box (type-of vbox)))
-     (let ((hboxes (gtk-container-get-children vbox)))
-       (when hboxes
-	 (let ((button-widget (find-if
-			       #'(lambda (x)
-				   (let ((button (first (gtk-container-get-children x))))
-				     (if (eq (type-of button) 'gtk-check-button)
-					 (string= name (gtk-button-label button))
-					 (error "bla"))))
-			       hboxes)))
-	   (when (and button-widget (eq 'gtk-check-button (type-of button-widget))) 
-	     (gtk-toggle-button-active button-widget))))))))
+      (let ((hboxes (gtk-container-get-children vbox)))
+	(when hboxes
+	  (let ((button-widget (first (gtk-container-get-children
+				       (find-if
+					#'(lambda (x)
+					    (let ((button (first (gtk-container-get-children x))))
+					      (if (eq (type-of button) 'gtk-check-button)
+						  (string= name (gtk-button-label button))
+						  (error "type is wrong"))))
+					hboxes)))))
+	    (when (and button-widget (eq 'gtk-check-button (type-of button-widget))) 
+	      (gtk-toggle-button-active button-widget))))))))
 
 #+nil
 (let ((a (make-array (list 256 256) :element-type '(unsigned-byte 8))))
@@ -284,62 +292,26 @@
 
 #+nil
 (when *frame1* 
-  (let ((table (first (gtk-container-get-children *frame1*))))
-    (if (and table (or
-		    (eq 'gtk-table (type-of table))
-		    (eq 'gtk-box (type-of table))))
-	(gtk-widget-destroy table)
+  (let ((widget (first (gtk-container-get-children *frame1*))))
+    (if (and widget (or
+		    (eq 'gtk-table (type-of widget))
+		    (eq 'gtk-box (type-of widget))))
+	(gtk-widget-destroy widget)
 	(break "not a table or box")))
   (let* ((pics (get-pics))
-	 (table (make-instance 'gtk-table :n-rows (length pics)
-			       :n-columns 3
-			       :row-spacing 0
-			       :column-spacing 0
-			       :homogeneous nil))
-	#+nil (vbox (make-instance 'gtk-box :orientation :vertical)))
-    (defparameter *table* table)
+	 (vbox (make-instance 'gtk-box :orientation :vertical)))
     (loop for p in pics and j from 0 do
 	 (let* ((hbox (make-instance 'gtk-box :orientation :horizontal))
-		(adj-x (make-instance 'gtk-adjustment
-				      :value (pic-x p)
-				      :lower 0d0
-				      :upper 1024d0
-				      :step-increment 1d0
-				      :page-increment 10d0
-				      :page-size 0d0))
-		(adj-y (make-instance 'gtk-adjustment
-				      :value (pic-y p)
-				      :lower 0d0
-				      :upper 1024d0
-				      :step-increment 1d0
-				      :page-increment 10d0
-				      :page-size 0d0))
-		(sb-x (make-instance 'gtk-spin-button :adjustment
-				     adj-x
-				     :climb-rate 0
-				     :digits 1
-				     :wrap t))
-		(sb-y (make-instance 'gtk-spin-button :adjustment
-					   adj-y
-					   :climb-rate 0
-					   :digits 1
-					   :wrap t))
 		(button (gtk-check-button-new-with-label (pic-name p))))
-	   (gtk-table-attach table button 0 1 j (+ j 1))
-	   (gtk-table-attach table sb-x   1 2 j (+ j 1))
-	   (gtk-table-attach table sb-y   2 3 j (+ j 1))
-	   #+nil (g-signal-connect button "toggled"
+	   (g-signal-connect button "toggled"
 			     (lambda (adjustment)
 			       (gtk-widget-queue-draw *canvas*)))
-	   #+nil (gtk-box-pack-start hbox button :expand nil)
-	   #+nil(gtk-box-pack-start hbox sb-x)
-	    #+nil (gtk-box-pack-start hbox sb-y)
-	   #+nil (gtk-box-pack-start vbox hbox)))))
+	   (gtk-box-pack-start hbox button :expand nil)
+	   (gtk-box-pack-start vbox hbox)))
+    (gtk-container-add *frame1* vbox)
+    (gtk-widget-show-all *frame1*)))
 
-#+nil
-(gtk-container-add *frame1* *table*)
-#+nil
-(gtk-widget-show-all *frame1*)
+
 
 #+nil
 (list *vbox*
