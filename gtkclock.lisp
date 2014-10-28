@@ -50,8 +50,37 @@
     (when hbox-children
       (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (second hbox-children))))))
 
+(gtk-label-label (first (gtk-container-get-children (first (gtk-container-get-children *spin-vbox*)))))
+
+(gtk-container-get-children *spin-vbox*)
+
+
+
+(defun ensure-type (type obj)
+  "Returns obj if it is of the expected type. Otherwise stop execution."
+  (if (eq type (type-of obj))
+      obj
+      (break "unexpected type ~a~%" (list type obj))))
+
+;; (hbox (label spinbutton))
+(defun spin-button-value (widget-symbol)
+ (let* ((hboxes (gtk-container-get-children *spin-vbox*))
+	(hbox (find-if #'(lambda (hbox)
+			   (string= (symbol-name widget-symbol)
+				    (gtk-label-label
+				     (ensure-type 'gtk-label
+						  (first (gtk-container-get-children hbox))))))
+		       (gtk-container-get-children *spin-vbox*))))
+   (gtk-spin-button-value (ensure-type 'gtk-spin-button (second (gtk-container-get-children (ensure-type 'gtk-box hbox)))))))
+
+
+#+nil
+(spin-button-value 'radius)
+
+#+nil
 (defun spin-button-value (widget-name)
   nil)
+
 
 (progn
  (defun draw-canvas (widget cr)
@@ -111,7 +140,7 @@ signal canvas."
             (gtk-widget-queue-draw canvas)))
     (gtk-box-pack-start container hb)
     hb))
-
+(defparameter *spin-vbox* nil)
 (defun run ()
   (sb-int:with-float-traps-masked (:divide-by-zero)
     (within-main-loop
@@ -120,8 +149,8 @@ signal canvas."
 				   :default-height (/ 1080 2)
 				   :border-width 12
 				   :type :toplevel))
-	    (paned (make-instance 'gtk-paned :orientation :horizontal :position 400))
-	    (paned-right (make-instance 'gtk-paned :orientation :vertical :position 300)))
+	    (paned (make-instance 'gtk-paned :orientation :horizontal :position 660))
+	    (paned-right (make-instance 'gtk-paned :orientation :vertical :position 120)))
 	(g-signal-connect window "destroy" (lambda (widget)
 					     (declare (ignorable widget))
 					     (leave-gtk-main)))
@@ -166,6 +195,7 @@ signal canvas."
 	    (add-spinbox-to-vbox vbox 'kxpos 100 (- 1920 1) canvas)
 	    (add-spinbox-to-vbox vbox 'kypos 100 (- 1080 1) canvas)
 	    (add-spinbox-to-vbox vbox 'kradius 100 500 canvas)
+	    (setf *spin-vbox* vbox)
 	    (setf *frame1* frame1)
 	    (gtk-paned-add2 paned-right
 			    (let ((vbox-top (make-instance 'gtk-box :orientation :vertical)))
@@ -194,6 +224,9 @@ signal canvas."
 	      (gtk-toggle-button-active button-widget))))))))
 
 #+nil
+(button-checked-p "i")
+
+#+nil
 (let ((a (make-array (list 256 256) :element-type '(unsigned-byte 8))))
   (dotimes (j 256)
     (dotimes (i 256)
@@ -208,13 +241,15 @@ signal canvas."
 
 
 #+nil
-(when *frame1* 
-  (let ((widget (first (gtk-container-get-children *frame1*))))
-    (if (and widget (or
-		    (eq 'gtk-table (type-of widget))
-		    (eq 'gtk-box (type-of widget))))
-	(gtk-widget-destroy widget)
-	(break "not a table or box")))
+(when *frame1*
+  (let ((frame-contents (gtk-container-get-children *frame1*)))
+    (when (< 1 (length frame-contents))
+     (let ((widget (first frame-contents)))
+       (if (and widget (or
+			(eq 'gtk-table (type-of widget))
+			(eq 'gtk-box (type-of widget))))
+	   (gtk-widget-destroy widget)
+	   (break "not a table or box")))))
   (let* ((pics (get-pics))
 	 (vbox (make-instance 'gtk-box :orientation :vertical)))
     (loop for p in pics and j from 0 do
@@ -227,4 +262,5 @@ signal canvas."
 	   (gtk-box-pack-start vbox hbox)))
     (gtk-container-add *frame1* vbox)
     (gtk-widget-show-all *frame1*)))
+
 
