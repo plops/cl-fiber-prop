@@ -84,6 +84,11 @@
 (defun spin-button-value (widget-name)
   nil)
 
+#+nil
+(button-checked-p (pic-name (first (get-pics))))
+#+nil
+(spin-button-value 'radius)
+
 
 (progn
  (defun draw-canvas (widget cr)
@@ -91,8 +96,9 @@
    (let ((cr (pointer cr))
 	 #+nil (window (gtk-widget-window widget))
 	 )
+     (format t "redraw~%")
      (cairo-set-source-rgb cr 1.0 1.0 1.0)
-     (cairo-scale cr 1 1)
+     ;(cairo-scale cr 1 1)
      
      (dolist (pic (get-pics))
        (when (button-checked-p (pic-name pic))
@@ -110,6 +116,7 @@
        (cairo-stroke cr))
     
      (cairo-destroy cr)
+     
      t))
  (defparameter *draw-canvas* #'draw-canvas))
 
@@ -166,6 +173,10 @@ signal canvas."
 					:vscrollbar-policy :automatic))
 	       (canvas (make-instance 'gtk-drawing-area)))
 	  (setf *canvas* canvas)
+	  (g-signal-connect canvas "draw"
+			    (lambda (widget cr)
+			      (funcall *draw-canvas* widget cr)))
+	  
 	  (gtk-scrolled-window-add-with-viewport scrolled canvas)
 	  (setf (gtk-widget-size-request canvas) (list 1920 1080))
 	  (gtk-container-add window paned)
