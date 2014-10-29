@@ -50,8 +50,9 @@
     (when hbox-children
       (gtk-adjustment-get-value (gtk-spin-button-get-adjustment (second hbox-children))))))
 
+#+nil
 (gtk-label-label (first (gtk-container-get-children (first (gtk-container-get-children *spin-vbox*)))))
-
+#+nil
 (gtk-container-get-children *spin-vbox*)
 
 
@@ -61,6 +62,8 @@
   (if (eq type (type-of obj))
       obj
       (break "unexpected type ~a~%" (list type obj))))
+
+(defparameter *spin-vbox* nil)
 
 ;; (hbox (label spinbutton))
 (defun spin-button-value (widget-symbol)
@@ -113,6 +116,9 @@
 (defparameter *frame1* nil)
 (defparameter *canvas* nil)
 
+#+nil
+(gtk-widget-queue-draw *canvas*)
+
 (defun add-spinbox-to-vbox (container name value upper canvas)
   "Make a horizontal box containing a label on the left and a spin
 button right of it and add it to container. Changing a value will
@@ -140,7 +146,7 @@ signal canvas."
             (gtk-widget-queue-draw canvas)))
     (gtk-box-pack-start container hb)
     hb))
-(defparameter *spin-vbox* nil)
+
 (defun run ()
   (sb-int:with-float-traps-masked (:divide-by-zero)
     (within-main-loop
