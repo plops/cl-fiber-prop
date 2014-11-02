@@ -309,16 +309,14 @@ rectangular, for alpha=1 Hann window."
 		:sign fftw::+backward+)
 	       ))
    (defparameter *current-field* field)
+
    
    (fiber-gui::push-pic 0 380
 			(convert-ub8 (convert-df
 				      kspace
-				      :fun (lambda (x) (let ((v (abs x)))
-							 (if (<= v 0d0)
-							     0d0
-							     (log v))))))
-			"smallkfield 30 30")
-   (fiber-gui::push-pic 0 0
+				      :fun (lambda (x) (abs x))))
+			"smallkfieldnolog 30 30")
+   #+nil (fiber-gui::push-pic 0 0
 			(convert-ub8 (convert-df
 				      field					       
 				      :fun (lambda (x) (realpart x))))

@@ -199,23 +199,22 @@ signal canvas."
 					 :border-width 1
 					 :hscrollbar-policy :automatic
 					 :vscrollbar-policy :automatic))
-		(table (make-instance 'gtk-table :n-rows 10
-				      :n-columns 10
-				      :row-spacing 0
-				      :column-spacing 0
-				      :homogeneous nil)))
-	    (gtk-scrolled-window-add-with-viewport scrolled table)
+		(grid (make-instance 'gtk-grid
+				      ;:column-homogeneous t
+				      ;:row-homogeneous t
+				     )))
+	    (gtk-scrolled-window-add-with-viewport scrolled grid)
 	    (loop for j below 93 by 30 do
 		 (loop for i below 118 by 30 do
-		      (gtk-table-attach
-		       table
+		      (gtk-grid-attach
+		       grid
 		       (let* ((label (make-instance
 				      'gtk-label :use-markup t :label
 				      (format nil "<span font='5'>~2,'0d|~2,'0d</span>" i j)))
 			      (button (make-instance 'gtk-button)))
 			 (gtk-container-add button label)
 			 button)
-		       i (+ i 1) j (+ j 1))))
+		       i j 1 1)))
 	    (gtk-paned-add1 paned-right scrolled))
 	  (let* ((frame1 (make-instance 'gtk-frame :label "show image"))
 		 (vbox (make-instance 'gtk-box :orientation :vertical)))
@@ -276,10 +275,10 @@ signal canvas."
     (when (< 1 (length frame-contents))
      (let ((widget (first frame-contents)))
        (if (and widget (or
-			(eq 'gtk-table (type-of widget))
+			(eq 'gtk-grid (type-of widget))
 			(eq 'gtk-box (type-of widget))))
 	   (gtk-widget-destroy widget)
-	   (break "not a table or box")))))
+	   (break "not a grid or box")))))
   (let* ((pics (get-pics))
 	 (vbox (make-instance 'gtk-box :orientation :vertical)))
     (loop for p in pics and j from 0 do
