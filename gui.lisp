@@ -1,10 +1,12 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (ql:quickload :cl-cffi-gtk))
+#+nil
+(sb-ext:save-lisp-and-die "/home/martin/cl-fiber-prop/sbcl-gtk-gsl.core")
 
-(defpackage :myclock 
+(defpackage :fiber-gui 
   (:use :gtk :gdk :gobject :glib :pango :cairo :cffi :iterate :cl))
 
-(in-package :myclock)
+(in-package :fiber-gui)
 
 (defun surface-from-lisp-array (img)
   (destructuring-bind (h w) (array-dimensions img)
@@ -96,7 +98,6 @@
    (let ((cr (pointer cr))
 	 #+nil (window (gtk-widget-window widget))
 	 )
-     (format t "redraw~%")
      (cairo-set-source-rgb cr 1.0 1.0 1.0)
      ;(cairo-scale cr 1 1)
      
