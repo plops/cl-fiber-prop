@@ -268,10 +268,13 @@ rectangular, for alpha=1 Hann window."
  (get-cam-image-laptop 0 60 60))
 
 #+nil
+(fiber-gui::clear-pics)
+#+nil
 (progn
- (myclock::push-pic 0 0
+ (fiber-gui::push-pic 0 0
   (convert-ub8 
-   (convert-df (convert-u16-cdf (get-cam-image-laptop 0 30 30)))))
+   (convert-df (convert-u16-cdf (get-cam-image-laptop 0 30 30))))
+  "camim 30 30 v")
  nil)
 
 #+nil
@@ -285,10 +288,11 @@ rectangular, for alpha=1 Hann window."
 	       ))
    (defparameter *current-field* field)
    
-   (myclock::update-img
-    (convert-ub8 (convert-df
-		  field					       
-		  :fun (lambda (x) (realpart x)))))
+   (fiber-gui::push-pic 0 0
+			(convert-ub8 (convert-df
+				      field					       
+				      :fun (lambda (x) (realpart x))))
+			"field 30 30")
    nil
    #+nil
    (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
