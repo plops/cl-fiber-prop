@@ -191,7 +191,7 @@ signal canvas."
 			      (funcall *draw-canvas* widget cr)))
 	  
 	  (gtk-scrolled-window-add-with-viewport scrolled canvas)
-	  (setf (gtk-widget-size-request canvas) (list 1920 1080))
+	  (setf (gtk-widget-size-request canvas) (list 2048 2048))
 	  (gtk-container-add window paned)
 	  (gtk-paned-add1 paned scrolled)
 	  (gtk-paned-add2 paned paned-right)

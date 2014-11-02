@@ -209,7 +209,7 @@ rectangular, for alpha=1 Hann window."
 (time ;; 4.85s
  (defparameter *window* (.apply (fftw:ft (tukey-window2 (j1/r (make-array (list 1080 1920)
 									  :element-type '(complex double-float))
-							      180d0)
+							      120d0)
 							:alpha-x .4))
 				(lambda (x) (if (< (abs x) 10)
 						(complex 0d0)
@@ -217,9 +217,14 @@ rectangular, for alpha=1 Hann window."
 
 #+nil
 (time ;; 2.65s, now 0.724s
- (defparameter *windowed-phase-wedge* (tukey-window2 (phase-wedge (make-array (list 1080 1920)
-									      :element-type '(complex double-float))
-								  614d0 846d0))))
+ (progn 
+  (defparameter *windowed-phase-wedge* (tukey-window2 (phase-wedge (make-array (list 1080 1920)
+									       :element-type '(complex double-float))
+								   614d0 846d0)))
+  
+  (defparameter *fftshift-phase-wedge* (phase-wedge (make-array (list 1080 1920)
+								:element-type '(complex double-float))
+						    (/ 1080 2d0) (/ 1920 2d0)))))
 
 
 (defun .linear (a)
@@ -294,19 +299,30 @@ rectangular, for alpha=1 Hann window."
 #+nil
 (time
  (let* ((im (get-cam-image-laptop 0 30 30))
-	(field (fftw:ft
-		(.* *window*
+	(kspace (.* *window*
 		    (fftw:ft 
-		     (.* *windowed-phase-wedge* (convert-u16-cdf im))))
+		     (.* *windowed-phase-wedge* (convert-u16-cdf im)))))
+	(kspace-shift (fftw:ft 
+		     (.* *fftshift-phase-wedge* (convert-u16-cdf im))))
+	(field (fftw:ft
+		kspace
 		:sign fftw::+backward+)
 	       ))
    (defparameter *current-field* field)
    
+   (fiber-gui::push-pic 0 380
+			(convert-ub8 (convert-df
+				      kspace
+				      :fun (lambda (x) (let ((v (abs x)))
+							 (if (<= v 0d0)
+							     0d0
+							     (log v))))))
+			"smallkfield 30 30")
    (fiber-gui::push-pic 0 0
 			(convert-ub8 (convert-df
 				      field					       
 				      :fun (lambda (x) (realpart x))))
-			"field 30 30")
+			"smallfield 30 30")
    nil
    #+nil
    (write-pgm "/dev/shm/ko3.pgm" (convert-ub8 (convert-df
