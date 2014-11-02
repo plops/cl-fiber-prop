@@ -274,7 +274,21 @@ rectangular, for alpha=1 Hann window."
  (fiber-gui::push-pic 0 0
   (convert-ub8 
    (convert-df (convert-u16-cdf (get-cam-image-laptop 0 30 30))))
-  "camim 30 30 v")
+  "camim 30 30")
+ nil)
+#+nil
+(progn
+ (fiber-gui::push-pic 0 0
+  (convert-ub8 
+   (convert-df (convert-u16-cdf (get-cam-image-laptop 0 30 60))))
+  "camim 30 60")
+ nil)
+#+nil
+(progn
+ (fiber-gui::push-pic 0 0
+  (convert-ub8 
+   (convert-df (convert-u16-cdf (get-cam-image-laptop 0 30 90))))
+  "camim 30 90")
  nil)
 
 #+nil

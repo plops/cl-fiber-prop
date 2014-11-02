@@ -9,10 +9,12 @@
 (in-package :fiber-gui)
 
 (defun surface-from-lisp-array (img)
+  (declare (type (simple-array (unsigned-byte 8) 2) img))
   (destructuring-bind (h w) (array-dimensions img)
     (let* ((format :argb32)
 	   (stride (cairo-format-stride-for-width format w))
 	   (a (make-array (list h stride) :element-type '(unsigned-byte 8))))
+      (declare (type (simple-array (unsigned-byte 8) 2) a))
       (dotimes (j h)
 	(dotimes (i w)
 	  (let ((v (max 0 (min 255 (aref img j i)))))
@@ -27,6 +29,7 @@
 
 (defclass pic ()
   ((surface :accessor surface :initarg :surface)
+   (array :accessor pic-array :initarg :pic-array)
    (x :accessor pic-x :initarg :pic-x)
    (y :accessor pic-y :initarg :pic-y)
    (name :accessor pic-name :initarg :pic-name)))
@@ -41,10 +44,13 @@
     (setf pics nil))
   (defun push-pic (x y a name)
     (push (make-instance 'pic :surface (surface-from-lisp-array a)
+			 :pic-array a
 			 :pic-x x :pic-y y :pic-name name) pics))
   (defun get-pics ()
     pics))
 
+#+nil
+(cairo-surface-reference (surface (first (get-pics))))
 
 #+nil
 (defun spin-button-value (widget-name)
@@ -99,12 +105,18 @@
 	 #+nil (window (gtk-widget-window widget))
 	 )
      (cairo-set-source-rgb cr 1.0 1.0 1.0)
-     ;(cairo-scale cr 1 1)
+     ;(cairo-scale cr .2 .2)
      
      (dolist (pic (get-pics))
        (when (button-checked-p (pic-name pic))
+	 (cairo-save cr)
+	 #+nil
 	 (cairo-set-source-surface cr (surface pic) (pic-x pic) (pic-y pic))
-	 (cairo-paint cr)))
+	 (let ((surf (surface-from-lisp-array (pic-array pic))))
+	  (cairo-set-source-surface cr surf (pic-x pic) (pic-y pic))
+	  )
+	 (cairo-paint cr)
+	 (cairo-restore cr)))
 
      
      (let* ((radius (or (spin-button-value 'radius) 40d0))
