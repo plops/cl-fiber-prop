@@ -49,10 +49,8 @@
 
 	     (gtk-tree-view-column-set-cell-data-func col renderer
 						      (lambda (tree-view-column cell-renderer-spin tree-store tree-iter)
-							(format t "~a~%" (list tree-view-column cell-renderer-spin tree-store tree-iter))
-							(defparameter *bla* (list tree-view-column cell-renderer-spin tree-store tree-iter))
-							(let ((value (first (gtk-tree-model-get tree-store tree-iter 1))))
-							  (format t "~d" (floor value))
+							(let ((column-number 1)
+							      (value (first (gtk-tree-model-get tree-store tree-iter column-number))))
 							  (g-object-set-property cell-renderer-spin "text" (format nil "~d" (floor value))))))
 	     (g-signal-connect renderer "edited" (lambda (renderer path-string newtext)
 						   (declare (ignore newtext))
