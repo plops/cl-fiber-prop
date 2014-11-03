@@ -65,25 +65,26 @@
 					  (gtk-tree-store-set-value model iter 1 value)))))
 
 (defun run ()
-  (sb-int:with-float-traps-masked (:divide-by-zero)
-    (within-main-loop
-      (let ((window (make-instance 'gtk-window :title "holography"
-				   :default-width 320
-				   :default-height 240
-				   :border-width 12
-				   :type :toplevel)))
-	(g-signal-connect window "destroy" (lambda (widget)
-					     (declare (ignorable widget))
-					     (leave-gtk-main)))
-	(defparameter *window* window)
-	
-	(let* ((model (make-model)))
-	  (multiple-value-bind (view renderer) (make-view)
-	    (defparameter *view* view)
-	    (defparameter *renderer* renderer)
-	    (view-update-model view renderer model)
-	    (gtk-container-add window view)))
-	(gtk-widget-show-all window))))))
+  (sb-int:with-float-traps-masked
+   (:divide-by-zero)
+   (within-main-loop
+    (let ((window (make-instance 'gtk-window :title "holography"
+				 :default-width 320
+				 :default-height 240
+				 :border-width 12
+				 :type :toplevel)))
+      (g-signal-connect window "destroy" (lambda (widget)
+					   (declare (ignorable widget))
+					   (leave-gtk-main)))
+      (defparameter *window* window)
+      
+      (let* ((model (make-model)))
+	(multiple-value-bind (view renderer) (make-view)
+	  (defparameter *view* view)
+	  (defparameter *renderer* renderer)
+	  (view-update-model view renderer model)
+	  (gtk-container-add window view)))
+      (gtk-widget-show-all window)))))
 
 
 #+nil
@@ -111,11 +112,32 @@
 		 (list
 		  (gtk-tree-path-to-string
 		   (gtk-tree-model-get-path *model* iter))
-		  (gtk-tree-model-get *model* iter 0)
-		  (gtk-tree-model-get *model* iter 1)))
-       while (gtk-tree-model-iter-next *model* iter)))
+		  (first (gtk-tree-model-get *model* iter 0)) 
+		  (first (gtk-tree-model-get *model* iter 1))
+		  iter))
+	while (gtk-tree-model-iter-next *model* iter)))
+(defun preorder (node f)
+  (when node
+    (funcall f node)
+    (preorder (gtk-tree-model-iter-children *model* node) f)
+    (preorder (gtk-tree-model-iter-next *model* node)  f)))
+
 #+nil
-(gtk-tree-model-iter-next *model* (gtk-tree-model-get-iter-first *model*)) 
+(preorder (gtk-tree-model-get-iter-first *model*) #'(lambda (iter) (format t "~a~%"
+									   (gtk-tree-path-to-string
+									    (gtk-tree-model-get-path *model* iter)))))
+
+#+nil
+(defun preorder (node f)
+  (when node
+    (funcall f (first node))
+    (preorder (second node) f)
+    (preorder (third node)  f)))
+ 
+#+nil
+(gtk-tree-path-to-string (gtk-tree-model-get-path *model* (gtk-tree-model-iter-next *model* (gtk-tree-model-get-iter-first *model*)) ))
+
+
 #+nil
 (gtk-tree-path-to-string
  (gtk-tree-model-get-path *model* (gtk-tree-model-get-iter-first *model*)))
