@@ -231,7 +231,7 @@ signal canvas."
 				  (vbox-top (make-instance 'gtk-box :orientation :vertical)))
 			      (gtk-container-add expander vbox)
 			      (gtk-container-add vbox-top expander)
-			      (gtk-container-add vbox frame1)
+			      (gtk-container-add vbox-top frame1)
 			      vbox-top))))
 	(gtk-widget-show-all window)))))
 
