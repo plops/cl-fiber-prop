@@ -21,16 +21,26 @@
 					     (declare (ignorable widget))
 					     (leave-gtk-main)))
 
-	(let ((model (make-instance 'gtk-tree-store :column-types '("gchararray" "gint")))
-	      (view (make-instance 'gtk-tree-view))
-	      (col1 (make-instance 'gtk-tree-view-column :title "name"))
-	      (col2 (make-instance 'gtk-tree-view-column :title "value"))
-	      (renderer (make-instance 'gtk-cell-renderer-text :text "bla")))
-	  (gtk-tree-store-append model nil)
-	  (gtk-tree-view-append-column view col1)
-	  (gtk-tree-view-append-column view col2)
-	  (gtk-tree-view-column-pack-start col1 renderer)
-	  (gtk-container-add window view))
+	(let* ((model (make-instance 'gtk-tree-store :column-types '("gchararray" "guint")))
+	       )
+	  ;(gtk-tree-store-append model nil)
+	  (let ((parent (gtk-tree-store-set model
+					    (gtk-tree-store-append model nil)
+					    "fiber" 1)))
+	    (gtk-tree-store-set model (gtk-tree-store-append model parent)
+				"Klaus-Dieter Mustermann" 51)
+	    (gtk-tree-store-set model (gtk-tree-store-append model parent)
+				"Ulrike Langhals" 23))
+	  (let ((view (make-instance 'gtk-tree-view :model model)))
+	   (let* ((renderer (gtk-cell-renderer-text-new))
+		  (col (gtk-tree-view-column-new-with-attributes "name" renderer "text" 0)))
+	     (gtk-tree-view-append-column view col))
+	   
+	   (let* ((renderer (gtk-cell-renderer-text-new))
+		  (col (gtk-tree-view-column-new-with-attributes "value" renderer "text" 1)))
+	     (gtk-tree-view-append-column view col))
+	   
+	   (gtk-container-add window view)))
 	(gtk-widget-show-all window)))))
 
 #+nil
