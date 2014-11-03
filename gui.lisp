@@ -207,6 +207,8 @@ signal canvas."
 
 
 
+
+
 (defun run ()
   (sb-int:with-float-traps-masked (:divide-by-zero)
     (within-main-loop
@@ -266,8 +268,12 @@ signal canvas."
 	      (add-spinbox-to-vbox vbox 'kradius 100 500 canvas)
 	      (setf *spin-vbox* vbox))
 	    (let ((grid (make-instance 'gtk-grid)))
-	      (add-spinbox-to-grid grid 'xpos 100d0 3000d0 canvas 0 1)
-	      (add-spinbox-to-grid grid nil 200d0 3000d0 canvas 0 2)
+	      (loop for col from 1 upto 3 do
+		   (gtk-grid-attach grid (make-instance 'gtk-label
+							:label (format nil "cam~a~%" col)) col 0 1 1)
+		   (loop for name in '(xpos ypos radius) and row from 1 do
+			(add-spinbox-to-grid grid (when (= col 1) name)
+					     100d0 3000d0 canvas row col)))
 	    (setf *frame1* frame1)
 	    (gtk-paned-add2 paned-right
 			    (let ((expander (make-instance 'gtk-expander :expanded t :label "settings"))
