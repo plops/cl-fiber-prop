@@ -47,22 +47,22 @@
 		  (renderer (make-instance 'gtk-cell-renderer-spin :editable t :digits 0 :adjustment adj))
 		  (col (gtk-tree-view-column-new-with-attributes "value" renderer "text" 1)))
 
-	     #+nil (gtk-tree-view-column-set-cell-data-func col renderer
-						      (lambda (col tree-view tree-store iter)
-							(format t "~a~%" (list col tree-view tree-store iter))
-							#+nil(let ((v (gtk-tree-model-get tree-view iter col)))
-							       (format t "~a~%" v)
-							       #+nil (g-object-set-data renderer "text" (format nil "~d" (floor v))))))
-	     (g-signal-connect renderer "edited" (lambda (renderer path newtext)
+	     (gtk-tree-view-column-set-cell-data-func col renderer
+						      (lambda (tree-view-column cell-renderer-spin tree-store tree-iter)
+							(format t "~a~%" (list tree-view-column cell-renderer-spin tree-store tree-iter))
+							(defparameter *bla* (list tree-view-column cell-renderer-spin tree-store tree-iter))
+							(let ((value (first (gtk-tree-model-get tree-store tree-iter 1))))
+							  (format t "~d" (floor value))
+							  (g-object-set-property cell-renderer-spin "text" (format nil "~d" (floor value))))))
+	     (g-signal-connect renderer "edited" (lambda (renderer path-string newtext)
 						   (declare (ignore newtext))
 						   ;; according to documentation the string in newtext should not be used,
 						   ;; instead a double value obtained from the adjustemtn
 						   (let* ((adj (g-object-get-property renderer "adjustment"))
 							  (value (gtk-adjustment-get-value adj))
-					;(model (gtk-tree-view-get-model treeview))
-					;(iter (gtk-tree-model-get-iter-from-string model path))
-							  )
-						     (gtk-tree-store-set-value model (gtk-tree-model-get-iter model (gtk-tree-path-new-from-string path)) 1 value)
+							  (path (gtk-tree-path-new-from-string path-string))
+							  (iter (gtk-tree-model-get-iter model path)))
+						     (gtk-tree-store-set-value model iter 1 value)
 						     )))
 	     
 	     (gtk-tree-view-append-column view col))
