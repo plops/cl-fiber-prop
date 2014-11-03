@@ -265,16 +265,19 @@ signal canvas."
 	      (add-spinbox-to-vbox vbox 'kypos 100 (- 1080 1) canvas)
 	      (add-spinbox-to-vbox vbox 'kradius 100 500 canvas)
 	      (setf *spin-vbox* vbox))
+	    (let ((grid (make-instance 'gtk-grid)))
+	      (add-spinbox-to-grid grid 'xpos 100d0 3000d0 canvas 0 1)
+	      (add-spinbox-to-grid grid nil 200d0 3000d0 canvas 0 2)
 	    (setf *frame1* frame1)
 	    (gtk-paned-add2 paned-right
 			    (let ((expander (make-instance 'gtk-expander :expanded t :label "settings"))
 				  (notebook (make-instance 'gtk-notebook))
 				  (vbox-top (make-instance 'gtk-box :orientation :vertical)))
 			      (gtk-container-add expander notebook)
-			      ;(gtk-container-add notebook vbox)
+			      (gtk-container-add notebook grid)
 			      (gtk-container-add vbox-top expander)
 			      (gtk-container-add vbox-top frame1)
-			      vbox-top))))
+			      vbox-top)))))
 	(gtk-widget-show-all window)))))
 
 #+nil
