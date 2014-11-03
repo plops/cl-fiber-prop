@@ -20,6 +20,17 @@
 	(g-signal-connect window "destroy" (lambda (widget)
 					     (declare (ignorable widget))
 					     (leave-gtk-main)))
+
+	(let ((model (make-instance 'gtk-tree-store :column-types '("gchararray" "gint")))
+	      (view (make-instance 'gtk-tree-view))
+	      (col1 (make-instance 'gtk-tree-view-column :title "name"))
+	      (col2 (make-instance 'gtk-tree-view-column :title "value"))
+	      (renderer (make-instance 'gtk-cell-renderer-text :text "bla")))
+	  (gtk-tree-store-append model nil)
+	  (gtk-tree-view-append-column view col1)
+	  (gtk-tree-view-append-column view col2)
+	  (gtk-tree-view-column-pack-start col1 renderer)
+	  (gtk-container-add window view))
 	(gtk-widget-show-all window)))))
 
 #+nil
