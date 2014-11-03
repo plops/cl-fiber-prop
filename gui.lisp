@@ -228,8 +228,10 @@ signal canvas."
 	    (setf *frame1* frame1)
 	    (gtk-paned-add2 paned-right
 			    (let ((expander (make-instance 'gtk-expander :expanded t :label "settings"))
+				  (notebook (make-instance 'gtk-notebook))
 				  (vbox-top (make-instance 'gtk-box :orientation :vertical)))
-			      (gtk-container-add expander vbox)
+			      (gtk-container-add expander notebook)
+			      (gtk-container-add notebook vbox)
 			      (gtk-container-add vbox-top expander)
 			      (gtk-container-add vbox-top frame1)
 			      vbox-top))))
