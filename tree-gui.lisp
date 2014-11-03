@@ -12,11 +12,18 @@
  (let* ((model (make-instance 'gtk-tree-store :column-types '("gchararray" "gdouble"))))
    (let ((parent (gtk-tree-store-set model
 				     (gtk-tree-store-append model nil)
-				     "fiber" 1d0)))
+				     "fiber1" 1d0)))
      (gtk-tree-store-set model (gtk-tree-store-append model parent) "Klausf-Dieter Mustermann" 1351d0)
      (gtk-tree-store-set model (gtk-tree-store-append model parent) "Klausf-Dieter Musternn" 1351d0)
      (gtk-tree-store-set model (gtk-tree-store-append model parent) "Klausf-Dieter Musterman" 135d0)
      (gtk-tree-store-set model (gtk-tree-store-append model parent) "Ulrikef Langhals" 213d0))
+   (let ((parent (gtk-tree-store-set model
+				     (gtk-tree-store-append model nil)
+				     "fiber2" 2d0)))
+     (gtk-tree-store-set model (gtk-tree-store-append model parent) "2Klausf-Dieter Mustermann" 1351d0)
+     (gtk-tree-store-set model (gtk-tree-store-append model parent) "2Klausf-Dieter Musternn" 1351d0)
+     (gtk-tree-store-set model (gtk-tree-store-append model parent) "2Klausf-Dieter Musterman" 135d0)
+     (gtk-tree-store-set model (gtk-tree-store-append model parent) "2Ulrikef Langhals" 213d0))
    model))
 
 (defun make-view ()
@@ -96,17 +103,28 @@
 (gtk-tree-model-get *model* )
 
 #+nil
-(loop with iter = (gtk-tree-model-get-iter-first *model*) while (gtk-tree-model-iter-next ) collect
-     (when (gtk-tree-model-iter-has-child *model* iter)
-       (setf iter (gtk-tree-model-iter-children *model* iter)))
-
-     )
+(let ((iter (gtk-tree-model-get-iter-first *model*)))
+  (loop collect (progn
+		 (setf iter (if (gtk-tree-model-iter-has-child *model* iter)
+				(gtk-tree-model-iter-children *model* iter)
+				(gtk-tree-model-iter-next *model* iter)))
+		 (gtk-tree-path-to-string
+		  (gtk-tree-model-get-path *model* iter)))
+       while (gtk-tree-model-iter-next *model* iter)))
+#+nil
+(gtk-tree-model-iter-next *model* (gtk-tree-model-get-iter-first *model*)) 
 #+nil
 (gtk-tree-path-to-string
  (gtk-tree-model-get-path *model* (gtk-tree-model-get-iter-first *model*)))
 #+nil
 (gtk-tree-path-to-string
  (gtk-tree-model-get-path *model* (gtk-tree-model-iter-children *model* (gtk-tree-model-get-iter-first *model*))))
+#+nil
+(gtk-tree-path-to-string
+ (gtk-tree-model-get-path *model* (gtk-tree-model-iter-next *model* (gtk-tree-model-iter-children *model* (gtk-tree-model-get-iter-first *model*)))))
+
+#+nil
+(gtk-tree-model-iter-n-children *model* (gtk-tree-model-get-iter-first *model*))
 #+nil
 (run)
 
