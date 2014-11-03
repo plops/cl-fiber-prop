@@ -34,6 +34,12 @@
    (y :accessor pic-y :initarg :pic-y)
    (name :accessor pic-name :initarg :pic-name)))
 
+(defclass fiber-image ()
+  ((xpos :accessor fiber-image-xpos :initarg :xpos)
+   (ypos :accessor fiber-image-ypos :initarg :ypos)
+   (radius :accessor fiber-image-radius :initarg :radius)))
+
+
 (defmethod print-object ((pic pic) stream)
   (format stream "#<pic: ~a ~d,~d>" (pic-name pic) (pic-x pic) (pic-y pic)))
 
@@ -75,6 +81,8 @@
 
 ;; (hbox (label spinbutton))
 (defun spin-button-value (widget-symbol)
+  nil
+  #+nil
  (let* ((hboxes (gtk-container-get-children *spin-vbox*))
 	(hbox (find-if #'(lambda (hbox)
 			   (string= (symbol-name widget-symbol)
@@ -139,6 +147,7 @@
 #+nil
 (gtk-widget-queue-draw *canvas*)
 
+
 (defun add-spinbox-to-vbox (container name value upper canvas)
   "Make a horizontal box containing a label on the left and a spin
 button right of it and add it to container. Changing a value will
@@ -166,6 +175,37 @@ signal canvas."
             (gtk-widget-queue-draw canvas)))
     (gtk-box-pack-start container hb)
     hb))
+
+
+(defun add-spinbox-to-grid (grid name value upper canvas row col)
+  "Make a horizontal box containing a label on the left and a spin
+button right of it and add it to the grid. Changing a value will
+signal canvas."
+  (let* ((lab (make-instance 'gtk-label
+			     :label (symbol-name name)))
+	 (adj (make-instance 'gtk-adjustment
+			     :value (* 1d0 value)
+			     :lower 0d0
+			     :upper (* 1d0 upper)
+			     :step-increment 1d0
+			     :page-increment 10d0
+			     :page-size 0d0))
+	 (sb (make-instance 'gtk-spin-button :adjustment adj
+			    :climb-rate 0
+			    :digits 1
+			    :wrap t)))
+    (gtk-spin-button-set-value sb value)
+    (g-signal-connect sb "value-changed"
+              (lambda (adjustment)
+            (declare (ignorable adjustment))
+            (gtk-widget-queue-draw canvas)))
+    (when name
+      (gtk-grid-attach grid lab 0 row 1 1))
+    (when col
+      (gtk-grid-attach grid sb col row 1 1))
+    sb))
+
+
 
 (defun run ()
   (sb-int:with-float-traps-masked (:divide-by-zero)
@@ -216,22 +256,22 @@ signal canvas."
 			 button)
 		       i j 1 1)))
 	    (gtk-paned-add1 paned-right scrolled))
-	  (let* ((frame1 (make-instance 'gtk-expander :expanded t :label "show image"))
-		 (vbox (make-instance 'gtk-box :orientation :vertical)))
-	    (add-spinbox-to-vbox vbox 'xpos 1157.5 (- 1920 1) canvas)
-	    (add-spinbox-to-vbox vbox 'ypos 251.5 (- 1080 1) canvas)
-	    (add-spinbox-to-vbox vbox 'radius 103.5 500 canvas)
-	    (add-spinbox-to-vbox vbox 'kxpos 100 (- 1920 1) canvas)
-	    (add-spinbox-to-vbox vbox 'kypos 100 (- 1080 1) canvas)
-	    (add-spinbox-to-vbox vbox 'kradius 100 500 canvas)
-	    (setf *spin-vbox* vbox)
+	  (let* ((frame1 (make-instance 'gtk-expander :expanded t :label "show image")))
+	    #+nil(let ((vbox (make-instance 'gtk-box :orientation :vertical)))
+	      (add-spinbox-to-vbox vbox 'xpos 1157.5 (- 1920 1) canvas)
+	      (add-spinbox-to-vbox vbox 'ypos 251.5 (- 1080 1) canvas)
+	      (add-spinbox-to-vbox vbox 'radius 103.5 500 canvas)
+	      (add-spinbox-to-vbox vbox 'kxpos 100 (- 1920 1) canvas)
+	      (add-spinbox-to-vbox vbox 'kypos 100 (- 1080 1) canvas)
+	      (add-spinbox-to-vbox vbox 'kradius 100 500 canvas)
+	      (setf *spin-vbox* vbox))
 	    (setf *frame1* frame1)
 	    (gtk-paned-add2 paned-right
 			    (let ((expander (make-instance 'gtk-expander :expanded t :label "settings"))
 				  (notebook (make-instance 'gtk-notebook))
 				  (vbox-top (make-instance 'gtk-box :orientation :vertical)))
 			      (gtk-container-add expander notebook)
-			      (gtk-container-add notebook vbox)
+			      ;(gtk-container-add notebook vbox)
 			      (gtk-container-add vbox-top expander)
 			      (gtk-container-add vbox-top frame1)
 			      vbox-top))))
