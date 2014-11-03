@@ -216,7 +216,7 @@ signal canvas."
 			 button)
 		       i j 1 1)))
 	    (gtk-paned-add1 paned-right scrolled))
-	  (let* ((frame1 (make-instance 'gtk-frame :label "show image"))
+	  (let* ((frame1 (make-instance 'gtk-expander :expanded t :label "show image"))
 		 (vbox (make-instance 'gtk-box :orientation :vertical)))
 	    (add-spinbox-to-vbox vbox 'xpos 1157.5 (- 1920 1) canvas)
 	    (add-spinbox-to-vbox vbox 'ypos 251.5 (- 1080 1) canvas)
