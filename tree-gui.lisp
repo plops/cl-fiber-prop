@@ -108,8 +108,11 @@
 		 (setf iter (if (gtk-tree-model-iter-has-child *model* iter)
 				(gtk-tree-model-iter-children *model* iter)
 				(gtk-tree-model-iter-next *model* iter)))
-		 (gtk-tree-path-to-string
-		  (gtk-tree-model-get-path *model* iter)))
+		 (list
+		  (gtk-tree-path-to-string
+		   (gtk-tree-model-get-path *model* iter))
+		  (gtk-tree-model-get *model* iter 0)
+		  (gtk-tree-model-get *model* iter 1)))
        while (gtk-tree-model-iter-next *model* iter)))
 #+nil
 (gtk-tree-model-iter-next *model* (gtk-tree-model-get-iter-first *model*)) 
