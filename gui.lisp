@@ -227,9 +227,11 @@ signal canvas."
 	    (setf *spin-vbox* vbox)
 	    (setf *frame1* frame1)
 	    (gtk-paned-add2 paned-right
-			    (let ((vbox-top (make-instance 'gtk-box :orientation :vertical)))
-			      (gtk-container-add vbox-top vbox)
-			      (gtk-container-add vbox-top frame1)
+			    (let ((expander (make-instance 'gtk-expander :expanded t :label "settings"))
+				  (vbox-top (make-instance 'gtk-box :orientation :vertical)))
+			      (gtk-container-add expander vbox)
+			      (gtk-container-add vbox-top expander)
+			      (gtk-container-add vbox frame1)
 			      vbox-top))))
 	(gtk-widget-show-all window)))))
 
