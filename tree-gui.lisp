@@ -1,8 +1,6 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (ql:quickload :cl-cffi-gtk))
-#+nil
-(sb-ext:save-lisp-and-die "/home/martin/cl-fiber-prop/sbcl-gtk-gsl.core")
 
 (defpackage :tree-gui 
   (:use :gtk :gdk :gobject :glib :pango :cairo :cffi :iterate :cl))
@@ -15,12 +13,12 @@
    (let ((parent (gtk-tree-store-set model
 				     (gtk-tree-store-append model nil)
 				     "fiber" 1d0)))
-     (gtk-tree-store-set model (gtk-tree-store-append model parent) "Klaus-Dieter Mustermann" 51d0)
-     (gtk-tree-store-set model (gtk-tree-store-append model parent) "Ulrike Langhals" 23d0))
+     (gtk-tree-store-set model (gtk-tree-store-append model parent) "Klausf-Dieter Mustermann" 1351d0)
+     (gtk-tree-store-set model (gtk-tree-store-append model parent) "Ulrikef Langhals" 213d0))
    model))
 
-(defun make-view (model)
-  (let ((view (make-instance 'gtk-tree-view :model model)))
+(defun make-view ()
+  (let ((view (make-instance 'gtk-tree-view)))
     (let* ((renderer (gtk-cell-renderer-text-new))
 	   (col (gtk-tree-view-column-new-with-attributes "name" renderer "text" 0)))
       (gtk-tree-view-append-column view col))
@@ -36,22 +34,26 @@
       (gtk-tree-view-column-set-cell-data-func col renderer
 					       (lambda (tree-view-column cell-renderer-spin tree-store tree-iter)
 						 (declare (ignorable tree-view-column))
-						 (let*((column-number 1)
-						       (value (first (gtk-tree-model-get tree-store tree-iter column-number))))
+						 (let* ((column-number 1)
+						        (value (first (gtk-tree-model-get tree-store tree-iter column-number))))
 						   (g-object-set-property cell-renderer-spin "text" (format nil "~d" (floor value))))))
-      (g-signal-connect renderer "edited" (lambda (renderer path-string newtext)
-					    (declare (ignore newtext))
-					    ;; according to documentation the string in newtext should not be used,
-					    ;; instead a double value obtained from the adjustemtn
-					    (let* ((adj (g-object-get-property renderer "adjustment"))
-						   (value (gtk-adjustment-get-value adj))
-						   (path (gtk-tree-path-new-from-string path-string))
-						   ;; (model (gtk-tree-view-get-model tree-view))
-						   (iter (gtk-tree-model-get-iter model path))
-						   )
-					      (gtk-tree-store-set-value model iter 1 value))))
-      (gtk-tree-view-append-column view col))
-    view))
+      (gtk-tree-view-append-column view col)
+      (values view renderer))))
+
+
+(defun view-update-model (view renderer model)
+  (gtk-tree-view-set-model view model)	  
+  (g-signal-connect renderer "edited" (lambda (renderer path-string newtext) ;; 4th parameter should be GtkTreeView *treeview
+					(declare (ignore newtext))
+					;; according to documentation the string in newtext should not be used,
+					;; instead a double value obtained from the adjustemtn
+					(let* ((adj (g-object-get-property renderer "adjustment"))
+					       (value (gtk-adjustment-get-value adj))
+					       (path (gtk-tree-path-new-from-string path-string))
+					       ;; (model (gtk-tree-view-get-model ))
+					       (iter (gtk-tree-model-get-iter model path))
+					       )
+					  (gtk-tree-store-set-value model iter 1 value)))))
 
 (defun run ()
   (sb-int:with-float-traps-masked (:divide-by-zero)
@@ -64,17 +66,21 @@
 	(g-signal-connect window "destroy" (lambda (widget)
 					     (declare (ignorable widget))
 					     (leave-gtk-main)))
-
-
+	(defparameter *window* window)
 	
-	(let* ((model (make-model))
-	       (view (make-view model))
-	       )
-	  ;(gtk-tree-view-set-model view model)	  
-	  (gtk-container-add window view)
-	  )
-	(gtk-widget-show-all window)))))
+	(let* ((model (make-model)))
+	  (multiple-value-bind (view renderer) (make-view)
+	    (defparameter *view* view)
+	    (defparameter *renderer* renderer)
+	    (view-update-model view renderer model)
+	    (gtk-container-add window view)))
+	(gtk-widget-show-all window))))))
 
 
 #+nil
+(let* ((model (make-model)))
+  (view-update-model *view* *renderer* model))
+
+#+nil
 (run)
+
