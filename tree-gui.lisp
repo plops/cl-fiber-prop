@@ -14,6 +14,8 @@
 				     (gtk-tree-store-append model nil)
 				     "fiber" 1d0)))
      (gtk-tree-store-set model (gtk-tree-store-append model parent) "Klausf-Dieter Mustermann" 1351d0)
+     (gtk-tree-store-set model (gtk-tree-store-append model parent) "Klausf-Dieter Musternn" 1351d0)
+     (gtk-tree-store-set model (gtk-tree-store-append model parent) "Klausf-Dieter Musterman" 135d0)
      (gtk-tree-store-set model (gtk-tree-store-append model parent) "Ulrikef Langhals" 213d0))
    model))
 
@@ -79,8 +81,32 @@
 
 #+nil
 (let* ((model (make-model)))
+  (defparameter *model* model)
   (view-update-model *view* *renderer* model))
 
+#+nil
+(gtk-tree-store-clear *model*)
+#+nil
+(gtk-tree-store-append *model* nil)
+
+#+nil
+(gtk-tree-store-set *model* (gtk-tree-store-append *model* nil) "Klausf-Dieter Mustermann" 1351d0)
+
+#+nil
+(gtk-tree-model-get *model* )
+
+#+nil
+(loop with iter = (gtk-tree-model-get-iter-first *model*) while (gtk-tree-model-iter-next ) collect
+     (when (gtk-tree-model-iter-has-child *model* iter)
+       (setf iter (gtk-tree-model-iter-children *model* iter)))
+
+     )
+#+nil
+(gtk-tree-path-to-string
+ (gtk-tree-model-get-path *model* (gtk-tree-model-get-iter-first *model*)))
+#+nil
+(gtk-tree-path-to-string
+ (gtk-tree-model-get-path *model* (gtk-tree-model-iter-children *model* (gtk-tree-model-get-iter-first *model*))))
 #+nil
 (run)
 
