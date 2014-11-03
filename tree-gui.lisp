@@ -13,30 +13,37 @@
   (sb-int:with-float-traps-masked (:divide-by-zero)
     (within-main-loop
       (let ((window (make-instance 'gtk-window :title "holography"
-				   :default-width (/ 1920 2)
-				   :default-height (/ 1080 2)
+				   :default-width 320
+				   :default-height 240
 				   :border-width 12
 				   :type :toplevel)))
 	(g-signal-connect window "destroy" (lambda (widget)
 					     (declare (ignorable widget))
 					     (leave-gtk-main)))
 
-	(let* ((model (make-instance 'gtk-tree-store :column-types '("gchararray" "guint")))
+	(let* ((model (make-instance 'gtk-tree-store :column-types '("gchararray" "gdouble")))
 	       )
 	  ;(gtk-tree-store-append model nil)
 	  (let ((parent (gtk-tree-store-set model
 					    (gtk-tree-store-append model nil)
-					    "fiber" 1)))
+					    "fiber" 1d0)))
 	    (gtk-tree-store-set model (gtk-tree-store-append model parent)
-				"Klaus-Dieter Mustermann" 51)
+				"Klaus-Dieter Mustermann" 51d0)
 	    (gtk-tree-store-set model (gtk-tree-store-append model parent)
-				"Ulrike Langhals" 23))
+				"Ulrike Langhals" 23d0))
 	  (let ((view (make-instance 'gtk-tree-view :model model)))
 	   (let* ((renderer (gtk-cell-renderer-text-new))
 		  (col (gtk-tree-view-column-new-with-attributes "name" renderer "text" 0)))
 	     (gtk-tree-view-append-column view col))
 	   
-	   (let* ((renderer (gtk-cell-renderer-text-new))
+	   (let* ((adj (make-instance 'gtk-adjustment
+				      :value (* 1d0 100)
+				      :lower 0d0
+				      :upper (* 1d0 1000)
+				      :step-increment 1d0
+				      :page-increment 10d0
+				      :page-size 0d0))
+		  (renderer (make-instance 'gtk-cell-renderer-spin :editable t :digits 1 :adjustment adj))
 		  (col (gtk-tree-view-column-new-with-attributes "value" renderer "text" 1)))
 	     (gtk-tree-view-append-column view col))
 	   

@@ -155,7 +155,7 @@ signal canvas."
   (let* ((hb (make-instance 'gtk-box :orientation :horizontal))
      (lab (make-instance 'gtk-label
                  :label (symbol-name name)))
-     (adj (make-instance 'gtk-adjustment
+	 (adj (make-instance 'gtk-adjustment
                  :value (* 1d0 value)
                  :lower 0d0
                  :upper (* 1d0 upper)
