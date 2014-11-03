@@ -39,16 +39,24 @@
 	   (let* ((adj (make-instance 'gtk-adjustment
 				      :value (* 1d0 100)
 				      :lower 0d0
-				      :upper (* 1d0 1000)
+				      :upper (* 1d0 2000)
 				      :step-increment 1d0
 				      :page-increment 10d0
 				      :page-size 0d0))
-		  (renderer (make-instance 'gtk-cell-renderer-spin :editable t :digits 1 :adjustment adj))
+		  (renderer (make-instance 'gtk-cell-renderer-spin :editable t :digits 0 :adjustment adj))
 		  (col (gtk-tree-view-column-new-with-attributes "value" renderer "text" 1)))
+	     (gtk-tree-view-column-set-cell-data-func col renderer
+						      (lambda (col tree-view tree-store iter)
+							(format t "~a~%" (list col tree-view tree-store iter))
+							#+nil(let ((v (gtk-tree-model-get tree-view iter col)))
+							  (format t "~a~%" v)
+							  #+nil (g-object-set-data renderer "text" (format nil "~d" (floor v))))))
 	     (gtk-tree-view-append-column view col))
 	   
 	   (gtk-container-add window view)))
 	(gtk-widget-show-all window)))))
+
+
 
 #+nil
 (run)
