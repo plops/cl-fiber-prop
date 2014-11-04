@@ -116,6 +116,7 @@
 		  (first (gtk-tree-model-get *model* iter 1))
 		  iter))
 	while (gtk-tree-model-iter-next *model* iter)))
+
 (defun preorder (node f)
   (when node
     (funcall f node)
@@ -126,6 +127,22 @@
 (preorder (gtk-tree-model-get-iter-first *model*) #'(lambda (iter) (format t "~a~%"
 									   (gtk-tree-path-to-string
 									    (gtk-tree-model-get-path *model* iter)))))
+
+
+(defun preorder-a (node f acc)
+  (when node
+    (funcall f node acc)
+    (preorder-a (gtk-tree-model-iter-children *model* node) f (append acc (list node)))
+    (preorder-a (gtk-tree-model-iter-next *model* node)  f acc)))
+
+#+nil
+(preorder-a (gtk-tree-model-get-iter-first *model*) #'(lambda (iter acc) (format t "~a~%"
+										 (list (loop for el in acc collect
+											     (gtk-tree-path-to-string
+											      (gtk-tree-model-get-path *model* el)))
+										       (gtk-tree-path-to-string
+											(gtk-tree-model-get-path *model* iter)))))
+	    nil)
 
 #+nil
 (defun preorder (node f)
