@@ -129,9 +129,10 @@
 	 (cairo-restore cr)))
 
      
-     (let* ((radius (or (spin-button-value 'radius) 40d0))
-	    (x (or (spin-button-value 'xpos) 120d0))
-	    (y (or (spin-button-value 'ypos) 110d0)))
+     (let* ((radius (or (tree-gui::get-tree-value 'fiber1 'cam1 'radius)
+		        40d0))
+	    (x (or (tree-gui::get-tree-value 'fiber1 'cam1 'xpos) 120d0))
+	    (y (or (tree-gui::get-tree-value 'fiber1 'cam1 'ypos) 110d0)))
        (cairo-arc cr x y radius 0 (* 2 pi))
 					;(cairo-set-source-rgb cr 1 1 1)
 					;(cairo-fill-preserve cr)
@@ -269,20 +270,29 @@ signal canvas."
 							     :border-width 1
 							     :hscrollbar-policy :automatic
 							     :vscrollbar-policy :automatic))
-				   (vbox-top (make-instance 'gtk-box :orientation :vertical)))
-			       (setf *renderer* renderer
+				    (paned-right2 (make-instance 'gtk-paned :orientation :vertical)))
+				(setf *renderer* renderer
 				     *view* view)
-			       (let ((model (tree-gui::make-model)))
+				(let ((model (tree-gui::make-model)))
+				  (setf tree-gui::*model* model)
 				 (tree-gui::view-update-model *view* *renderer* model))
 			       (gtk-container-add scrolled view)
 			       (gtk-container-add expander scrolled)
-			       (gtk-container-add vbox-top expander)
-			       (gtk-container-add vbox-top frame1)
-			       vbox-top)))))
+			       (gtk-paned-add1 paned-right2 expander)
+			       (gtk-paned-add2 paned-right2 frame1)
+			       paned-right2)))))
 	(gtk-widget-show-all window)))))
 
 #+nil
 (run)
+
+#+nil
+(tree-gui::get-tree-value 'fiber1 'cam1 'ky)
+
+#+nil
+(tree-gui::view-update-model *view* *renderer* tree-gui::*model*)
+#+nil
+tree-gui::*hash*
 
 #+nil
 (let* ((model (tree-gui::make-model)))

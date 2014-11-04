@@ -70,6 +70,7 @@
 						   (first (gtk-tree-model-get model iter 0)))
 					     (gtk-tree-model-get model iter 0))))
 			(val iter))
+		    (format t "entering into hash: ~a~%" (list key val))
 		    (setf (gethash key a) val)))
 	      nil)
     (setf *hash* a)))
