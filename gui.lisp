@@ -264,12 +264,18 @@ signal canvas."
 	    (setf *frame1* frame1)
 	    (gtk-paned-add2 paned-right
 			    (multiple-value-bind (view renderer) (tree-gui::make-view)
-			     (let ((expander (make-instance 'gtk-expander :expanded t :label "settings"))
+			      (let ((expander (make-instance 'gtk-expander :expanded t :label "settings"))
+				    (scrolled (make-instance 'gtk-scrolled-window
+							     :border-width 1
+							     :hscrollbar-policy :automatic
+							     :vscrollbar-policy :automatic))
 				   (vbox-top (make-instance 'gtk-box :orientation :vertical)))
 			       (setf *renderer* renderer
 				     *view* view)
-			       (let ((model (make-model))))
-			       (gtk-container-add expander view)
+			       (let ((model (tree-gui::make-model)))
+				 (tree-gui::view-update-model *view* *renderer* model))
+			       (gtk-container-add scrolled view)
+			       (gtk-container-add expander scrolled)
 			       (gtk-container-add vbox-top expander)
 			       (gtk-container-add vbox-top frame1)
 			       vbox-top)))))
@@ -277,6 +283,13 @@ signal canvas."
 
 #+nil
 (run)
+
+#+nil
+(let* ((model (tree-gui::make-model)))
+  (defparameter tree-gui::*model* model)
+  (tree-gui::view-update-model *view* *renderer* model))
+#+nil
+(tree-gui::view-update-model *view* *renderer* tree-gui::*model*)
 
 (defun button-checked-p (name)
   (let ((vbox (first (gtk-container-get-children *frame1*))))
