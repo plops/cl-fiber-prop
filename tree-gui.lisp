@@ -7,34 +7,21 @@
 
 (in-package :tree-gui)
 
-#+nil
-(loop for f in '(fiber1 fiber2 fiber3) do
-      (let ((parent-f (gtk-tree-store-set model
-					  (gtk-tree-store-append model nil)
-					  (symbol-name f) 0d0)))
-	(loop for cam in '(cam1 cam2 cam3) do
-	      (let ((parent-cam (gtk-tree-store-set model
-						    (gtk-tree-store-append model nil)
-						    (symbol-name f) 0d0)))
-	       (loop for var in '(xpos ypos radius kx ky kradius) do
-		     )))))
+
 (defun make-model ()
- (let* ((model (make-instance 'gtk-tree-store :column-types '("gchararray" "gdouble"))))
-   (let ((parent (gtk-tree-store-set model
-				     (gtk-tree-store-append model nil)
-				     "fiber1" 1d0)))
-     (gtk-tree-store-set model (gtk-tree-store-append model parent) "Klausf-Dieter Mustermann" 1351d0)
-     (gtk-tree-store-set model (gtk-tree-store-append model parent) "Klausf-Dieter Musternn" 1351d0)
-     (gtk-tree-store-set model (gtk-tree-store-append model parent) "Klausf-Dieter Musterman" 135d0)
-     (gtk-tree-store-set model (gtk-tree-store-append model parent) "Ulrikef Langhals" 213d0))
-   (let ((parent (gtk-tree-store-set model
-				     (gtk-tree-store-append model nil)
-				     "fiber2" 2d0)))
-     (gtk-tree-store-set model (gtk-tree-store-append model parent) "2Klausf-Dieter Mustermann" 1351d0)
-     (gtk-tree-store-set model (gtk-tree-store-append model parent) "2Klausf-Dieter Musternn" 1351d0)
-     (gtk-tree-store-set model (gtk-tree-store-append model parent) "2Klausf-Dieter Musterman" 135d0)
-     (gtk-tree-store-set model (gtk-tree-store-append model parent) "2Ulrikef Langhals" 213d0))
-   model))
+  (let* ((model (make-instance 'gtk-tree-store :column-types '("gchararray" "gdouble"))))
+    (loop for f in '(fiber1 fiber2 fiber3) do
+	  (let ((parent-f (gtk-tree-store-set model
+					      (gtk-tree-store-append model nil)
+					      (symbol-name f) 0d0)))
+	    (loop for cam in '(cam1 cam2 cam3) do
+		  (let ((parent-cam (gtk-tree-store-set model
+							(gtk-tree-store-append model parent-f)
+							(symbol-name cam) 0d0)))
+		    (loop for var in '(xpos ypos radius kx ky kradius) do
+			  (gtk-tree-store-set model (gtk-tree-store-append model parent-cam)
+					      (symbol-name var) 0d0))))))
+    model))
 
 (defun make-view ()
   (let ((view (make-instance 'gtk-tree-view)))
@@ -121,8 +108,27 @@
     (preorder (gtk-tree-model-iter-next *model* node)  f acc)))
 
 (defun get-tree-hash (fiber camera slot)
-  (declare (type string fiber camera slot))
-  (gethash (sxhash (list fiber camera slot)) *hash*))
+  (declare (type symbol fiber camera slot))
+  (gethash (sxhash (mapcar #'symbol-name (list fiber camera slot))) *hash*))
+
+#+nil
+(get-tree-hash 'fiber1 'cam1 'ky)
+
+(defun get-tree-value (fiber camera slot)
+  (declare (type symbol fiber camera slot))
+  (let ((iter (get-tree-hash fiber camera slot)))
+    (first (gtk-tree-model-get *model* iter 1))))
+
+#+nil
+(get-tree-value 'fiber1 'cam1 'ky)
+
+(defun set-tree-value (fiber camera slot value)
+  (declare (type symbol fiber camera slot)
+	   (type double-float value))
+  (let ((iter (get-tree-hash fiber camera slot)))
+    (gtk-tree-store-set-value *model* iter 1 value)))
+#+nil
+(set-tree-value 'fiber1 'cam1 'ky 35.0d0)
 
 #+nil
 (run)
