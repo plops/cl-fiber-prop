@@ -49,6 +49,7 @@
 
 (defparameter *hash* nil)
 (defparameter *model* nil)
+(defparameter *canvas* nil)
 
 (defun view-update-model (view renderer model)
   (gtk-tree-view-set-model view model)	  
@@ -62,7 +63,9 @@
 					       ;; (model (gtk-tree-view-get-model ))
 					       (iter (gtk-tree-model-get-iter model path))
 					       )
-					  (gtk-tree-store-set-value model iter 1 value))))
+					  (gtk-tree-store-set-value model iter 1 value)
+					  (when *canvas*
+					    (gtk-widget-queue-draw *canvas*)))))
   (let ((a (make-hash-table)))
     (preorder (gtk-tree-model-get-iter-first model)
 	      #'(lambda (iter acc)

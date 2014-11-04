@@ -230,7 +230,8 @@ signal canvas."
 					:hscrollbar-policy :automatic
 					:vscrollbar-policy :automatic))
 	       (canvas (make-instance 'gtk-drawing-area)))
-	  (setf *canvas* canvas)
+	  (setf *canvas* canvas
+		tree-gui::*canvas* canvas)
 	  (g-signal-connect canvas "draw"
 			    (lambda (widget cr)
 			      (funcall *draw-canvas* widget cr)))
