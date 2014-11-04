@@ -48,6 +48,7 @@
 
 
 (defparameter *hash* nil)
+(defparameter *model* nil)
 
 (defun view-update-model (view renderer model)
   (gtk-tree-view-set-model view model)	  
@@ -78,7 +79,7 @@
    (:divide-by-zero)
    (within-main-loop
     (let ((window (make-instance 'gtk-window :title "holography"
-				 :default-width 320
+				 :default-width 480
 				 :default-height 240
 				 :border-width 12
 				 :type :toplevel)))
@@ -87,12 +88,10 @@
 					   (leave-gtk-main)))
       (defparameter *window* window)
       
-      (let* ((model (make-model)))
-	(multiple-value-bind (view renderer) (make-view)
-	  (defparameter *view* view)
-	  (defparameter *renderer* renderer)
-	  (view-update-model view renderer model)
-	  (gtk-container-add window view)))
+      (multiple-value-bind (view renderer) (make-view)
+	(defparameter *view* view)
+	(defparameter *renderer* renderer)
+	(gtk-container-add window view))
       (gtk-widget-show-all window)))))
 
 
@@ -128,8 +127,9 @@
   (let ((iter (get-tree-hash fiber camera slot)))
     (gtk-tree-store-set-value *model* iter 1 value)))
 #+nil
-(set-tree-value 'fiber1 'cam1 'ky 35.0d0)
+(dotimes (i 10)
+  (sleep .4)
+ (set-tree-value 'fiber1 'cam1 'ky (* i 36.0d0)))
 
 #+nil
 (run)
-

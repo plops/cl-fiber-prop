@@ -78,6 +78,8 @@
       (break "unexpected type ~a~%" (list type obj))))
 
 (defparameter *spin-vbox* nil)
+(defparameter *view* nil)
+(defparameter *renderer* nil)
 
 ;; (hbox (label spinbutton))
 (defun spin-button-value (widget-symbol)
@@ -259,31 +261,18 @@ signal canvas."
 		       i j 1 1)))
 	    (gtk-paned-add1 paned-right scrolled))
 	  (let* ((frame1 (make-instance 'gtk-expander :expanded t :label "show image")))
-	    #+nil(let ((vbox (make-instance 'gtk-box :orientation :vertical)))
-	      (add-spinbox-to-vbox vbox 'xpos 1157.5 (- 1920 1) canvas)
-	      (add-spinbox-to-vbox vbox 'ypos 251.5 (- 1080 1) canvas)
-	      (add-spinbox-to-vbox vbox 'radius 103.5 500 canvas)
-	      (add-spinbox-to-vbox vbox 'kxpos 100 (- 1920 1) canvas)
-	      (add-spinbox-to-vbox vbox 'kypos 100 (- 1080 1) canvas)
-	      (add-spinbox-to-vbox vbox 'kradius 100 500 canvas)
-	      (setf *spin-vbox* vbox))
-	    (let ((grid (make-instance 'gtk-grid)))
-	      (loop for col from 1 upto 3 do
-		   (gtk-grid-attach grid (make-instance 'gtk-label
-							:label (format nil "cam~a~%" col)) col 0 1 1)
-		   (loop for name in '(xpos ypos radius) and row from 1 do
-			(add-spinbox-to-grid grid (when (= col 1) name)
-					     100d0 3000d0 canvas row col)))
 	    (setf *frame1* frame1)
 	    (gtk-paned-add2 paned-right
-			    (let ((expander (make-instance 'gtk-expander :expanded t :label "settings"))
-				  (notebook (make-instance 'gtk-notebook))
-				  (vbox-top (make-instance 'gtk-box :orientation :vertical)))
-			      (gtk-container-add expander notebook)
-			      (gtk-container-add notebook grid)
-			      (gtk-container-add vbox-top expander)
-			      (gtk-container-add vbox-top frame1)
-			      vbox-top)))))
+			    (multiple-value-bind (view renderer) (tree-gui::make-view)
+			     (let ((expander (make-instance 'gtk-expander :expanded t :label "settings"))
+				   (vbox-top (make-instance 'gtk-box :orientation :vertical)))
+			       (setf *renderer* renderer
+				     *view* view)
+			       (let ((model (make-model))))
+			       (gtk-container-add expander view)
+			       (gtk-container-add vbox-top expander)
+			       (gtk-container-add vbox-top frame1)
+			       vbox-top)))))
 	(gtk-widget-show-all window)))))
 
 #+nil
