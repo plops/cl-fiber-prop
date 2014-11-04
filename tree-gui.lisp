@@ -138,9 +138,9 @@
 #+nil
 (defparameter *bla* (let ((a (make-hash-table)))
    (preorder-a (gtk-tree-model-get-iter-first *model*) #'(lambda (iter acc)
-							   (let ((key (append (loop for el in acc collect
+							   (let ((key (append (loop for iter in acc collect
 										    (first (gtk-tree-model-get *model* iter 0)))
-									      (gtk-tree-model-get *model* iter 0)))
+										    (gtk-tree-model-get *model* iter 0)))
 								 (val iter))
 							     (setf (gethash key a) val)))
 	       nil)
