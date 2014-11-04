@@ -7,7 +7,17 @@
 
 (in-package :tree-gui)
 
-
+#+nil
+(loop for f in '(fiber1 fiber2 fiber3) do
+      (let ((parent-f (gtk-tree-store-set model
+					  (gtk-tree-store-append model nil)
+					  (symbol-name f) 0d0)))
+	(loop for cam in '(cam1 cam2 cam3) do
+	      (let ((parent-cam (gtk-tree-store-set model
+						    (gtk-tree-store-append model nil)
+						    (symbol-name f) 0d0)))
+	       (loop for var in '(xpos ypos radius kx ky kradius) do
+		     )))))
 (defun make-model ()
  (let* ((model (make-instance 'gtk-tree-store :column-types '("gchararray" "gdouble"))))
    (let ((parent (gtk-tree-store-set model
@@ -50,6 +60,8 @@
       (values view renderer))))
 
 
+(defparameter *hash* nil)
+
 (defun view-update-model (view renderer model)
   (gtk-tree-view-set-model view model)	  
   (g-signal-connect renderer "edited" (lambda (renderer path-string newtext) ;; 4th parameter should be GtkTreeView *treeview
@@ -62,7 +74,17 @@
 					       ;; (model (gtk-tree-view-get-model ))
 					       (iter (gtk-tree-model-get-iter model path))
 					       )
-					  (gtk-tree-store-set-value model iter 1 value)))))
+					  (gtk-tree-store-set-value model iter 1 value))))
+  (let ((a (make-hash-table)))
+    (preorder (gtk-tree-model-get-iter-first model)
+	      #'(lambda (iter acc)
+		  (let ((key (sxhash (append (loop for iter in acc collect
+						   (first (gtk-tree-model-get model iter 0)))
+					     (gtk-tree-model-get model iter 0))))
+			(val iter))
+		    (setf (gethash key a) val)))
+	      nil)
+    (setf *hash* a)))
 
 (defun run ()
   (sb-int:with-float-traps-masked
@@ -92,84 +114,16 @@
   (defparameter *model* model)
   (view-update-model *view* *renderer* model))
 
-#+nil
-(gtk-tree-store-clear *model*)
-#+nil
-(gtk-tree-store-append *model* nil)
-
-#+nil
-(gtk-tree-store-set *model* (gtk-tree-store-append *model* nil) "Klausf-Dieter Mustermann" 1351d0)
-
-#+nil
-(gtk-tree-model-get *model* )
-
-#+nil
-(let ((iter (gtk-tree-model-get-iter-first *model*)))
-  (loop collect (progn
-		 (setf iter (if (gtk-tree-model-iter-has-child *model* iter)
-				(gtk-tree-model-iter-children *model* iter)
-				(gtk-tree-model-iter-next *model* iter)))
-		 (list
-		  (gtk-tree-path-to-string
-		   (gtk-tree-model-get-path *model* iter))
-		  (first (gtk-tree-model-get *model* iter 0)) 
-		  (first (gtk-tree-model-get *model* iter 1))
-		  iter))
-	while (gtk-tree-model-iter-next *model* iter)))
-
-(defun preorder (node f)
-  (when node
-    (funcall f node)
-    (preorder (gtk-tree-model-iter-children *model* node) f)
-    (preorder (gtk-tree-model-iter-next *model* node)  f)))
-
-#+nil
-(preorder (gtk-tree-model-get-iter-first *model*) #'(lambda (iter) (format t "~a~%"
-									   (gtk-tree-path-to-string
-									    (gtk-tree-model-get-path *model* iter)))))
-
-
-(defun preorder-a (node f acc)
+(defun preorder (node f acc)
   (when node
     (funcall f node acc)
-    (preorder-a (gtk-tree-model-iter-children *model* node) f (append acc (list node)))
-    (preorder-a (gtk-tree-model-iter-next *model* node)  f acc)))
+    (preorder (gtk-tree-model-iter-children *model* node) f (append acc (list node)))
+    (preorder (gtk-tree-model-iter-next *model* node)  f acc)))
 
-#+nil
-(defparameter *bla* (let ((a (make-hash-table)))
-   (preorder-a (gtk-tree-model-get-iter-first *model*) #'(lambda (iter acc)
-							   (let ((key (append (loop for iter in acc collect
-										    (first (gtk-tree-model-get *model* iter 0)))
-										    (gtk-tree-model-get *model* iter 0)))
-								 (val iter))
-							     (setf (gethash key a) val)))
-	       nil)
-   a))
+(defun get-tree-hash (fiber camera slot)
+  (declare (type string fiber camera slot))
+  (gethash (sxhash (list fiber camera slot)) *hash*))
 
-
-#+nil
-(defun preorder (node f)
-  (when node
-    (funcall f (first node))
-    (preorder (second node) f)
-    (preorder (third node)  f)))
- 
-#+nil
-(gtk-tree-path-to-string (gtk-tree-model-get-path *model* (gtk-tree-model-iter-next *model* (gtk-tree-model-get-iter-first *model*)) ))
-
-
-#+nil
-(gtk-tree-path-to-string
- (gtk-tree-model-get-path *model* (gtk-tree-model-get-iter-first *model*)))
-#+nil
-(gtk-tree-path-to-string
- (gtk-tree-model-get-path *model* (gtk-tree-model-iter-children *model* (gtk-tree-model-get-iter-first *model*))))
-#+nil
-(gtk-tree-path-to-string
- (gtk-tree-model-get-path *model* (gtk-tree-model-iter-next *model* (gtk-tree-model-iter-children *model* (gtk-tree-model-get-iter-first *model*)))))
-
-#+nil
-(gtk-tree-model-iter-n-children *model* (gtk-tree-model-get-iter-first *model*))
 #+nil
 (run)
 
