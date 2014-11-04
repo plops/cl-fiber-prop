@@ -136,14 +136,15 @@
     (preorder-a (gtk-tree-model-iter-next *model* node)  f acc)))
 
 #+nil
-(preorder-a (gtk-tree-model-get-iter-first *model*) #'(lambda (iter acc)
-							(format t "~a~%"
-								(let ((key (append (loop for el in acc collect
-											 (first (gtk-tree-model-get *model* iter 0)))
-										   (gtk-tree-model-get *model* iter 0)))
-								      (val iter))
-								  (sxhash key))))
-	    nil)
+(defparameter *bla* (let ((a (make-hash-table)))
+   (preorder-a (gtk-tree-model-get-iter-first *model*) #'(lambda (iter acc)
+							   (let ((key (append (loop for el in acc collect
+										    (first (gtk-tree-model-get *model* iter 0)))
+									      (gtk-tree-model-get *model* iter 0)))
+								 (val iter))
+							     (setf (gethash key a) val)))
+	       nil)
+   a))
 
 
 #+nil
