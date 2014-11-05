@@ -66,6 +66,10 @@
 					  (gtk-tree-store-set-value model iter 1 value)
 					  (when *canvas*
 					    (gtk-widget-queue-draw *canvas*)))))
+
+  (g-signal-connect renderer "editing-started" (lambda (renderer editable path-string)
+						 ;; editable is 
+						 (format t "~a~%" (list renderer editable path))))
   (let ((a (make-hash-table)))
     (preorder (gtk-tree-model-get-iter-first model)
 	      #'(lambda (iter acc)
