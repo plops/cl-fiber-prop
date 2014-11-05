@@ -60,16 +60,25 @@
 					(let* ((adj (g-object-get-property renderer "adjustment"))
 					       (value (gtk-adjustment-get-value adj))
 					       (path (gtk-tree-path-new-from-string path-string))
-					       ;; (model (gtk-tree-view-get-model ))
-					       (iter (gtk-tree-model-get-iter model path))
-					       )
+					       (iter (gtk-tree-model-get-iter model path)))
 					  (gtk-tree-store-set-value model iter 1 value)
 					  (when *canvas*
 					    (gtk-widget-queue-draw *canvas*)))))
-
+  
   (g-signal-connect renderer "editing-started" (lambda (renderer editable path-string)
-						 ;; editable is 
-						 (format t "~a~%" (list renderer editable path))))
+						 ;; editable is a spin-box
+						 (let* ((path (gtk-tree-path-new-from-string path-string))
+						       (iter (gtk-tree-model-get-iter model path)))
+						   (g-signal-connect editable "value-changed"
+								    (lambda (spin-button)
+								      (let* ((adjustment (gtk-spin-button-get-adjustment spin-button))
+									     (value (gtk-adjustment-get-value adjustment)))
+									(gtk-tree-store-set-value model iter 1 value)
+									(when *canvas*
+									  (gtk-widget-queue-draw *canvas*))
+									(format t "value-changed: ~a~%" (list editable adjustment value
+													      (first (gtk-tree-model-get model iter 1))))))))
+						 (format t "editing-started: ~a~%" (list renderer editable path-string))))
   (let ((a (make-hash-table)))
     (preorder (gtk-tree-model-get-iter-first model)
 	      #'(lambda (iter acc)
