@@ -81,7 +81,12 @@
 						   (g-signal-connect (gtk-spin-button-get-adjustment editable) "value-changed"
 								     (lambda (adjustment)
 								       (let* ((value (gtk-adjustment-get-value adjustment)))
-									 (gtk-tree-store-real-set-value model iter 1 value)
+									 (g-signal-connect model "row-changed"
+											   #'(lambda (tree-store tree-path tree-iter)
+											       (format t "model row-changed: ~a~%" (list tree-store tree-path tree-iter))
+											       (g-signal-stop-emission-by-name (pointer model) "row-changed")))
+									 
+									 (gtk-tree-store-set-value model iter 1 value)
 									 (when *canvas*
 									   (gtk-widget-queue-draw *canvas*))
 									 (format t "spin-box value-changed: ~a~%" (list value
@@ -152,13 +157,6 @@
   (let ((iter (get-tree-hash fiber camera slot)))
     (gtk-tree-store-set-value *model* iter 1 value)))
 
-(defun set-tree-real-value (fiber camera slot value)
-  (declare (type symbol fiber camera slot)
-	   (type double-float value))
-  (let ((iter (get-tree-hash fiber camera slot)))
-    (gtk-tree-store-real-set-value *model* iter 1 value)))
-#+nil
-(set-tree-real-value 'fiber1 'cam1 'ky 36.0d0)
 #+nil
 (dotimes (i 10)
   (sleep .4)
