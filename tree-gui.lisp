@@ -52,8 +52,17 @@
 (defparameter *canvas* nil)
 
 (defun view-update-model (view renderer model)
-  (gtk-tree-view-set-model view model)	  
-  (g-signal-connect renderer "edited" (lambda (renderer path-string newtext) ;; 4th parameter should be GtkTreeView *treeview
+  (gtk-tree-view-set-model view model)
+  #+nil (g-signal-connect (g-object-get-property renderer "adjustment")
+		    "value-changed"
+		    (lambda (adjustment)
+		      (let* ((value (gtk-adjustment-get-value adjustment)))
+			;(gtk-tree-store-set-value model iter 1 value)
+			(when *canvas*
+			  (gtk-widget-queue-draw *canvas*))
+			(format t "adjustment value-changed: ~a~%" (list adjustment value
+									 )))))
+  #+nil (g-signal-connect renderer "edited" (lambda (renderer path-string newtext) ;; 4th parameter should be GtkTreeView *treeview
 					(declare (ignore newtext))
 					;; according to documentation the string in newtext should not be used,
 					;; instead a double value obtained from the adjustemtn
@@ -64,20 +73,19 @@
 					  (gtk-tree-store-set-value model iter 1 value)
 					  (when *canvas*
 					    (gtk-widget-queue-draw *canvas*)))))
-  
+
   (g-signal-connect renderer "editing-started" (lambda (renderer editable path-string)
 						 ;; editable is a spin-box
 						 (let* ((path (gtk-tree-path-new-from-string path-string))
-						       (iter (gtk-tree-model-get-iter model path)))
-						   (g-signal-connect editable "value-changed"
-								    (lambda (spin-button)
-								      (let* ((adjustment (gtk-spin-button-get-adjustment spin-button))
-									     (value (gtk-adjustment-get-value adjustment)))
-									(gtk-tree-store-set-value model iter 1 value)
-									(when *canvas*
-									  (gtk-widget-queue-draw *canvas*))
-									(format t "value-changed: ~a~%" (list editable adjustment value
-													      (first (gtk-tree-model-get model iter 1))))))))
+							(iter (gtk-tree-model-get-iter model path)))
+						   (g-signal-connect (gtk-spin-button-get-adjustment editable) "value-changed"
+								     (lambda (adjustment)
+								       (let* ((value (gtk-adjustment-get-value adjustment)))
+									 (gtk-tree-store-real-set-value model iter 1 value)
+									 (when *canvas*
+									   (gtk-widget-queue-draw *canvas*))
+									 (format t "spin-box value-changed: ~a~%" (list value
+															(first (gtk-tree-model-get model iter 1))))))))
 						 (format t "editing-started: ~a~%" (list renderer editable path-string))))
   (let ((a (make-hash-table)))
     (preorder (gtk-tree-model-get-iter-first model)
@@ -143,6 +151,14 @@
 	   (type double-float value))
   (let ((iter (get-tree-hash fiber camera slot)))
     (gtk-tree-store-set-value *model* iter 1 value)))
+
+(defun set-tree-real-value (fiber camera slot value)
+  (declare (type symbol fiber camera slot)
+	   (type double-float value))
+  (let ((iter (get-tree-hash fiber camera slot)))
+    (gtk-tree-store-real-set-value *model* iter 1 value)))
+#+nil
+(set-tree-real-value 'fiber1 'cam1 'ky 36.0d0)
 #+nil
 (dotimes (i 10)
   (sleep .4)
