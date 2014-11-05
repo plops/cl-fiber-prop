@@ -73,7 +73,7 @@
 					  (gtk-tree-store-set-value model iter 1 value)
 					  (when *canvas*
 					    (gtk-widget-queue-draw *canvas*)))))
-
+  
   (g-signal-connect renderer "editing-started" (lambda (renderer editable path-string)
 						 ;; editable is a spin-box
 						 (let* ((path (gtk-tree-path-new-from-string path-string))
@@ -81,12 +81,15 @@
 						   (g-signal-connect (gtk-spin-button-get-adjustment editable) "value-changed"
 								     (lambda (adjustment)
 								       (let* ((value (gtk-adjustment-get-value adjustment)))
-									 (g-signal-connect model "row-changed"
+									 #+nil (g-signal-connect model "row-changed"
 											   #'(lambda (tree-store tree-path tree-iter)
-											       (format t "model row-changed: ~a~%" (list tree-store tree-path tree-iter))
-											       (g-signal-stop-emission-by-name (pointer model) "row-changed")))
-									 
-									 (gtk-tree-store-set-value model iter 1 value)
+											      ; (format t "model row-changed: ~a~%" (list tree-store (gtk-tree-path-to-string tree-path) (gtk-tree-model-get tree-store tree-iter 1)))
+											       ;(g-signal-stop-emission-by-name (pointer model) "row-changed")
+											       
+											       ))
+								
+									; (gtk-tree-store-set-value model iter 1 value)
+								
 									 (when *canvas*
 									   (gtk-widget-queue-draw *canvas*))
 									 (format t "spin-box value-changed: ~a~%" (list value
