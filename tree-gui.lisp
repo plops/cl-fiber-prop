@@ -1,4 +1,3 @@
-
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (ql:quickload :cl-cffi-gtk))
 
@@ -54,52 +53,58 @@
 (defun view-update-model (view renderer model)
   (gtk-tree-view-set-model view model)
   #+nil (g-signal-connect (g-object-get-property renderer "adjustment")
-		    "value-changed"
-		    (lambda (adjustment)
-		      (let* ((value (gtk-adjustment-get-value adjustment)))
-			;(gtk-tree-store-set-value model iter 1 value)
-			(when *canvas*
-			  (gtk-widget-queue-draw *canvas*))
-			(format t "adjustment value-changed: ~a~%" (list adjustment value
-									 )))))
+			  "value-changed"
+			  (lambda (adjustment)
+			    (let* ((value (gtk-adjustment-get-value adjustment)))
+					;(gtk-tree-store-set-value model iter 1 value)
+			      (when *canvas*
+				(gtk-widget-queue-draw *canvas*))
+			      (format t "adjustment value-changed: ~a~%" (list adjustment value
+									       )))))
   #+nil (g-signal-connect renderer "edited" (lambda (renderer path-string newtext) ;; 4th parameter should be GtkTreeView *treeview
-					(declare (ignore newtext))
-					;; according to documentation the string in newtext should not be used,
-					;; instead a double value obtained from the adjustemtn
-					(let* ((adj (g-object-get-property renderer "adjustment"))
-					       (value (gtk-adjustment-get-value adj))
-					       (path (gtk-tree-path-new-from-string path-string))
-					       (iter (gtk-tree-model-get-iter model path)))
-					  (gtk-tree-store-set-value model iter 1 value)
-					  (when *canvas*
-					    (gtk-widget-queue-draw *canvas*)))))
+					      (declare (ignore newtext))
+					      ;; according to documentation the string in newtext should not be used,
+					      ;; instead a double value obtained from the adjustemtn
+					      (let* ((adj (g-object-get-property renderer "adjustment"))
+						     (value (gtk-adjustment-get-value adj))
+						     (path (gtk-tree-path-new-from-string path-string))
+						     (iter (gtk-tree-model-get-iter model path)))
+						(gtk-tree-store-set-value model iter 1 value)
+						(when *canvas*
+						  (gtk-widget-queue-draw *canvas*)))))
+  (g-signal-connect renderer "activate-focus" #'(lambda (&rest rest) (format t "renderer activate-focus ~a~%" rest)))
+  (g-signal-connect view "activate-focus" #'(lambda (&rest rest) (format t "view activate-focus ~a~%" rest)))
   
-  (g-signal-connect renderer "editing-started" (lambda (renderer editable path-string)
-						 ;; editable is a spin-box
-						 (let* ((path (gtk-tree-path-new-from-string path-string))
-							(iter (gtk-tree-model-get-iter model path)))
-						   (g-signal-connect (gtk-spin-button-get-adjustment editable) "value-changed"
-								     (lambda (adjustment)
-								       (let* ((value (gtk-adjustment-get-value adjustment)))
-									 #+nil (g-signal-connect model "row-changed"
-											   #'(lambda (tree-store tree-path tree-iter)
-											      ; (format t "model row-changed: ~a~%" (list tree-store (gtk-tree-path-to-string tree-path) (gtk-tree-model-get tree-store tree-iter 1)))
-											       ;(g-signal-stop-emission-by-name (pointer model) "row-changed")
-											       
-											       ))
-								
-									; (gtk-tree-store-set-value model iter 1 value)
-								
-									 (when *canvas*
-									   (gtk-widget-queue-draw *canvas*))
-									 (format t "spin-box value-changed: ~a~%" (list value
-															(first (gtk-tree-model-get model iter 1))))))))
-						 (format t "editing-started: ~a~%" (list renderer editable path-string))))
+  (g-signal-connect
+   renderer "editing-started"
+   #'(lambda (renderer editable path-string)
+       ;; editable is a spin-box
+       (g-signal-connect editable "activate-focus" #'(lambda (&rest rest) (format t "editable activte-focus ~a~%" rest)))
+       
+       (g-signal-connect (gtk-spin-button-get-adjustment editable) "value-changed"
+			 (lambda (adjustment)
+			   (let* ((path (gtk-tree-path-new-from-string path-string))
+				  (iter (gtk-tree-model-get-iter model path))
+				  (value (gtk-adjustment-get-value adjustment)))
+			     #+nil (g-signal-connect model "row-changed"
+						     #'(lambda (tree-store tree-path tree-iter)
+					; (format t "model row-changed: ~a~%" (list tree-store (gtk-tree-path-to-string tree-path) (gtk-tree-model-get tree-store tree-iter 1)))
+					;(g-signal-stop-emission-by-name (pointer model) "row-changed")
+							 
+							 ))
+			     
+			     (gtk-tree-store-set-value model iter 1 value)
+			     
+			     (when *canvas*
+			       (gtk-widget-queue-draw *canvas*))
+			     (format t "spin-box value-changed: ~a~%" (list value
+									    (first (gtk-tree-model-get model iter 1)))))))
+       (format t "editing-started: ~a~%" (list renderer editable path-string))))
   (let ((a (make-hash-table)))
     (preorder (gtk-tree-model-get-iter-first model)
 	      #'(lambda (iter acc)
 		  (let ((key (sxhash (append (loop for iter in acc collect
-						   (first (gtk-tree-model-get model iter 0)))
+						  (first (gtk-tree-model-get model iter 0)))
 					     (gtk-tree-model-get model iter 0))))
 			(val iter))
 		    (format t "entering into hash: ~a~%" (list key val))
