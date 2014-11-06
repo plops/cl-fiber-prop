@@ -50,6 +50,9 @@
 (defparameter *model* nil)
 (defparameter *canvas* nil)
 
+(defmacro print-signal (obj event)
+  `(g-signal-connect ,obj ,event #'(lambda (&rest rest) (format t "~a: ~a ~a~%" ',obj ',event rest))))
+
 (defun view-update-model (view renderer model)
   (gtk-tree-view-set-model view model)
   #+nil (g-signal-connect (g-object-get-property renderer "adjustment")
@@ -72,14 +75,15 @@
 						(gtk-tree-store-set-value model iter 1 value)
 						(when *canvas*
 						  (gtk-widget-queue-draw *canvas*)))))
-  (g-signal-connect renderer "activate-focus" #'(lambda (&rest rest) (format t "renderer activate-focus ~a~%" rest)))
-  (g-signal-connect view "activate-focus" #'(lambda (&rest rest) (format t "view activate-focus ~a~%" rest)))
-  
+  (g-signal-connect renderer "focus-in-event" #'(lambda (&rest rest) (format t "renderer focus-in ~a~%" rest)))
+  (g-signal-connect view "row-activated" #'(lambda (&rest rest) (format t "view row-activated ~a~%" rest)))
+  (g-signal-connect view "focus-in-event" #'(lambda (&rest rest) (format t "view focus-in ~a~%" rest)))
+  (print-signal view "cursor-changed")
   (g-signal-connect
    renderer "editing-started"
    #'(lambda (renderer editable path-string)
        ;; editable is a spin-box
-       (g-signal-connect editable "activate-focus" #'(lambda (&rest rest) (format t "editable activte-focus ~a~%" rest)))
+       (g-signal-connect editable "focus-in-event" #'(lambda (&rest rest) (format t "editable focus-in ~a~%" rest)))
        
        (g-signal-connect (gtk-spin-button-get-adjustment editable) "value-changed"
 			 (lambda (adjustment)
