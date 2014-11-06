@@ -1,6 +1,6 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (ql:quickload :cl-cffi-gtk))
-
+sb-alien::*shared-objects* 
 (defpackage :tree-gui 
   (:use :gtk :gdk :gobject :glib :pango :cairo :cffi :iterate :cl))
 
@@ -23,7 +23,7 @@
     model))
 
 (defun make-view ()
-  (let ((view (make-instance 'gtk-tree-view)))
+  (let ((view (make-instance 'gtk-tree-view :hover-selection t)))
     (let* ((renderer (gtk-cell-renderer-text-new))
 	   (col (gtk-tree-view-column-new-with-attributes "name" renderer "text" 0)))
       (gtk-tree-view-append-column view col))
@@ -51,7 +51,8 @@
 (defparameter *canvas* nil)
 
 (defmacro print-signal (obj event)
-  `(g-signal-connect ,obj ,event #'(lambda (&rest rest) (format t "~a: ~a ~a~%" ',obj ,event rest)
+  `(g-signal-connect ,obj ,event #'(lambda (&rest rest) (format t "~a: ~a ~a~%" ',obj ',event rest
+								)
 					   (force-output)
 					   nil)))
 
