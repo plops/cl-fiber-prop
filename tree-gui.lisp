@@ -51,7 +51,8 @@
 (defparameter *canvas* nil)
 
 (defmacro print-signal (obj event)
-  `(g-signal-connect ,obj ,event #'(lambda (&rest rest) (format t "~a: ~a ~a~%" ',obj ',event rest))))
+  `(g-signal-connect ,obj ,event #'(lambda (&rest rest) (format t "~a: ~a ~a~%" ',obj ,event rest)
+					   (force-output))))
 
 (defun view-update-model (view renderer model)
   (gtk-tree-view-set-model view model)
@@ -78,7 +79,11 @@
   (g-signal-connect renderer "focus-in-event" #'(lambda (&rest rest) (format t "renderer focus-in ~a~%" rest)))
   (g-signal-connect view "row-activated" #'(lambda (&rest rest) (format t "view row-activated ~a~%" rest)))
   (g-signal-connect view "focus-in-event" #'(lambda (&rest rest) (format t "view focus-in ~a~%" rest)))
-  (print-signal view "cursor-changed")
+ #+nil (loop for sig in '("columns-changed" "cursor-changed" "expand-collapse-cursor-row" "move-cursor" "row-activated" "row-collapsed" "row-expanded" "select-all" "select-cursor-parent" "select-cursor-row" "start-interactive-search" "test-collapse-row" "test-expand-row" "toggle-cursor-row" "unselect-all" "add" "check-resize" "set-focus-child" "remove" ; "enter-notify-event" ;"event" "event-after" ; "focus" ;"focus-in-event" ;"focus-out-event"
+		     ) do
+	    (print-signal view sig))
+ (print-signal view "set-focus-child")
+ 
   (g-signal-connect
    renderer "editing-started"
    #'(lambda (renderer editable path-string)
