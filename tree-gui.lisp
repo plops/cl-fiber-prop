@@ -49,6 +49,7 @@ sb-alien::*shared-objects*
 (defparameter *hash* nil)
 (defparameter *model* nil)
 (defparameter *canvas* nil)
+(defparameter *view* nil)
 (defparameter *selection* nil)
 
 (defmacro print-signal (obj event)
@@ -81,7 +82,7 @@ sb-alien::*shared-objects*
 						  (gtk-widget-queue-draw *canvas*)))))
 
   (let ((selection (gtk-tree-view-get-selection *view*)))
-    (gtk-tree-selection-mode selection :single)
+    (gtk-tree-selection-set-mode selection :single)
     (setf *selection* selection)
     (g-signal-connect selection "changed" #'(lambda (&rest rest) (format t "selection changed ~a~%" rest))))
   #+nil
