@@ -84,7 +84,15 @@ sb-alien::*shared-objects*
   (let ((selection (gtk-tree-view-get-selection *view*)))
     (gtk-tree-selection-set-mode selection :single)
     (setf *selection* selection)
-    (g-signal-connect selection "changed" #'(lambda (&rest rest) (format t "selection changed ~a~%" rest))))
+    
+ ;;     (gtk-tree-view-get-path-at-pos model x y)
+    (g-signal-connect selection "changed"
+		      #'(lambda (selection)
+			  (let ((iter (gtk-tree-selection-get-selected selection))
+			;	(col (gtk-tree-view-get-column *model*   ))
+				)
+			 ;   (g-signal-emit )
+			    (format t "selection changed ~a~%" (list iter))))))
   #+nil
   (g-signal-connect
    renderer "editing-started"
