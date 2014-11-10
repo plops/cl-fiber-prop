@@ -51,6 +51,7 @@ sb-alien::*shared-objects*
 (defparameter *canvas* nil)
 (defparameter *view* nil)
 (defparameter *selection* nil)
+(defparameter *adjustment* nil)
 
 (defmacro print-signal (obj event)
   `(g-signal-connect ,obj ,event #'(lambda (&rest rest) (format t "~a: ~a ~a~%" ',obj ',event rest
@@ -60,60 +61,51 @@ sb-alien::*shared-objects*
 
 (defun view-update-model (view renderer model)
   (gtk-tree-view-set-model view model)
-  #+nil (g-signal-connect (g-object-get-property renderer "adjustment")
-			  "value-changed"
-			  (lambda (adjustment)
-			    (let* ((value (gtk-adjustment-get-value adjustment)))
-					;(gtk-tree-store-set-value model iter 1 value)
-			      (when *canvas*
-				(gtk-widget-queue-draw *canvas*))
-			      (format t "adjustment value-changed: ~a~%" (list adjustment value
-									       )))))
-  #+nil (g-signal-connect renderer "edited" (lambda (renderer path-string newtext) ;; 4th parameter should be GtkTreeView *treeview
-					      (declare (ignore newtext))
-					      ;; according to documentation the string in newtext should not be used,
-					      ;; instead a double value obtained from the adjustemtn
-					      (let* ((adj (g-object-get-property renderer "adjustment"))
-						     (value (gtk-adjustment-get-value adj))
-						     (path (gtk-tree-path-new-from-string path-string))
-						     (iter (gtk-tree-model-get-iter model path)))
-						(gtk-tree-store-set-value model iter 1 value)
-						(when *canvas*
-						  (gtk-widget-queue-draw *canvas*)))))
+  (g-signal-connect renderer "edited" (lambda (renderer path-string newtext) ;; 4th parameter should be GtkTreeView *treeview
+					(declare (ignore newtext))
+					;; according to documentation the string in newtext should not be used,
+					;; instead a double value obtained from the adjustemtn
+					(let* ((adj (g-object-get-property renderer "adjustment"))
+					       (value (gtk-adjustment-get-value adj))
+					       (iter (gtk-tree-model-get-iter-from-string model path-string))
+					       ;(path (gtk-tree-path-new-from-string path-string))
+					       ;(iter (gtk-tree-model-get-iter model path))
+					       )
+					  (gtk-tree-store-set-value model iter 1 value)
+					  (setf *adjustment* nil)
+					  (when *canvas*
+					    (gtk-widget-queue-draw *canvas*)))))
+  
 
-  (let ((selection (gtk-tree-view-get-selection *view*)))
+  #+nil (let ((selection (gtk-tree-view-get-selection *view*)))
     (gtk-tree-selection-set-mode selection :single)
     (setf *selection* selection)
     
- ;;     (gtk-tree-view-get-path-at-pos model x y)
+    ;;     (gtk-tree-view-get-path-at-pos model x y)
     (g-signal-connect selection "changed"
 		      #'(lambda (selection)
-			  (let ((iter (gtk-tree-selection-get-selected selection))
-			;	(col (gtk-tree-view-get-column *model*   ))
-				)
-			 ;   (g-signal-emit )
-			    (format t "selection changed ~a~%" (list iter))))))
-  #+nil
+			  (let ((iter (gtk-tree-selection-get-selected selection)))
+			    (if iter
+				(format t "selection changed ~a~%" (list selection iter))
+				(format t "selection changed none~%"))))))
   (g-signal-connect
    renderer "editing-started"
    #'(lambda (renderer editable path-string)
        ;; editable is a spin-box
-       (g-signal-connect editable "focus-in-event" #'(lambda (&rest rest) (format t "editable focus-in ~a~%" rest)))
-       
        (g-signal-connect (gtk-spin-button-get-adjustment editable) "value-changed"
 			 (lambda (adjustment)
 			   (let* ((path (gtk-tree-path-new-from-string path-string))
 				  (iter (gtk-tree-model-get-iter model path))
 				  (value (gtk-adjustment-get-value adjustment)))
+			     #+nil (setf *adjustment* iter)
+			     #+nil (gtk-tree-store-set-value model iter 1 value)
+			     
 			     #+nil (g-signal-connect model "row-changed"
-						     #'(lambda (tree-store tree-path tree-iter)
-					; (format t "model row-changed: ~a~%" (list tree-store (gtk-tree-path-to-string tree-path) (gtk-tree-model-get tree-store tree-iter 1)))
-					;(g-signal-stop-emission-by-name (pointer model) "row-changed")
-							 
-							 ))
-			     
-			     (gtk-tree-store-set-value model iter 1 value)
-			     
+					       #'(lambda (tree-store tree-path tree-iter)
+						   (format t "model row-changed: ~a~%"
+							   (list tree-store tree-path tree-iter))
+						   #+nil (g-signal-stop-emission-by-name (pointer tree-store) "row-changed")))
+			     #+nil (g-signal-emit model "row-changed" path iter)
 			     (when *canvas*
 			       (gtk-widget-queue-draw *canvas*))
 			     (format t "spin-box value-changed: ~a~%" (list value
@@ -131,25 +123,31 @@ sb-alien::*shared-objects*
 	      nil)
     (setf *hash* a)))
 
+#+nil
+(g-type-from-instance (pointer *model*))
+#+nil
+(defparameter *bla* (g-signal-parse-name (g-type-from-instance (pointer *model*)) "row-changed"))
+
+
 (defun run ()
-  (sb-int:with-float-traps-masked
-   (:divide-by-zero)
-   (within-main-loop
-    (let ((window (make-instance 'gtk-window :title "holography"
-				 :default-width 480
-				 :default-height 240
-				 :border-width 12
-				 :type :toplevel)))
-      (g-signal-connect window "destroy" (lambda (widget)
-					   (declare (ignorable widget))
-					   (leave-gtk-main)))
-      (defparameter *window* window)
+     (sb-int:with-float-traps-masked
+	 (:divide-by-zero)
+       (within-main-loop
+	 (let ((window (make-instance 'gtk-window :title "holography"
+				      :default-width 480
+				      :default-height 240
+				      :border-width 12
+				      :type :toplevel)))
+	   (g-signal-connect window "destroy" (lambda (widget)
+						(declare (ignorable widget))
+						(leave-gtk-main)))
+	   (defparameter *window* window)
       
-      (multiple-value-bind (view renderer) (make-view)
-	(defparameter *view* view)
-	(defparameter *renderer* renderer)
-	(gtk-container-add window view))
-      (gtk-widget-show-all window)))))
+	   (multiple-value-bind (view renderer) (make-view)
+	     (defparameter *view* view)
+	     (defparameter *renderer* renderer)
+	     (gtk-container-add window view))
+	   (gtk-widget-show-all window)))))
 
 
 #+nil
