@@ -106,6 +106,9 @@ sb-alien::*shared-objects*
 							   (list tree-store tree-path tree-iter))
 						   #+nil (g-signal-stop-emission-by-name (pointer tree-store) "row-changed")))
 			     #+nil (g-signal-emit model "row-changed" path iter)
+			     (g-signal-emit view "realize" view)
+			     (g-signal-connect-after view "realize" #'(lambda (&rest rest)
+									(FORMAT t "view realize ~a~%" rest)))
 			     (when *canvas*
 			       (gtk-widget-queue-draw *canvas*))
 			     (format t "spin-box value-changed: ~a~%" (list value
