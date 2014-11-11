@@ -61,7 +61,7 @@ sb-alien::*shared-objects*
 
 (defun view-update-model (view renderer model)
   (gtk-tree-view-set-model view model)
-  (gtk-tree-view-expand-all view)
+  ;(gtk-tree-view-expand-all view)
   (g-signal-connect renderer "edited" (lambda (renderer path-string newtext) ;; 4th parameter should be GtkTreeView *treeview
 					(declare (ignore newtext))
 					;; according to documentation the string in newtext should not be used,
@@ -194,3 +194,20 @@ sb-alien::*shared-objects*
 
 #+nil
 (run)
+
+#+nil
+(let ((cell-progress-type 0))
+ (defun custom-cell-renderer-progress-get-type ()
+   (when (= 0 cell-progress-type)
+     (setf cell-progress-type
+	   (g-type-register-static (cffi:foreign-funcall "gtk_cell_renderer_get_type" gobject::g-type)
+				   "CustomCellRenderProgress"
+				   )))))
+
+
+
+
+
+#+nil
+(sb-int:with-float-traps-masked (:divide-by-zero)
+ (defparameter *bla* (make-instance 'gtk-cell-renderer)))
